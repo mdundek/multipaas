@@ -1,0 +1,109 @@
+{
+  "name": "mc",
+  "description": "MyCloud CLI",
+  "version": "0.0.0",
+  "author": "Michael Dundek @mdundek",
+  "bin": {
+    "mc": "./bin/run"
+  },
+  "bugs": "https://github.com/mdundek/mc/issues",
+  "dependencies": {
+    "@feathersjs/feathers": "^4.5.1",
+    "@feathersjs/rest-client": "^4.5.1",
+    "@oclif/command": "^1.5.19",
+    "@oclif/config": "^1.14.0",
+    "@oclif/plugin-help": "^2.2.3",
+    "@types/inquirer": "^6.5.0",
+    "archiver": "^3.1.1",
+    "axios": "^0.19.2",
+    "chalk": "^3.0.0",
+    "cli-ux": "^5.4.4",
+    "glob": "^7.1.6",
+    "inquirer": "^7.0.4",
+    "mkdirp": "^1.0.3",
+    "request": "^2.88.2",
+    "shortid": "^2.2.15",
+    "socket.io-client": "^2.3.0",
+    "tslib": "^1.10.0",
+    "yaml": "^1.7.2"
+  },
+  "devDependencies": {
+    "@oclif/dev-cli": "^1.22.2",
+    "@types/node": "^10.17.14",
+    "eslint": "^5.16.0",
+    "eslint-config-oclif": "^3.1.0",
+    "eslint-config-oclif-typescript": "^0.1.0",
+    "globby": "^10.0.2",
+    "ts-node": "^8.6.2",
+    "typescript": "^3.7.5"
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "files": [
+    "/bin",
+    "/lib",
+    "/npm-shrinkwrap.json",
+    "/oclif.manifest.json"
+  ],
+  "homepage": "https://github.com/mdundek/mc",
+  "keywords": [
+    "oclif"
+  ],
+  "license": "MIT",
+  "main": "lib/index.js",
+  "oclif": {
+    "commands": "./lib/commands",
+    "bin": "mc",
+    "plugins": [
+      "@oclif/plugin-help"
+    ],
+    "topics": {
+      "cluster": {
+        "description": "configure and list your k8s cluster nodes"
+      },
+      "apps": {
+        "description": "build & deploy your applications"
+      },
+      "services": {
+        "description": "create and manage services"
+      },
+      "certificates": {
+        "description": "manage your server certificates"
+      },
+      "domains": {
+        "description": "manage your custom domain names"
+      },
+      "images": {
+        "description": "work with your private registry"
+      },
+      "ns": {
+        "description": "manage your namespaces for your cluster"
+      },
+      "org": {
+        "description": "manage your account organizations"
+      },
+      "pvc": {
+        "description": "manage your persisted volume & claims"
+      },
+      "routes": {
+        "description": "create routes to make your applications available outside of your cluster"
+      },
+      "volumes": {
+        "description": "manage your cluster storage"
+      },
+      "ws": {
+        "description": "create and manage your workspaces"
+      }
+    }
+  },
+  "repository": "mdundek/mc",
+  "scripts": {
+    "postpack": "rm -f oclif.manifest.json",
+    "posttest": "eslint . --ext .ts --config .eslintrc",
+    "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
+    "test": "echo NO TESTS",
+    "version": "oclif-dev readme && git add README.md"
+  },
+  "types": "lib/index.d.ts"
+}

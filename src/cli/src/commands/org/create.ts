@@ -1,0 +1,56 @@
+import {flags} from '@oclif/command'
+import Command from '../../base'
+import cli from 'cli-ux'
+
+export default class Organization extends Command {
+	static description = 'create a new organization for your account'
+	
+	static flags = {
+		help: flags.help({char: 'h'})
+	}
+
+	static args = [
+	  	{	
+			name: 'orgName',
+			description: 'The name of the new organization'
+		}
+	]
+
+	/**
+	 * run
+	 */
+	async run() {
+		const {args} = this.parse(Organization)
+		if(!args.orgName){
+			return this.logError("Missing organization name.");
+		}
+		
+		let rUser = await cli.prompt('Assign a registry username');
+		let rPass = await cli.prompt('Assign a registry password');
+
+		let result = await this.api("organization", {
+			method: "create",
+			data: {
+				"name": args.orgName,
+				"registryUser": rUser,
+				"registryPass": rPass
+			}
+		});
+		if(result.code == 200){
+			this.log("Organization created successfully");
+		}  else if(result.code == 401){
+			this.logError(`You are not logged in`);
+		} else if(result.code == 403){
+			this.logError(`You do not have sufficient permissions to create new organizations`);
+		} else if(result.code == 409){
+			this.logError(`The organization '${args.orgName}' already exists`);
+		} else if(result.code == 417){
+			this.logError(`The cli API host has not been defined. Please run the command "mycloud join" to specity a target host for MyCloud.`);
+		} else if(result.code == 503){
+			this.logError(`MyCloud is not accessible. Please make sure that you are connected to the right network and try again.`);
+		} else {
+			// console.log(JSON.stringify(result, null, 4));
+			this.logError("Something went wrong... Please inform the system administrator.");
+		}
+	}
+}

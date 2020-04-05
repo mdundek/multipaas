@@ -1,0 +1,18 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_NO_PARALLEL'] = 'yes'
+
+Vagrant.configure(2) do |config|
+  # Kubernetes Master Server
+  config.vm.define "worker.<WS_ID>" do |worker|
+    worker.vm.box = "mycloud-worker"
+    worker.vm.hostname = "worker.<WS_ID>"
+    worker.vm.network "public_network", bridge: "<IF_NAME>"<STATIC_IP>
+    worker.vm.provider "virtualbox" do |v|
+      v.name = "worker.<WS_ID>"
+      v.memory = 2048
+      v.cpus = 2
+    end
+  end
+end

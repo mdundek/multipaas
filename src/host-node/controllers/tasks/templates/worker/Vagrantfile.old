@@ -1,0 +1,21 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_NO_PARALLEL'] = 'yes'
+
+Vagrant.configure(2) do |config|
+  config.vm.provision "shell", path: "../../../bootstrap_scripts/k8s/bootstrap.sh"
+
+  # Kubernetes Master Server
+  config.vm.define "worker.<WS_ID>" do |worker|
+    worker.vm.box = "centos/7"
+    worker.vm.hostname = "worker.<WS_ID>"
+    worker.vm.network "public_network", bridge: "<IF_NAME>"<STATIC_IP>
+    worker.vm.provider "virtualbox" do |v|
+      v.name = "worker.<WS_ID>"
+      v.memory = 2048
+      v.cpus = 2
+    end
+    worker.vm.provision "shell", path: "../../../bootstrap_scripts/k8s/bootstrap_worker.sh"
+  end
+end

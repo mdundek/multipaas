@@ -1,0 +1,25 @@
+{
+  "name": "task-manager",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chmodr": "^1.2.0",
+    "dotenv": "^8.2.0",
+    "free-memory": "^1.0.0",
+    "mqtt": "^3.0.0",
+    "ncp": "^2.0.0",
+    "nginx-conf": "^1.5.0",
+    "pg": "^7.18.1",
+    "ping": "^0.2.2",
+    "shelljs": "^0.8.3",
+    "shortid": "^2.2.15",
+    "systeminformation": "^4.21.2",
+    "yaml": "^1.8.2"
+  }
+}

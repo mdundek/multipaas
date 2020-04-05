@@ -1,0 +1,41 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_NO_PARALLEL'] = 'yes'
+
+$default_network_interface = `ip route | grep -E "^default" | awk '{printf "%s", $5; exit 0}'`
+
+CORG=ENV.fetch("CLOUD_ORG", 1)
+
+disk = "./docker-registry.vdi"
+
+Vagrant.configure(2) do |config|
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+  config.vm.define "mycloud.base" do |mycloud|
+    mycloud.vm.box = "centos/7"
+    mycloud.vm.hostname = "mycloud.base"
+    mycloud.vm.network "public_network", ip: "192.168.0.99", bridge: "#$default_network_interface"
+    mycloud.vm.provider "virtualbox" do |v|
+      v.name = "mycloud.base"
+      v.memory = 2048
+      v.cpus = 2
+
+      if ! File.exist?(disk)
+        v.customize ['createhd',
+                      '--filename', disk,
+                      '--format', 'VDI',
+                      '--size', 10 * 1024]              
+      
+
+        v.customize [ 'storageattach', :id,  
+                      '--storagectl', 'IDE', 
+                      '--port', 1, 
+                      '--device', 0, 
+                      '--type', 'hdd', 
+                      '--medium', disk]
+      end
+    end
+    
+    mycloud.vm.provision "shell", path: "./bootstrap/bootstrap.sh"
+  end
+end

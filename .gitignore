@@ -1,0 +1,7 @@
+install/gluster-*.vdi
+install/.vagrant
+**/.DS_Store
+.DS_Store
+**/node_modules
+**/.env
+**/.vagrant

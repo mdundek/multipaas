@@ -1,0 +1,84 @@
+
+postgresql:
+  name: PostgreSQL
+  description: A postgres database
+  versions:
+    - version: "8.6.3"
+      appVersion: "11.7.0"
+      chartFile: postgresql-8.6.3.tgz
+      clusterIpServiceName: "${instance_name}-postgresql"
+      provision_volume: True
+      portConfig:
+        - port: 5432
+          tcpStream: True
+      params:
+        postgresqlUsername:
+          prompt: Enter the db username
+        postgresqlPassword:
+          prompt: Enter the db defautl password
+        postgresqlDatabase:
+          prompt: Enter the database name
+        persistence.existingClaim:
+          fill: ${pvc}
+      vcap:
+        USERNAME: secret.${instance-name}-postgresql.postgresql-username
+        PASSWORD: secret.${instance-name}-postgresql.postgresql-password
+        URI: ${service}
+      
+mysql:
+  name: MySQL
+  description: A MySQL database
+  versions:
+    - version: "1.6.2"
+      appVersion: "5.7.28"
+      chartFile: mysql-1.6.2.tgz
+      clusterIpServiceName: "${instance_name}-mysql"
+      provision_volume: True
+      portConfig:
+        - port: 3306
+          tcpStream: True
+      params:
+        mysqlRootPassword	:
+          prompt: Enter the database root password
+        mysqlUser :
+          prompt: Enter the database username
+        mysqlPassword	:
+          prompt: Enter the database password
+        mysqlDatabase:
+          prompt: Enter the database name to be created
+        persistence.existingClaim:
+          fill: ${pvc}
+      vcap:
+        USERNAME: secret.${instance-name}-mysql.mysql-user
+        PASSWORD: secret.${instance-name}-mysql.mysql-password
+
+node-red:
+  name: Node-Red
+  description: Low-code programming for event-driven applications
+  versions:
+    - version: "1.4.1"
+      appVersion: "1.0.2"
+      chartFile: node-red-1.4.1.tgz
+      clusterIpServiceName: "${instance_name}-node-red"
+      provision_volume: True
+      portConfig:
+        - port: 1880
+          tcpStream: False
+      params:
+        persistence.existingClaim:
+          fill: ${pvc}
+
+
+mosquitto:
+  name: mosquitto
+  description: MQTT broker
+  versions:
+    - version: "0.1.0"
+      appVersion: "1.6.8"
+      chartFile: mosquitto-0.1.0.tgz
+      clusterIpServiceName: "${instance_name}-mosquitto"
+      portConfig:
+        - port: 1883
+          tcpStream: True
+        - port: 9001
+          tcpStream: False
