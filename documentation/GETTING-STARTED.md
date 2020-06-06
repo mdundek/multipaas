@@ -54,12 +54,12 @@ The way to deploy PaaS level services such as databases or streaming services (a
 
 ## Deploying Services & Applications
 
-[![MultiPaaS Installation](https://img.youtube.com/vi/VID/0.jpg)](https://www.youtube.com/watch?v=VID)
+[![MultiPaaS Installation](https://img.youtube.com/vi/BLM0QmzqAz4/0.jpg)](https://www.youtube.com/watch?v=BLM0QmzqAz4)
 
 
 ## Canary deployments, blue / green deployment, domain names & SSL
 
-[![MultiPaaS Installation](https://img.youtube.com/vi/VID/0.jpg)](https://www.youtube.com/watch?v=VID)
+[![MultiPaaS Installation](https://img.youtube.com/vi/RyIgYcIOog8/0.jpg)](https://www.youtube.com/watch?v=RyIgYcIOog8)
 
 
 ## Invite users to my organization and manage RBAC roles

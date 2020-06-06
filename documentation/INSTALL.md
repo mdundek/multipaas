@@ -16,7 +16,7 @@ As seen in the diagram above, `MultiPaaS` is composed of a `control-plane` envir
 
 Here is a video on the installation procedure of MultiPaaS for those who prefer watching rather than reading:
 
-[![MultiPaaS Installation](https://img.youtube.com/vi/b_xpeve24rU/0.jpg)](https://www.youtube.com/watch?v=b_xpeve24rU)
+[![MultiPaaS Installation](https://img.youtube.com/vi/W33z-4Bse8E/0.jpg)](https://www.youtube.com/watch?v=W33z-4Bse8E)
 
 ## Some notes about DHCP
 
