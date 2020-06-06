@@ -194,9 +194,9 @@ k8s_build_base_boxes() {
         fi
     fi
 
-    vagrant up --no-provision &>>$err_log &
-    bussy_indicator "Start up worker VM..."
-    log "\n"
+    vagrant up --no-provision #&>>$err_log &
+    #bussy_indicator "Start up worker VM..."
+    #log "\n"
     
     vagrant provision --provision-with init &>>$err_log &
     bussy_indicator "Provisionning base components..."
