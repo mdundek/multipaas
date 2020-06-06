@@ -1,0 +1,13 @@
+[Unit]
+Description=Multipaas Control Plane service
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=<DOT_CFG_DIR>/startup_cp.sh
+TimeoutStartSec=0
+User=<USER>
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target

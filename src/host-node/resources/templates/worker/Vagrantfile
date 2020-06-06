@@ -1,0 +1,25 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_NO_PARALLEL'] = 'yes'
+ENV["LC_ALL"] = "en_US.UTF-8"
+
+Vagrant.configure(2) do |config|
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+  config.vm.synced_folder "<MP_BASE_PATH>/install/build/offline_files/rpms", "/home/vagrant/rpms"
+  config.vm.synced_folder "<MP_BASE_PATH>/install/build/offline_files/docker_images", "/home/vagrant/docker-images"
+  config.vm.synced_folder "<MP_BASE_PATH>/src/host-node/resources/k8s_templates", "/home/vagrant/k8s_templates"
+  config.vbguest.auto_update = false
+  config.vm.define "worker.<WS_HASH>" do |worker|
+    worker.vm.box = "multipaas-worker"
+    worker.vm.hostname = "worker.<WS_HASH>"
+    worker.vm.network "public_network", bridge: "<IF_NAME>"<STATIC_IP>
+    worker.vm.provider "virtualbox" do |v|
+      v.linked_clone = true if Gem::Version.new(Vagrant::VERSION) >= Gem::Version.new('1.8.0')
+      v.name = "worker.<WS_HASH>"
+      v.memory = 2048
+      v.cpus = 2
+    end
+    worker.vm.provision "shell", path: "../../../bootstrap_scripts/k8s/bootstrap_worker.sh", args: "'<CPLANE_IP>'"
+  end
+end

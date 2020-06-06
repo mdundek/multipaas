@@ -1,0 +1,5 @@
+*
+!.gitignore
+!rpms
+!docker_images
+!helm

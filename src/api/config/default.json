@@ -1,0 +1,32 @@
+{
+  "host": "localhost",
+  "port": 3030,
+  "public": "../public/",
+  "paginate": {
+    "default": 1000,
+    "max": 1000
+  },
+  "authentication": {
+    "entity": "user",
+    "service": "users",
+    "secret": "SVQfBaO5z3xe4wBQdERL7SnEhDA=",
+    "authStrategies": [
+      "jwt",
+      "local",
+      "keycloak"
+    ],
+    "jwtOptions": {
+      "header": {
+        "typ": "access"
+      },
+      "audience": "https://multipaas.org",
+      "issuer": "feathers",
+      "algorithm": "HS256",
+      "expiresIn": "1d"
+    },
+    "local": {
+      "usernameField": "email",
+      "passwordField": "password"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+install/gluster-*.vdi
+install/.vagrant
+install/docker-images
+**/.DS_Store
+.DS_Store
+**/node_modules
+**/.env
+**/.vagrant
+**/test.sh
+tmp
+vm_base
+**/_tmp

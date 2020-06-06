@@ -1,0 +1,43 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_NO_PARALLEL'] = 'yes'
+ENV["LC_ALL"] = "en_US.UTF-8"
+
+Vagrant.configure(2) do |config|
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+  config.vm.synced_folder "../debs", "/var/tmp/debs"
+  config.vm.synced_folder "../npm-modules", "/var/tmp/npm-modules"
+  config.vm.synced_folder "../docker-images", "/var/tmp/docker-images"
+  config.vm.synced_folder "../../../../", "/home/vagrant/multipaas"
+  
+  config.vm.define "multipaas-prepare" do |multipaas|
+    multipaas.vagrant.plugins = ['vagrant-vbguest']
+    multipaas.vm.box = 'ubuntu/bionic64'
+    multipaas.vm.hostname = "multipaas-prepare"
+    multipaas.vm.provider "virtualbox" do |v|
+      v.name = "multipaas-prepare"
+      v.memory = 4096
+    end
+
+    multipaas.vm.provision "init", type: "shell" do |shell|
+      shell.path = "./bootstrap/init.sh"
+    end
+
+    multipaas.vm.provision "debs", type: "shell" do |shell|
+      shell.path = "./bootstrap/debs.sh"
+    end
+
+    multipaas.vm.provision "docker", type: "shell" do |shell|
+      shell.path = "./bootstrap/docker.sh"
+    end
+
+    multipaas.vm.provision "mp-hn", type: "shell" do |shell|
+      shell.path = "./bootstrap/mp-hn.sh"
+    end
+
+    multipaas.vm.provision "mp-cp", type: "shell" do |shell|
+      shell.path = "./bootstrap/mp-cp.sh"
+    end
+  end
+end

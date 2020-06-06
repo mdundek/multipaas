@@ -1,0 +1,143 @@
+postgresql:
+  name: PostgreSQL
+  description: A postgres database
+  versions:
+    - version: "8.6.3"
+      appVersion: "11.7.0"
+      chartFile: postgresql-8.6.3.tgz
+      clusterIpServiceName: "${instance_name}-postgresql"
+      provision_volume: True
+      portConfig:
+        - port: 5432
+          tcpStream: True
+      params:
+        postgresqlUsername:
+          prompt: Enter the db username
+        postgresqlPassword:
+          prompt: Enter the db defautl password
+        postgresqlDatabase:
+          prompt: Enter the database name
+        persistence.existingClaim:
+          fill: ${pvc}
+      vcap:
+        USERNAME: secret.${instance-name}-postgresql.postgresql-username
+        PASSWORD: secret.${instance-name}-postgresql.postgresql-password
+      
+mysql:
+  name: MySQL
+  description: A MySQL database
+  versions:
+    - version: "1.6.2"
+      appVersion: "5.7.28"
+      chartFile: mysql-1.6.2.tgz
+      clusterIpServiceName: "${instance_name}-mysql"
+      provision_volume: True
+      portConfig:
+        - port: 3306
+          tcpStream: True
+      params:
+        mysqlRootPassword	:
+          prompt: Enter the database root password
+        mysqlUser :
+          prompt: Enter the database username
+        mysqlPassword	:
+          prompt: Enter the database password
+        mysqlDatabase:
+          prompt: Enter the database name to be created
+        persistence.existingClaim:
+          fill: ${pvc}
+      vcap:
+        USERNAME: secret.${instance-name}-mysql.mysql-user
+        PASSWORD: secret.${instance-name}-mysql.mysql-password
+
+node-red:
+  name: Node-Red
+  description: Low-code programming for event-driven applications
+  versions:
+    - version: "1.4.1"
+      appVersion: "1.0.2"
+      chartFile: node-red-1.4.1.tgz
+      clusterIpServiceName: "${instance_name}-node-red"
+      provision_volume: True
+      portConfig:
+        - port: 1880
+          tcpStream: False
+      params:
+        persistence.existingClaim:
+          fill: ${pvc}
+
+mosquitto:
+  name: mosquitto
+  description: MQTT broker
+  versions:
+    - version: "0.1.0"
+      appVersion: "1.6.8"
+      chartFile: mosquitto-0.1.0.tgz
+      clusterIpServiceName: "${instance_name}-mosquitto"
+      portConfig:
+        - port: 1883
+          tcpStream: True
+        - port: 9001
+          tcpStream: False
+
+kafka:
+  name: kafka
+  description: Distributed streaming platform for real-time data pipelines
+  versions:
+    - version: "0.21.2"
+      appVersion: "5.0.1"
+      chartFile: kafka-0.21.2.tgz
+      clusterIpServiceName: "${instance_name}-kafka"
+      portConfig:
+        - port: 9092
+          tcpStream: True
+      params:
+        persistence.size:
+          prompt: Enter storage size for Kafka
+          regexValidate: "^\\dGi|\\dMi$"
+          errorMsg: "Invalide size format"
+
+mongodb:
+  name: mongodb
+  description: Cross-platform document-oriented database
+  versions:
+    - version: "7.10.10"
+      appVersion: "4.2.5"
+      chartFile: mongodb-7.10.10.tgz
+      clusterIpServiceName: "${instance_name}-mongodb"
+      portConfig:
+        - port: 27017
+          tcpStream: True
+      provision_volume: True
+      params:
+        persistence.existingClaim:
+          fill: ${pvc}
+        mongodbUsername:
+          prompt: Enter admin username
+        mongodbPassword:
+          prompt: Enter admin password
+        mongodbDatabase:
+          prompt: Enter database name
+      vcap:
+        PASSWORD: secret.${instance-name}-mongodb.mongodb-password
+        ROOT_PASSWORD: secret.${instance-name}-mongodb.mongodb-root-password
+
+redis:
+  name: redis
+  description: Advanced key-value cache and store
+  versions:
+    - version: "10.6.5"
+      appVersion: "5.0.8"
+      chartFile: redis-10.6.5.tgz
+      clusterIpServiceName: "${instance_name}-redis-master"
+      portConfig:
+        - port: 6379
+          tcpStream: True
+      provision_volume: True
+      params:
+        persistence.existingClaim:
+          fill: ${pvc}
+        password:
+          prompt: Enter redis password
+      vcap:
+        PASSWORD: secret.${instance_name}-redis.redis-password

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tbd
+  labels:
+    volumeHash: tbd
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-storage
+  selector:
+    matchLabels:
+      app: "tbd"
+  resources:
+    requests:
+      storage: tbd

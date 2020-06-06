@@ -1,0 +1,85 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_NO_PARALLEL'] = 'yes'
+ENV["LC_ALL"] = "en_US.UTF-8"
+
+if defined?(VagrantVbguest)
+  class MyWorkaroundInstallerUntilPR373IsMerged < VagrantVbguest::Installers::CentOS
+    protected
+    
+    def has_rel_repo?
+      unless instance_variable_defined?(:@has_rel_repo)
+        rel = release_version
+        @has_rel_repo = communicate.test(centos_8? ? 'yum repolist' : "yum repolist --enablerepo=C#{rel}-base --enablerepo=C#{rel}-updates")
+      end
+      @has_rel_repo
+    end
+
+    def centos_8?
+      release_version && release_version.to_s.start_with?('8')
+    end
+
+    def install_kernel_devel(opts=nil, &block)
+      if centos_8?
+        communicate.sudo('yum update -y kernel', opts, &block)
+        communicate.sudo('yum install -y kernel-devel', opts, &block)
+        communicate.sudo('shutdown -r now', opts, &block)
+
+        begin
+          sleep 10
+        end until @vm.communicate.ready?
+      else
+        rel = has_rel_repo? ? release_version : '*'
+        cmd = "yum install -y kernel-devel-`uname -r` --enablerepo=C#{rel}-base --enablerepo=C#{rel}-updates"
+        communicate.sudo(cmd, opts, &block)
+      end
+    end
+  end
+end
+
+Vagrant.configure(2) do |config|
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+  config.vm.synced_folder "../rpms", "/var/tmp/rpms"
+  config.vm.synced_folder "../npm-modules", "/var/tmp/npm-modules"
+  config.vm.synced_folder "../docker-images", "/var/tmp/docker-images"
+  config.vm.synced_folder "../../../../", "/home/vagrant/multipaas"
+  
+  config.vm.define "multipaas-prepare" do |multipaas|
+    multipaas.vagrant.plugins = ['vagrant-vbguest']
+    multipaas.vbguest.auto_update = true
+    multipaas.vm.box = 'centos/8'
+    multipaas.vm.box_url = 'https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-Vagrant-8.1.1911-20200113.3.x86_64.vagrant-virtualbox.box'
+
+    if defined?(MyWorkaroundInstallerUntilPR373IsMerged)
+      multipaas.vbguest.installer = MyWorkaroundInstallerUntilPR373IsMerged
+    end
+
+    multipaas.vm.hostname = "multipaas-prepare"
+    # multipaas.vm.network "public_network", bridge: "<IF_NAME>"
+    multipaas.vm.provider "virtualbox" do |v|
+      v.name = "multipaas-prepare"
+      v.memory = 4096
+    end
+
+    multipaas.vm.provision "init", type: "shell" do |shell|
+      shell.path = "./bootstrap/init.sh"
+    end
+
+    multipaas.vm.provision "rpms", type: "shell" do |shell|
+      shell.path = "./bootstrap/rpms.sh"
+    end
+
+    multipaas.vm.provision "docker", type: "shell" do |shell|
+      shell.path = "./bootstrap/docker.sh"
+    end
+
+    multipaas.vm.provision "mp-hn", type: "shell" do |shell|
+      shell.path = "./bootstrap/mp-hn.sh"
+    end
+
+    multipaas.vm.provision "mp-cp", type: "shell" do |shell|
+      shell.path = "./bootstrap/mp-cp.sh"
+    end
+  end
+end

@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tbd
+  labels:
+    app: tbd
+    volumeHash: tbd
+spec:
+  storageClassName: local-storage
+  capacity:
+    storage: tbd
+  accessModes:
+    - ReadWriteOnce
+  local:
+    path: tbd
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values: tbd

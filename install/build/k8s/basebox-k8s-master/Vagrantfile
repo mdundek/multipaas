@@ -1,0 +1,38 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_NO_PARALLEL'] = 'yes'
+ENV["LC_ALL"] = "en_US.UTF-8"
+
+Vagrant.configure(2) do |config|
+  config.ssh.insert_key = false
+  config.vbguest.auto_update = false
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+  config.vm.synced_folder "../../offline_files/docker_images", "/var/tmp/docker-images"
+  config.vm.synced_folder "../../offline_files/rpms", "/var/tmp/rpms"
+  
+  # Kubernetes Master Server
+  config.vm.define "master.base" do |master|
+    master.vm.box = "multipaas-basebox-centos/7"
+    master.vm.hostname = "master.base"
+    master.vm.provider "virtualbox" do |v|
+      v.linked_clone = true if Gem::Version.new(Vagrant::VERSION) >= Gem::Version.new('1.8.0')
+      v.name = "master.base"
+      v.memory = 4096
+      v.cpus = 4     
+    end
+
+    master.vm.provision "init", type: "shell" do |shell|
+      shell.path = "./bootstrap/bootstrap.sh"
+    end
+    master.vm.provision "images", type: "shell" do |shell|
+      shell.path = "./bootstrap/docker.sh"
+    end
+    master.vm.provision "rpms", type: "shell" do |shell|
+      shell.path = "./bootstrap/rpms.sh"
+    end
+    master.vm.provision "install", type: "shell" do |shell|
+      shell.path = "./bootstrap/install.sh"
+    end
+  end
+end
