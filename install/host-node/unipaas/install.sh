@@ -12,6 +12,7 @@ err_log=$_DIR/std.log
 
 _BASEDIR="$(dirname "$_DIR")"
 _BASEDIR="$(dirname "$_BASEDIR")"
+_BASEDIR="$(dirname "$_BASEDIR")"
 
 ########################################
 # 
