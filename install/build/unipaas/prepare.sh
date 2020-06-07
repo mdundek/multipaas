@@ -138,6 +138,7 @@ build_for_ubuntu_bionic() {
     download_deb kubelet
     download_deb kubectl
     download_deb nodejs
+    download_deb sshpass
 
     cd $_CPWD
 
