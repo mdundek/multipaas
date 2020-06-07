@@ -101,6 +101,7 @@ EOF'
 
   
     for dockerimage in ../../build/offline_files/docker_images/*.tar; do
+        echo "IMAGE $dockerimage"
         docker load --input $dockerimage
     done
 
