@@ -69,6 +69,17 @@ dependencies () {
 
     sudo echo "" # Ask user for sudo password now
 
+    NODE_EXISTS=$(command -v npm)
+    if [ "$NODE_EXISTS" == "" ]; then
+        curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        apt-get install -y nodejs
+    fi
+
+    NPM_BUNDLE_EXISTS=$(command -v npm-bundle)
+    if [ "$NPM_BUNDLE_EXISTS" == "" ]; then
+        npm install npm-bundle -g
+    fi
+
     dep_wget &>>$err_log &
     bussy_indicator "Dependency on \"wget\"..."
     log "\n"
@@ -105,9 +116,6 @@ build_for_ubuntu_bionic() {
     # KUBERNETES
     curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add
     apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
-
-    # NODEJS
-    curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
 
     _CPWD=$(pwd)
 
