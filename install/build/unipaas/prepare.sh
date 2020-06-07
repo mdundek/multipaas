@@ -13,7 +13,7 @@ err_log=$_DIR/std.log
 . ../../_libs/update.sh
 
 ########################################
-# DOWNLOAD DEPS
+# CHECK DEPS FILES
 ########################################
 dependency_dl_exists() {
     local _EXISTS=""
@@ -31,6 +31,26 @@ dependency_dl_exists() {
         fi
     fi
     echo $_EXISTS
+}
+
+########################################
+# DOWNLOAD DEPS
+########################################
+download_deb() {
+    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/$1)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/$1
+        echo "==> Downloading package $1"
+        cd $OFFLINE_FOLDER/debs/$1
+        for i in $(apt-cache depends $1 | grep -E 'Depends|Recommends|Suggests' | cut -d ':' -f 2,3 | sed -e s/'<'/''/ -e s/'>'/''/); do apt-get download $i 2>>errors.txt; done
+        apt-get install $1 --print-uris --reinstall --yes | sed -n "s/^'\([^']*\)'.*$/\1/p" > ./debs.txt
+        _IFS=$'\r\n' GLOBIGNORE='*' command eval  'DEP_ARR=($(cat ./debs.txt))'
+        for PACKAGE in "${DEP_ARR[@]}"; do :
+            wget -nc $PACKAGE 
+        done
+        rm -rf ./debs.txt
+    else
+        echo "==> $1 already present, skipping download"
+    fi
 }
 
 ########################################
@@ -81,25 +101,16 @@ build_for_ubuntu_bionic() {
     # GITLAB-RUNNER
     curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash
 
+    # KUBERNETES
+    curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add
+    apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+
     _CPWD=$(pwd)
-    download_deb() {
-        if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/$1)" ]; then
-            mkdir $OFFLINE_FOLDER/debs/$1
-            echo "==> Downloading package $1"
-            cd $OFFLINE_FOLDER/debs/$1
-            for i in $(apt-cache depends $1 | grep -E 'Depends|Recommends|Suggests' | cut -d ':' -f 2,3 | sed -e s/'<'/''/ -e s/'>'/''/); do apt-get download $i 2>>errors.txt; done
-            apt-get install $1 --print-uris --reinstall --yes | sed -n "s/^'\([^']*\)'.*$/\1/p" > ./debs.txt
-            _IFS=$'\r\n' GLOBIGNORE='*' command eval  'DEP_ARR=($(cat ./debs.txt))'
-            for PACKAGE in "${DEP_ARR[@]}"; do :
-                wget -nc $PACKAGE 
-            done
-            rm -rf ./debs.txt
-        else
-            echo "==> $1 already present, skipping download"
-        fi
-    }
 
 
+    download_deb kubeadm
+    download_deb kubelet
+    download_deb kubectl
 
 
     cd $_CPWD
