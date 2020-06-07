@@ -3,4 +3,5 @@
 !rpms
 !debs
 !docker_images
+!npm-modules
 !helm

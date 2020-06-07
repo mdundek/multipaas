@@ -125,6 +125,17 @@ build_for_ubuntu_bionic() {
     download_deb nodejs
 
     cd $_CPWD
+
+    # Bundle pm2
+    mkdir -p ./npm-tmp
+    cd ./npm-tmp
+    npm-bundle pm2@4.4.0
+    npm-bundle pm2-logrotate@2.7.0
+
+    mv ./pm2-4.4.0.tgz ../../offline_files/npm-modules/pm2-4.4.0.tgz
+    mv ./pm2-logrotate-2.7.0.tgz ../../offline_files/npm-modules/pm2-logrotate-2.7.0.tgz
+    cd ..
+    rm -rf ./npm-tmp
 }
 
 ########################################
