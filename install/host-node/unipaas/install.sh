@@ -77,9 +77,37 @@ dependencies () {
     bussy_indicator "Dependency on \"NodeJS\"..."
     log "\n"
 
-    dep_pm2 &>>$err_log &
-    bussy_indicator "Dependency on \"PM2\"..."
-    log "\n"
+    
+
+
+
+
+
+
+    PM2_EXISTS=$(command -v pm2)
+    if [ "$PM2_EXISTS" == "" ]; then
+        PM2_INSTALL_DIR=/opt
+        tar xpf ../../build/offline_files/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
+           
+        if [ -d "$PM2_INSTALL_DIR/package" ]; then
+            sudo mv $PM2_INSTALL_DIR/package $PM2_INSTALL_DIR/pm2
+        fi
+        sudo bash -c 'cat <<EOF > "/etc/profile.d/node.sh"
+#!/bin/sh
+export PATH="'$PM2_INSTALL_DIR'/pm2/bin:\$PATH"
+EOF'
+        . /etc/profile.d/node.sh
+    fi
+
+
+
+
+
+
+
+
+
+
 
     if [ "$IS_GLUSTER_PEER" == "true" ]; then
         GLUSTER_IMG_EXISTS=$(sudo docker images gluster/gluster-centos:gluster4u0_centos7 | sed -n '1!p')
