@@ -4,26 +4,32 @@
 # 
 ########################################
 rpm_offline_install() {
-    if [ ! -d "../build/centos8/rpms/$1" ]; then
+    if [ ! -d "../build/centos8/rpms/$1" ] && [ ! -d "../../build/centos8/rpms/$1" ]; then
         error "The local lib files for dependecy $1 have not been found.\n"
         error "Please run the preparation script first before continuing.\n"
         exit 1
     fi
-    sudo yum install -y --cacheonly --disablerepo=* ../build/centos8/rpms/$1/*.rpm
+    if [ ! -d "../build/centos8/rpms/$1" ]; then
+        sudo yum install -y --cacheonly --disablerepo=* ../build/centos8/rpms/$1/*.rpm
+    else
+        sudo yum install -y --cacheonly --disablerepo=* ../../build/centos8/rpms/$1/*.rpm
+    fi
 }
 
 ########################################
 # 
 ########################################
 pem_offline_install() {
-    echo "=======================> $(pwd)"
-    if [ ! -d "../build/ubuntu_bionic/debs/$1" ]; then
+    if [ ! -d "../build/ubuntu_bionic/debs/$1" ] && [ ! -d "../../build/ubuntu_bionic/debs/$1" ]; then
         error "The local lib files for dependecy $1 have not been found.\n"
         error "Please run the preparation script first before continuing.\n"
         exit 1
     fi
-    
-    sudo dpkg -i ../build/ubuntu_bionic/debs/$1/*.deb
+    if [ -d "../build/ubuntu_bionic/debs/$1" ]; then
+        sudo dpkg -i ../build/ubuntu_bionic/debs/$1/*.deb
+    else
+        sudo dpkg -i ../../build/ubuntu_bionic/debs/$1/*.deb
+    fi
 }
 
 ########################################

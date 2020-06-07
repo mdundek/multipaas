@@ -57,17 +57,14 @@ dependencies () {
 
     sudo echo "" # Ask user for sudo password now
 
-    echo "===> $(pwd)"
-    cd ..
-
     if [ "$IS_K8S_NODE" == "true" ]; then
         dep_tar &>>$err_log &
         bussy_indicator "Dependency on \"tar\"..."
         log "\n"
 
-        dep_sshpass #&>>$err_log &
-        # bussy_indicator "Dependency on \"sshpass\"..."
-        # log "\n"
+        dep_sshpass &>>$err_log &
+        bussy_indicator "Dependency on \"sshpass\"..."
+        log "\n"
     fi
 
     dep_docker &>>$err_log &
