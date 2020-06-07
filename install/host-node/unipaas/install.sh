@@ -64,9 +64,9 @@ dependencies () {
         bussy_indicator "Dependency on \"tar\"..."
         log "\n"
 
-        dep_sshpass &>>$err_log &
-        bussy_indicator "Dependency on \"sshpass\"..."
-        log "\n"
+        dep_sshpass #&>>$err_log &
+        # bussy_indicator "Dependency on \"sshpass\"..."
+        # log "\n"
     fi
 
     dep_docker &>>$err_log &
