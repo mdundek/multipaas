@@ -72,6 +72,8 @@ dependencies () {
     bussy_indicator "Dependency on \"Docker CE\"..."
     log "\n"
 
+    sudo usermod -aG docker $USER
+
     dep_nodejs &>>$err_log &
     bussy_indicator "Dependency on \"NodeJS\"..."
     log "\n"
