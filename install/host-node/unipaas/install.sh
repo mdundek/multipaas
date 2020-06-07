@@ -97,17 +97,9 @@ EOF'
         . /etc/profile.d/node.sh
     fi
 
-
-
-  
     for dockerimage in ../../build/offline_files/docker_images/*.tar; do
-        echo "IMAGE $dockerimage"
         docker load --input $dockerimage
     done
-
-
-
-
 
     if [ "$IS_GLUSTER_PEER" == "true" ]; then
         GLUSTER_IMG_EXISTS=$(sudo docker images gluster/gluster-centos:gluster4u0_centos7 | sed -n '1!p')

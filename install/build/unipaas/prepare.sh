@@ -125,6 +125,10 @@ build_for_ubuntu_bionic() {
         wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/docker-ce/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb
     fi
 
+    dpkg -i $OFFLINE_FOLDER/debs/containerd/*.deb
+    dpkg -i $OFFLINE_FOLDER/debs/docker-ce-cli/*.deb
+    dpkg -i $OFFLINE_FOLDER/debs/docker-ce/*.deb
+
     # GITLAB-RUNNER
     curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash
 
