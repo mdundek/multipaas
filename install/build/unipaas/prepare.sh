@@ -159,7 +159,7 @@ build_for_ubuntu_bionic() {
     systemctl start docker
     sleep 2
 
-    IFS=$'\r\n' GLOBIGNORE='*' command eval  'DIMG_LIST=($(cat ../offline_files/docker-images/image-list.cfg))'
+    IFS=$'\r\n' GLOBIGNORE='*' command eval  'DIMG_LIST=($(cat ../offline_files/docker_images/image-list.cfg))'
     for PACKAGE in "${DIMG_LIST[@]}"; do :
         if [[ "$PACKAGE" =~ ^#.*  ]]; then
             echo "Skipping image $PACKAGE"
