@@ -99,7 +99,7 @@ EOF'
 
 
 
-
+    echo "=========> $(pwd)"
     for dockerimage in ../../build/offline_files/docker_images/*.tar; do
         docker load --input $dockerimage
     done
