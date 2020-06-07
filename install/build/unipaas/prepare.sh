@@ -13,6 +13,27 @@ err_log=$_DIR/std.log
 . ../../_libs/update.sh
 
 ########################################
+# DOWNLOAD DEPS
+########################################
+dependency_dl_exists() {
+    local _EXISTS=""
+    
+    if [ -d "$1" ]; then
+        if [ -n "$(ls $1)" ]; then 
+            if [ -d "$1/dependencies" ]; then
+                if [ -n "$(ls $1/dependencies)" ]; then 
+                    _EXISTS="OK"
+                fi
+            else
+                _EXISTS="OK"
+            fi
+
+        fi
+    fi
+    echo $_EXISTS
+}
+
+########################################
 # RESOLVE DEPEENDENCIES
 ########################################
 dependencies () {
@@ -33,14 +54,55 @@ dependencies () {
     log "\n"
 }
 
+
 ########################################
 # BUILD FOR TARGET UBUNTU
 ########################################
 build_for_ubuntu_bionic() {
     cd $_DIR
 
+    OFFLINE_FOLDER="$(dirname "$_DIR")/offline_files"
+    # DOCKER
+    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/containerd)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/containerd
+        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/containerd.io_1.2.6-3_amd64.deb -O $OFFLINE_FOLDER/debs/containerd/containerd.io_1.2.6-3_amd64.deb
+    fi
+
+    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/docker-ce-cli)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/docker-ce-cli
+        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce-cli_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/docker-ce-cli/docker-ce-cli_19.03.9~3-0~ubuntu-bionic_amd64.deb
+    fi
+
+    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/docker-ce)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/docker-ce
+        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/docker-ce/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb
+    fi
+
+    # GITLAB-RUNNER
+    curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash
+
+    _CPWD=$(pwd)
+    download_deb() {
+        if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/$1)" ]; then
+            mkdir $OFFLINE_FOLDER/debs/$1
+            echo "==> Downloading package $1"
+            cd $OFFLINE_FOLDER/debs/$1
+            for i in $(apt-cache depends $1 | grep -E 'Depends|Recommends|Suggests' | cut -d ':' -f 2,3 | sed -e s/'<'/''/ -e s/'>'/''/); do apt-get download $i 2>>errors.txt; done
+            apt-get install $1 --print-uris --reinstall --yes | sed -n "s/^'\([^']*\)'.*$/\1/p" > ./debs.txt
+            _IFS=$'\r\n' GLOBIGNORE='*' command eval  'DEP_ARR=($(cat ./debs.txt))'
+            for PACKAGE in "${DEP_ARR[@]}"; do :
+                wget -nc $PACKAGE 
+            done
+            rm -rf ./debs.txt
+        else
+            echo "==> $1 already present, skipping download"
+        fi
+    }
 
 
+
+
+    cd $_CPWD
 }
 
 ########################################
