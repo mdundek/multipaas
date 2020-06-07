@@ -57,6 +57,8 @@ dependencies () {
 
     sudo echo "" # Ask user for sudo password now
 
+    cd ..
+
     if [ "$IS_K8S_NODE" == "true" ]; then
         dep_tar &>>$err_log &
         bussy_indicator "Dependency on \"tar\"..."
@@ -94,6 +96,7 @@ dependencies () {
 
         fi
     fi
+    cd unipaas
 }
 
 ########################################
