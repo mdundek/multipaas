@@ -76,7 +76,7 @@ dependencies () {
     log "\n"
 
     dep_kubernetes &>>$err_log &
-    bussy_indicator "Dependency on \"NodeJS\"..."
+    bussy_indicator "Dependency on \"Kubernetes\"..."
     log "\n"
 
     PM2_EXISTS=$(command -v pm2)
@@ -93,6 +93,17 @@ export PATH="'$PM2_INSTALL_DIR'/pm2/bin:\$PATH"
 EOF'
         . /etc/profile.d/node.sh
     fi
+
+
+
+
+    for dockerimage in ../../build/offline_files/docker_images/*.tar; do
+        docker load --input $dockerimage
+    done
+
+
+
+
 
     if [ "$IS_GLUSTER_PEER" == "true" ]; then
         GLUSTER_IMG_EXISTS=$(sudo docker images gluster/gluster-centos:gluster4u0_centos7 | sed -n '1!p')
