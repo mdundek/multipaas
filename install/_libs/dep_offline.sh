@@ -21,6 +21,7 @@ rpm_offline_install() {
 ########################################
 pem_offline_install() {
     echo "==========> $(pwd)"
+    
     if [ ! -d "../build/ubuntu_bionic/debs/$1" ] && [ ! -d "../../build/ubuntu_bionic/debs/$1" ]; then
         error "The local lib files for dependecy $1 have not been found.\n"
         error "Please run the preparation script first before continuing.\n"
