@@ -80,6 +80,7 @@ dependencies () {
 ########################################
 build_for_ubuntu_bionic() {
     cd $_DIR
+    chown _apt /var/lib/update-notifier/package-data-downloads/partial/
 
     OFFLINE_FOLDER="$(dirname "$_DIR")/offline_files"
     # DOCKER
