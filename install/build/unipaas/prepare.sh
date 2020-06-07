@@ -54,6 +54,21 @@ download_deb() {
 }
 
 ########################################
+# DOWNLOAD DOCKER IMAGES
+########################################
+fetch_docker_images() {
+    if [ ! -f /var/tmp/docker-images/$3-$2.tar ]; then
+        echo "==> Downloading image $1:$2"
+        docker pull $1:$2
+        docker save -o /var/tmp/docker-images/$3-$2.tar $1:$2
+        docker rmi $1:$2
+        docker images purge
+    else
+        echo "==> Image $1:$2 already present, skipping"
+    fi
+}
+
+########################################
 # RESOLVE DEPEENDENCIES
 ########################################
 dependencies () {
@@ -136,6 +151,25 @@ build_for_ubuntu_bionic() {
     mv ./pm2-logrotate-2.7.0.tgz ../../offline_files/npm-modules/pm2-logrotate-2.7.0.tgz
     cd ..
     rm -rf ./npm-tmp
+
+    # Download docker images
+    # Clear layer cach to prevent stuck corrupt image layers
+    systemctl stop docker
+    rm -rf /var/lib/docker
+    systemctl start docker
+    sleep 2
+
+    IFS=$'\r\n' GLOBIGNORE='*' command eval  'DIMG_LIST=($(cat ../offline_files/docker-images/image-list.cfg))'
+    for PACKAGE in "${DIMG_LIST[@]}"; do :
+        if [[ "$PACKAGE" =~ ^#.*  ]]; then
+            echo "Skipping image $PACKAGE"
+        else
+            D_IMG=$(echo $PACKAGE | cut -d' ' -f1)
+            D_VER=$(echo $PACKAGE | cut -d' ' -f2)
+            F_NAME=$(echo $PACKAGE | cut -d' ' -f3)
+            fetch_docker_images $D_IMG $D_VER $F_NAME
+        fi
+    done
 }
 
 ########################################
