@@ -106,13 +106,15 @@ build_for_ubuntu_bionic() {
     curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add
     apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
 
-    _CPWD=$(pwd)
+    # NODEJS
+    curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
 
+    _CPWD=$(pwd)
 
     download_deb kubeadm
     download_deb kubelet
     download_deb kubectl
-
+    download_deb nodejs
 
     cd $_CPWD
 }
@@ -144,3 +146,20 @@ success "Build process done! You can now proceed to the installation of the cont
 
 # Go back to initial folder
 cd "$_PWD"
+
+
+
+
+
+
+
+# dpkg -i ../offline_files/debs/containerd/*.deb
+# dpkg -i ../offline_files/debs/docker-ce-cli/*.deb
+# dpkg -i ../offline_files/debs/docker-ce/*.deb
+
+# dpkg -i ../offline_files/debs/kubeadm/*.deb
+# dpkg -i ../offline_files/debs/kubectl/*.deb
+# dpkg -i ../offline_files/debs/kubelet/*.deb
+
+# swapoff –a
+# hostnamectl set-hostname master-node
