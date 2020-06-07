@@ -57,10 +57,10 @@ download_deb() {
 # DOWNLOAD DOCKER IMAGES
 ########################################
 fetch_docker_images() {
-    if [ ! -f /var/tmp/docker-images/$3-$2.tar ]; then
+    if [ ! -f ../offline_files/docker_images/$3-$2.tar ]; then
         echo "==> Downloading image $1:$2"
         docker pull $1:$2
-        docker save -o /var/tmp/docker-images/$3-$2.tar $1:$2
+        docker save -o ../offline_files/docker_images/$3-$2.tar $1:$2
         docker rmi $1:$2
         docker images purge
     else
@@ -160,7 +160,7 @@ build_for_ubuntu_bionic() {
     systemctl start docker
     sleep 2
 
-    IFS=$'\r\n' GLOBIGNORE='*' command eval  'DIMG_LIST=($(cat ../../offline_files/docker_images/image-list.cfg))'
+    IFS=$'\r\n' GLOBIGNORE='*' command eval  'DIMG_LIST=($(cat ../offline_files/docker_images/image-list.cfg))'
     for PACKAGE in "${DIMG_LIST[@]}"; do :
         if [[ "$PACKAGE" =~ ^#.*  ]]; then
             echo "Skipping image $PACKAGE"
