@@ -345,46 +345,6 @@ class OsController {
             });
         });
 	}
-	
-	/**
-     * hostFeedbackSshExec
-     * @param {*} ip 
-     * @param {*} command 
-     */
-    static hostFeedbackSshExec(ip, command, cb) {
-        console.log(`SSH Command (${ip}): ", ${command}`);
-        return new Promise((resolve, reject) => {
-            let ssh = new node_ssh();
-        
-            ssh.connect({
-                host: ip,
-                username: 'mdk',
-                password: 'li14ebe14'
-            }).then(function() {
-                try {
-                    let sploit = command.split(' ');
-                    let cmd = sploit.shift();
-                    ssh.exec(cmd, sploit, {
-                        onStdout(chunk) {
-                            cb(chunk.toString('utf8'));
-                        },
-                        onStderr(chunk) {
-                            cb(null, chunk.toString('utf8'));
-                            ssh.dispose();
-                            reject(new Error(chunk.toString('utf8')));
-                        }
-                    }).then(function(result) {
-                        resolve();
-                    });
-                } catch (error) {
-                    ssh.dispose();
-                    reject(error);
-                }
-            }).catch((error) => {
-                reject(error);
-            });
-        });
-    }
 
     /**
      * sshExec
