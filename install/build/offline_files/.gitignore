@@ -1,6 +1,6 @@
 *
 !.gitignore
 !rpms
-!deps
+!debs
 !docker_images
 !helm
