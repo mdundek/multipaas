@@ -287,11 +287,11 @@ sudo sed '/multipaas.com/d' /etc/hosts &>>$err_log
 sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
 
 # configure private registry
-if [ "$IS_K8S_NODE" == "true" ]; then
-    authorize_private_registry &>>$err_log &
-    bussy_indicator "Authorize private registry..."
-    log "\n"
-fi
+# if [ "$IS_K8S_NODE" == "true" ]; then
+#     authorize_private_registry &>>$err_log &
+#     bussy_indicator "Authorize private registry..."
+#     log "\n"
+# fi
 
 # Install the core components
 install_core_components &>>$err_log &
