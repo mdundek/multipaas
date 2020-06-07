@@ -6,9 +6,9 @@ cd $_DIR
 
 err_log=$_DIR/std.log
 
-. ../_libs/common.sh
-. ../_libs/distro.sh
-. ../_libs/dep_offline.sh
+. ../../_libs/common.sh
+. ../../_libs/distro.sh
+. ../../_libs/dep_offline.sh
 
 _BASEDIR="$(dirname "$_DIR")"
 _BASEDIR="$(dirname "$_BASEDIR")"
@@ -18,38 +18,15 @@ _BASEDIR="$(dirname "$_BASEDIR")"
 ########################################
 dependencies () {
     DOCKER_EXISTS=$(command -v docker)
-    VAG_EXISTS=$(command -v vagrant)
     NODE_EXISTS=$(command -v node)
     PM2_EXISTS=$(command -v pm2)
 
     if [ "$IS_K8S_NODE" == "true" ]; then
-        VMASTERBOX_EXIST=$(vagrant box list | grep "multipaas-master")
-        VMWORKERBOX_EXIST=$(vagrant box list | grep "multipaas-worker")
-        if [ "$VMASTERBOX_EXIST" == "" ] || [ "$VMWORKERBOX_EXIST" == "" ]; then
-            error "The host-node requires that the MultiPaaS K8S Master & Worker base boxes are installed on this machin.\n" 
-            warn "If you have already prepared for the installation according to your OS (see documentation\n"
-            warn "about installing MultiPaaS), then simply run the following command to install the basebox:\n"
-            log "\n"
-            log "  ./install/build/prepare.sh --skip-base-box --skip-k8s-boxes --skip-target-build --install-k8s-boxes\n"
-            log "\n"
-            exit 1
-        fi
-
-        VB_EXISTS=$(command -v vboxmanage)
-        if [ "$VB_EXISTS" == "" ] && [ "$DISTRO" == "redhat" ]; then
-            error "The host-node will be installed in a Virtualbox VM, but Virtualbox is not installed.\n" 
-            warn "Please install Virtualbox first, then run this script again.\n"
-            exit 1
-        fi
-
-        if [ "$DOCKER_EXISTS" == "" ] || [ "$VAG_EXISTS" == "" ] || [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
+        if [ "$DOCKER_EXISTS" == "" ] || [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
             log "==> This script will install the following components:\n"
             log "\n"
         else
             log "==> This script will install and configure the host-node services.\n"
-        fi
-        if [ "$VAG_EXISTS" == "" ]; then
-            log "- Vagrant\n"
         fi
     else
         if [ "$DOCKER_EXISTS" == "" ] || [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
@@ -80,15 +57,7 @@ dependencies () {
 
     sudo echo "" # Ask user for sudo password now
 
-    if [ "$VB_EXISTS" == "" ] && [ "$DISTRO" == "redhat" ]; then
-        sudo yum module enable perl -y &>>$err_log
-    fi
-
     if [ "$IS_K8S_NODE" == "true" ]; then
-        dep_vbox &>>$err_log &
-        bussy_indicator "Dependency on \"Virtualbox and Vagrant\"..."
-        log "\n"
-
         dep_tar &>>$err_log &
         bussy_indicator "Dependency on \"tar\"..."
         log "\n"
@@ -206,17 +175,6 @@ authorize_private_registry() {
     rm -rf ./configPrivateRegistry.sh &>/dev/null
 }
 
-# setup_pm2_app() {
-#     HOST_NODE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-host-node")
-#     if [ "$HOST_NODE_DEPLOYED" == "" ]; then
-#         npm i
-#         /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
-#         /opt/pm2/bin/pm2 -s startup
-#         sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-#         /opt/pm2/bin/pm2 -s save
-#     fi
-# }
-
 ########################################
 # 
 ########################################
@@ -238,7 +196,7 @@ install_core_components() {
     VM_BASE=$HOME/.multipaas/vm_base
     MULTIPAAS_CFG_DIR=$HOME/.multipaas
 
-    sed -i "s/<MP_MODE>/multipaas/g" ./env
+    sed -i "s/<MP_MODE>/unipaas/g" ./env
     sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
     sed -i "s/<DB_PORT>/5432/g" ./env
     sed -i "s/<DB_PASS>/$PW/g" ./env
@@ -255,9 +213,7 @@ install_core_components() {
 
     log "\n"
     HOST_NODE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-host-node")
-    echo "==> 1"
     if [ "$HOST_NODE_DEPLOYED" == "" ]; then
-        echo "==> 2"
         npm i
         /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
         /opt/pm2/bin/pm2 -s startup
@@ -272,10 +228,10 @@ install_core_components() {
 ########################################
 # LOGIC...
 ########################################
-/usr/bin/clear
+# /usr/bin/clear
 
-base64 -d <<<"IF9fICBfXyAgICAgIF8gXyAgIF8gX19fICAgICAgICAgICBfX18gXyAgXyAgICAgICAgXyAgIF8gIF8gICAgICAgICBfICAgICAKfCAgXC8gIHxfICBffCB8IHxfKF8pIF8gXF9fIF8gX18gXy8gX198IHx8IHxfX18gX198IHxffCBcfCB8X19fICBfX3wgfF9fXyAKfCB8XC98IHwgfHwgfCB8ICBffCB8ICBfLyBfYCAvIF9gIFxfXyBcIF9fIC8gXyAoXy08ICBffCAuYCAvIF8gXC8gX2AgLyAtXykKfF98ICB8X3xcXyxffF98XF9ffF98X3wgXF9fLF9cX18sX3xfX18vX3x8X1xfX18vX18vXF9ffF98XF9cX19fL1xfXyxfXF9fX3w="
-log "\n\n"
+# base64 -d <<<"IF9fICBfXyAgICAgIF8gXyAgIF8gX19fICAgICAgICAgICBfX18gXyAgXyAgICAgICAgXyAgIF8gIF8gICAgICAgICBfICAgICAKfCAgXC8gIHxfICBffCB8IHxfKF8pIF8gXF9fIF8gX18gXy8gX198IHx8IHxfX18gX198IHxffCBcfCB8X19fICBfX3wgfF9fXyAKfCB8XC98IHwgfHwgfCB8ICBffCB8ICBfLyBfYCAvIF9gIFxfXyBcIF9fIC8gXyAoXy08ICBffCAuYCAvIF8gXC8gX2AgLyAtXykKfF98ICB8X3xcXyxffF98XF9ffF98X3wgXF9fLF9cX18sX3xfX18vX3x8X1xfX18vX18vXF9ffF98XF9cX19fL1xfXyxfXF9fX3w="
+# log "\n\n"
 
 # Figure out what distro we are running
 distro
