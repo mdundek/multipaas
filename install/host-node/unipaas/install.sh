@@ -57,6 +57,7 @@ dependencies () {
 
     sudo echo "" # Ask user for sudo password now
 
+    echo "===> $(pwd)"
     cd ..
 
     if [ "$IS_K8S_NODE" == "true" ]; then
