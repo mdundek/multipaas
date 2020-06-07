@@ -20,8 +20,6 @@ rpm_offline_install() {
 # 
 ########################################
 pem_offline_install() {
-    echo "==========> $(pwd)"
-    
     if [ ! -d "../build/ubuntu_bionic/debs/$1" ] && [ ! -d "../../build/offline_files/debs/$1" ]; then
         error "The local lib files for dependecy $1 have not been found.\n"
         error "Please run the preparation script first before continuing.\n"
@@ -131,6 +129,29 @@ dep_docker() {
             fi
         fi
         NEW_DOCKER="true"
+    fi
+}
+
+########################################
+# 
+########################################
+dep_kubernetes() {
+    cd $_DIR
+    K8S_EXISTS=$(command -v kubeadm)
+    if [ "$K8S_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            if [ "$MAJ_V" == "18.04" ]; then
+                pem_offline_install "kubeadm"
+                pem_offline_install "kubectl"
+                pem_offline_install "kubelet"
+            fi
+        elif [ "$DISTRO" == "redhat" ]; then
+            if [ "$MAJ_V" == "8" ]; then
+                rpm_offline_install "kubeadm"
+                rpm_offline_install "kubectl"
+                rpm_offline_install "kubelet"
+            fi
+        fi
     fi
 }
 

@@ -62,9 +62,9 @@ dependencies () {
         bussy_indicator "Dependency on \"tar\"..."
         log "\n"
 
-        dep_sshpass #&>>$err_log &
-        #bussy_indicator "Dependency on \"sshpass\"..."
-        #log "\n"
+        dep_sshpass &>>$err_log &
+        bussy_indicator "Dependency on \"sshpass\"..."
+        log "\n"
     fi
 
     dep_docker &>>$err_log &
@@ -75,12 +75,9 @@ dependencies () {
     bussy_indicator "Dependency on \"NodeJS\"..."
     log "\n"
 
-    
-
-
-
-
-
+    dep_kubernetes &>>$err_log &
+    bussy_indicator "Dependency on \"NodeJS\"..."
+    log "\n"
 
     PM2_EXISTS=$(command -v pm2)
     if [ "$PM2_EXISTS" == "" ]; then
@@ -97,16 +94,6 @@ EOF'
         . /etc/profile.d/node.sh
     fi
 
-
-
-
-
-
-
-
-
-
-
     if [ "$IS_GLUSTER_PEER" == "true" ]; then
         GLUSTER_IMG_EXISTS=$(sudo docker images gluster/gluster-centos:gluster4u0_centos7 | sed -n '1!p')
         if [ "$GLUSTER_IMG_EXISTS" == "" ]; then
@@ -122,7 +109,6 @@ EOF'
 
         fi
     fi
-    cd unipaas
 }
 
 ########################################
@@ -294,7 +280,6 @@ if [ "$IS_K8S_NODE" == "true" ]; then
     authorize_private_registry &>>$err_log &
     bussy_indicator "Authorize private registry..."
     log "\n"
-    
 fi
 
 # Install the core components
