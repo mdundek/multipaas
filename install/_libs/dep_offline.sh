@@ -21,6 +21,7 @@ pem_offline_install() {
         error "Please run the preparation script first before continuing.\n"
         exit 1
     fi
+    echo $(pwd)
     sudo dpkg -i ../build/ubuntu_bionic/debs/$1/*.deb
 }
 
