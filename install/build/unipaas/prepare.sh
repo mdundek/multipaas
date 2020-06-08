@@ -84,15 +84,19 @@ dependencies () {
 
     sudo echo "" # Ask user for sudo password now
 
-    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/nodejs)" ]; then
-        mkdir $OFFLINE_FOLDER/debs/nodejs
-        wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/debs/nodejs/node-v12.18.0-linux-x64.tar.xz
+    NODE_EXISTS=$(command -v node)
+    if [ "$NODE_EXISTS" == "" ]; then
+        curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh
+        sudo bash nodesource_setup.sh
+        sudo apt install nodejs
     fi
 
     NPM_BUNDLE_EXISTS=$(command -v npm-bundle)
     if [ "$NPM_BUNDLE_EXISTS" == "" ]; then
         npm install npm-bundle -g
     fi
+
+    
 
     dep_wget &>>$err_log &
     bussy_indicator "Dependency on \"wget\"..."
@@ -124,6 +128,11 @@ build_for_ubuntu_bionic() {
         wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/docker-ce/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb
     fi
 
+    # Nodejs
+    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/nodejs)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/nodejs
+        wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/debs/nodejs/node-v12.18.0-linux-x64.tar.xz
+    fi
     
 
     dpkg -i $OFFLINE_FOLDER/debs/containerd/*.deb
