@@ -153,10 +153,10 @@ build_for_ubuntu_bionic() {
 
     _CPWD=$(pwd)
 
-    download_deb kubeadm
-    download_deb kubelet
-    download_deb kubectl
-    download_deb sshpass
+    sudo download_deb kubeadm
+    sudo download_deb kubelet
+    sudo download_deb kubectl
+    sudo download_deb sshpass
 
     
 
@@ -177,7 +177,7 @@ build_for_ubuntu_bionic() {
             D_IMG=$(echo $PACKAGE | cut -d' ' -f1)
             D_VER=$(echo $PACKAGE | cut -d' ' -f2)
             F_NAME=$(echo $PACKAGE | cut -d' ' -f3)
-            fetch_docker_images $D_IMG $D_VER $F_NAME
+            sudo fetch_docker_images $D_IMG $D_VER $F_NAME
         fi
     done
 }
