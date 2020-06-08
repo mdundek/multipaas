@@ -41,19 +41,19 @@ The only components that will be installed locally on your machine are VirtualBo
 
 The preparation script will perform the following tasks:
 
-- Download target OS psecific packages upfront
+- Download target OS specific packages upfront
 - Download all Docker images upfront
 - Build Vagrant boxes required for the `control-plane` and `host-node` environements
 - Install Vagrant base boxes on `control-plane` and `host-node` environements
 - Resolve dependencies for the `host-node` components upfront
 
-Lets start by cloning the repository on a `CentOS / RedHat 8` or `Ubuntu 18.04` machine:
+Lets start by cloning the repository on a `Ubuntu 18.04` or `CentOS / RedHat 8` machine:
 
 ```
 git clone https://github.com/mdundek/multipaas.git
 ```
 
-### A script to prepare for deployment
+### A script to prepare for the deployment
 
 The script is located at `install/build/prepare.sh`. It takes the following arguments:
 
@@ -99,7 +99,8 @@ Since all those elements are running inside a VM, it does not matter on what env
 
 > NOTE: If the target machine for the `control-plane` is a different machine that the one used to run the preparation script, then copy the repo folder over to the target machine (using a USB key for instance if the target has no internet connection).
 
-Before installing the `control-plane` components, you will have to import the Vagrant basebox to the target machine. This basebox has been created during the preparation phase of the deployment. To install the box, run the following command:
+Before installing the `control-plane` components, you will have to import the Vagrant basebox to the target machine. This basebox has been created during the preparation phase of the deployment.  
+To install the box on the target machine, run the following command:
 
 ```
 ./install/build/prepare.sh \
@@ -136,7 +137,8 @@ The `host-node` only requires `NodeJS >= 12`, `PM2` to keep the `host-node` serv
 
 > NOTE: If the target machine for the `host-node` is a different machine that the one used to run the preparation script, then copy the repo folder over to the target machine (using a USB key for instance if the target has no internet connection).
 
-Before installing the `host-node` components, you will have to import the Vagrant Kubernetes base boxes to the target machine. Those baseboxes have been created during the preparation phase of the deployment. To install the boxes, run the following command:
+Before installing the `host-node` components, you will have to import the Vagrant Kubernetes base boxes to the target machine. Those baseboxes have been created during the preparation phase of the deployment.  
+To install the boxes on the target machine(s), run the following command:
 
 ```
 ./install/build/prepare.sh \
