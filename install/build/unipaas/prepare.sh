@@ -109,7 +109,7 @@ dependencies () {
 ########################################
 build_for_ubuntu_bionic() {
     cd $_DIR
-    chown _apt /var/lib/update-notifier/package-data-downloads/partial/
+    sudo chown _apt /var/lib/update-notifier/package-data-downloads/partial/
 
     
     # DOCKER
