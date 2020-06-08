@@ -7,7 +7,7 @@
 
 ## Tenant - Logical view
 
-![MultiPaaS Logical tennant view](../resources/logical-view.png)
+![MultiPaaS Logical tenant view](../resources/logical-view.png)
 
 MultiPaaS is a Multi tenant / multi Kubernetes Cluster solution. Depending on the requirements, this can be used in various ways:
 
