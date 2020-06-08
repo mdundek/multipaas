@@ -223,6 +223,7 @@ build_for_ubuntu_bionic() {
 
     BASE_FOLDER="$(dirname "$_DIR")"
     BASE_FOLDER="$(dirname "$BASE_FOLDER")"
+    BASE_FOLDER="$(dirname "$BASE_FOLDER")"
 
     # Build & export multipaas docker images
     cd $BASE_FOLDER/src/api
