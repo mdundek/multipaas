@@ -88,7 +88,7 @@ dependencies () {
     if [ "$NODE_EXISTS" == "" ]; then
         curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh
         sudo bash nodesource_setup.sh
-        sudo apt install nodejs
+        sudo apt install -y nodejs
     fi
 
     NPM_BUNDLE_EXISTS=$(command -v npm-bundle)
