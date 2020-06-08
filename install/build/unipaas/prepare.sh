@@ -115,34 +115,50 @@ build_for_ubuntu_bionic() {
     # Nodejs
     if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/nodejs)" ]; then
         mkdir $OFFLINE_FOLDER/debs/nodejs
-        wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/debs/nodejs/node-v12.18.0-linux-x64.tar.xz
+        wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/debs/nodejs/node-v12.18.0-linux-x64.tar.xz &>>$err_log &
+        bussy_indicator "Adding repo NodeJS 12..."
+        log "\n"
     fi
 
     # DOCKER
     if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/containerd)" ]; then
         mkdir $OFFLINE_FOLDER/debs/containerd
-        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/containerd.io_1.2.6-3_amd64.deb -O $OFFLINE_FOLDER/debs/containerd/containerd.io_1.2.6-3_amd64.deb
+        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/containerd.io_1.2.6-3_amd64.deb -O $OFFLINE_FOLDER/debs/containerd/containerd.io_1.2.6-3_amd64.deb &>>$err_log &
+        bussy_indicator "Adding repo Containerd..."
+        log "\n"
     fi
 
     if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/docker-ce-cli)" ]; then
         mkdir $OFFLINE_FOLDER/debs/docker-ce-cli
-        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce-cli_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/docker-ce-cli/docker-ce-cli_19.03.9~3-0~ubuntu-bionic_amd64.deb
+        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce-cli_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/docker-ce-cli/docker-ce-cli_19.03.9~3-0~ubuntu-bionic_amd64.deb &>>$err_log &
+        bussy_indicator "Adding repo docker-ce-cli..."
+        log "\n"
     fi
 
     if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/docker-ce)" ]; then
         mkdir $OFFLINE_FOLDER/debs/docker-ce
-        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/docker-ce/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb
+        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/docker-ce/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb &>>$err_log &
+        bussy_indicator "Adding repo docker-ce..."
+        log "\n"
     fi
     
     # GITLAB-RUNNER
-    curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash
+    curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash &>>$err_log &
+    bussy_indicator "Adding repo gitlab-runner..."
+    log "\n"
 
     # KUBERNETES
-    curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add
-    sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+    curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add &>>$err_log &
+    bussy_indicator "Adding repo key K8S..."
+    log "\n"
+    sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main" &>>$err_log &
+    bussy_indicator "Adding repo K8S..."
+    log "\n"
 
     # Add Gluster repo
-    sudo add-apt-repository -y ppa:gluster/glusterfs-5
+    sudo add-apt-repository -y ppa:gluster/glusterfs-5 &>>$err_log &
+    bussy_indicator "Add repo GlusterFS..."
+    log "\n"
 
     sudo apt update -y &>>$err_log &
     bussy_indicator "Updating repos..."
@@ -176,6 +192,9 @@ build_for_ubuntu_bionic() {
     log "\n"
     download_deb glusterfs-client &>>$err_log &
     bussy_indicator "Downloading repo glusterfs-client..."
+    log "\n"
+    download_deb gitlab-runner &>>$err_log &
+    bussy_indicator "Downloading repo gitlab-runner..."
     log "\n"
 
 
