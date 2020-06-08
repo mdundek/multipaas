@@ -239,6 +239,13 @@ install_core_components() {
     fi
 }
 
+########################################
+# 
+########################################
+install_k8s() {
+    sudo swapoff -a
+}
+
 
 
 
@@ -273,7 +280,6 @@ dependencies
 # Collect info from user
 collect_informations
 
-
 sudo sed '/multipaas.com/d' /etc/hosts &>>$err_log
 sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
 
@@ -288,6 +294,12 @@ sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.mul
 install_core_components #&>>$err_log &
 # bussy_indicator "Installing host controller components..."
 # log "\n"
+
+install_k8s #&>>$err_log &
+# bussy_indicator "Installing kubernetes cluster master..."
+# log "\n"
+
+
 
 log "\n"
 

@@ -19,6 +19,48 @@ dep_wget() {
 ########################################
 # 
 ########################################
+dep_node() {
+    local C_EXISTS=$(command -v node)
+    if [ "$C_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh
+            sudo bash nodesource_setup.sh
+            sudo apt install -y nodejs
+        elif [ "$DISTRO" == "redhat" ]; then
+            echo "OS not supported yet"
+            exit 1
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_npm_bundle() {
+    local C_EXISTS=$(command -v npm-bundle)
+    if [ "$C_EXISTS" == "" ]; then
+        sudo npm install npm-bundle -g
+    fi
+}
+
+########################################
+# 
+########################################
+dep_docker() {
+    local C_EXISTS=$(command -v docker)
+    if [ "$C_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            sudo apt install -y docker.io
+        elif [ "$DISTRO" == "redhat" ]; then
+            echo "OS not supported yet"
+            exit 1
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
 dep_vbox() {
     VIRTUALBOX_EXISTS=$(command -v vboxmanage)
     if [ "$VIRTUALBOX_EXISTS" == "" ]; then

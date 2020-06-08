@@ -84,22 +84,39 @@ dependencies () {
 
     sudo echo "" # Ask user for sudo password now
 
-    NODE_EXISTS=$(command -v node)
-    if [ "$NODE_EXISTS" == "" ]; then
-        curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh
-        sudo bash nodesource_setup.sh
-        sudo apt install -y nodejs
-    fi
-
-    NPM_BUNDLE_EXISTS=$(command -v npm-bundle)
-    if [ "$NPM_BUNDLE_EXISTS" == "" ]; then
-        sudo npm install npm-bundle -g
-    fi
-
-    
     dep_wget &>>$err_log &
     bussy_indicator "Dependency on \"wget\"..."
     log "\n"
+
+    dep_node &>>$err_log &
+    bussy_indicator "Dependency on \"node\"..."
+    log "\n"
+
+    dep_pm_bundle &>>$err_log &
+    bussy_indicator "Dependency on \"pm_bundle\"..."
+    log "\n"
+
+    dep_docker &>>$err_log &
+    bussy_indicator "Dependency on \"docker\"..."
+    log "\n"
+    
+}
+
+
+########################################
+# BUILD FOR TARGET UBUNTU
+########################################
+build_for_ubuntu_bionic() {
+    cd $_DIR
+    sudo chown _apt /var/lib/update-notifier/package-data-downloads/partial/
+
+    ########## Download binaries
+
+    # Nodejs
+    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/nodejs)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/nodejs
+        wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/debs/nodejs/node-v12.18.0-linux-x64.tar.xz
+    fi
 
     # DOCKER
     if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/containerd)" ]; then
@@ -116,34 +133,7 @@ dependencies () {
         mkdir $OFFLINE_FOLDER/debs/docker-ce
         wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/docker-ce/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb
     fi
-
-    # Nodejs
-    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/nodejs)" ]; then
-        mkdir $OFFLINE_FOLDER/debs/nodejs
-        wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/debs/nodejs/node-v12.18.0-linux-x64.tar.xz
-    fi
     
-    DOCKER_EXISTS=$(command -v docker)
-    if [ "$DOCKER_EXISTS" == "" ]; then
-        sudo dpkg -i $OFFLINE_FOLDER/debs/containerd/*.deb
-        sudo dpkg -i $OFFLINE_FOLDER/debs/docker-ce-cli/*.deb
-        sudo dpkg -i $OFFLINE_FOLDER/debs/docker-ce/*.deb
-        sudo gpasswd -a $USER docker
-    fi
-    
-}
-
-
-########################################
-# BUILD FOR TARGET UBUNTU
-########################################
-build_for_ubuntu_bionic() {
-    cd $_DIR
-    sudo chown _apt /var/lib/update-notifier/package-data-downloads/partial/
-
-    
-    
-
     # GITLAB-RUNNER
     curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash
 
@@ -158,11 +148,9 @@ build_for_ubuntu_bionic() {
     download_deb kubectl
     download_deb sshpass
 
-    
+    ########## Download docker images
 
     cd $_CPWD
-
-    # Download docker images
     # Clear layer cach to prevent stuck corrupt image layers
     sudo systemctl stop docker
     sudo rm -rf /var/lib/docker
@@ -207,10 +195,6 @@ build_for_ubuntu_bionic
 log "\n"
 
 
-
-
-
-sudo swapoff -a
 
 
 
