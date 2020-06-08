@@ -10,3 +10,4 @@ install/docker-images
 tmp
 vm_base
 **/_tmp
+multipaas-cp-keys.pem
