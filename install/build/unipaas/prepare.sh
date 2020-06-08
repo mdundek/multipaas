@@ -92,8 +92,8 @@ dependencies () {
     bussy_indicator "Dependency on \"node\"..."
     log "\n"
 
-    dep_pm_bundle &>>$err_log &
-    bussy_indicator "Dependency on \"pm_bundle\"..."
+    dep_npm_bundle &>>$err_log &
+    bussy_indicator "Dependency on \"npm_bundle\"..."
     log "\n"
 
     dep_docker &>>$err_log &
