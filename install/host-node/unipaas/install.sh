@@ -107,7 +107,7 @@ dependencies_master () {
     sudo systemctl disable mosquitto &>>$err_log
     sudo systemctl stop mosquitto &>>$err_log
 
-        PM2_EXISTS=$(command -v pm2)
+    PM2_EXISTS=$(command -v pm2)
     if [ "$PM2_EXISTS" == "" ]; then
         PM2_INSTALL_DIR=/opt
         sudo tar xpf ../../build/offline_files/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
@@ -277,8 +277,6 @@ install_core_components() {
         sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
         /opt/pm2/bin/pm2 -s save --force
     fi
-
-    
 }
 
 ########################################
