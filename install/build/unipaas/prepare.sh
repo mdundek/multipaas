@@ -141,12 +141,22 @@ build_for_ubuntu_bionic() {
     curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add
     sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
 
+    # Add Gluster repo
+    sudo add-apt-repository ppa:gluster/glusterfs-5
+
+    sudo apt update -y    
     _CPWD=$(pwd)
 
     download_deb kubeadm
     download_deb kubelet
     download_deb kubectl
     download_deb sshpass
+    download_deb unzip
+    download_deb mosquitto
+    download_deb software-properties-common
+    download_deb glusterfs-server
+    download_deb glusterfs-client
+
 
     ########## Download docker images
 

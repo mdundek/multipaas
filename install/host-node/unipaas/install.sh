@@ -244,6 +244,8 @@ install_core_components() {
 ########################################
 install_k8s() {
     sudo swapoff -a
+
+    
 }
 
 
