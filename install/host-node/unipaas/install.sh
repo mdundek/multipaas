@@ -242,10 +242,28 @@ install_core_components() {
 ########################################
 # 
 ########################################
-install_k8s() {
-    sudo swapoff -a
+install_k8s() { 
+    dep_unzip
+    dep_tar
+    dep_gluster_server
+    dep_mosquitto
 
-    
+#     systemctl disable glusterd
+#     systemctl stop glusterd
+
+#     systemctl disable mosquitto
+#     systemctl stop mosquitto
+
+#     # Add sysctl settings
+#     cat >>/etc/sysctl.d/kubernetes.conf<<EOF
+# net.bridge.bridge-nf-call-ip6tables = 1
+# net.bridge.bridge-nf-call-iptables = 1
+# EOF
+#     sysctl --system
+
+#     # Disable swap
+#     sed -i '/swap/d' /etc/fstab
+#     swapoff -a
 }
 
 

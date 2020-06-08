@@ -58,18 +58,6 @@ dep_docker() {
     fi
 }
 
-dep_gitlab_runner() {
-    local C_EXISTS=$(command -v docker)
-    if [ "$C_EXISTS" == "" ]; then
-        if [ "$DISTRO" == "ubuntu" ]; then
-            sudo apt install -y docker.io
-        elif [ "$DISTRO" == "redhat" ]; then
-            echo "OS not supported yet"
-            exit 1
-        fi
-    fi
-}
-
 ########################################
 # 
 ########################################

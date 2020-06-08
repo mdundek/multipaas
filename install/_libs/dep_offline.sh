@@ -177,6 +177,44 @@ dep_jq() {
 ########################################
 # 
 ########################################
+dep_gluster_server() {
+    cd $_DIR
+    local C_EXISTS=$(command -v gluster)
+    if [ "$C_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            if [ "$MAJ_V" == "18.04" ]; then
+                pem_offline_install "glusterfs-server"
+            fi
+        elif [ "$DISTRO" == "redhat" ]; then
+            if [ "$MAJ_V" == "8" ]; then
+                rpm_offline_install "glusterfs-server"
+            fi
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_mosquitto() {
+    cd $_DIR
+    local C_EXISTS=$(command -v mosquitto_pub)
+    if [ "$C_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            if [ "$MAJ_V" == "18.04" ]; then
+                pem_offline_install "mosquitto"
+            fi
+        elif [ "$DISTRO" == "redhat" ]; then
+            if [ "$MAJ_V" == "8" ]; then
+                rpm_offline_install "mosquitto"
+            fi
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
 dep_tar() {
     cd $_DIR
     TAR_EXISTS=$(command -v tar)
@@ -188,6 +226,25 @@ dep_tar() {
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "tar"
+            fi
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_unzip() {
+    cd $_DIR
+    UNZIP_EXISTS=$(command -v unzip)
+    if [ "$UNZIP_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            if [ "$MAJ_V" == "18.04" ]; then
+                pem_offline_install "unzip"
+            fi
+        elif [ "$DISTRO" == "redhat" ]; then
+            if [ "$MAJ_V" == "8" ]; then
+                rpm_offline_install "unzip"
             fi
         fi
     fi

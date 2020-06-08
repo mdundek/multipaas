@@ -143,7 +143,7 @@ build_for_ubuntu_bionic() {
     fi
     
     # GITLAB-RUNNER
-    curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash &>>$err_log &
+    curl -s -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash &>>$err_log &
     bussy_indicator "Adding repo gitlab-runner..."
     log "\n"
 
@@ -157,7 +157,7 @@ build_for_ubuntu_bionic() {
 
     # Add Gluster repo
     sudo add-apt-repository -y ppa:gluster/glusterfs-5 &>>$err_log &
-    bussy_indicator "Add repo GlusterFS..."
+    bussy_indicator "Adding repo GlusterFS..."
     log "\n"
 
     sudo apt update -y &>>$err_log &
