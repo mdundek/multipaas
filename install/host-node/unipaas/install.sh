@@ -17,7 +17,7 @@ _BASEDIR="$(dirname "$_BASEDIR")"
 ########################################
 # 
 ########################################
-dependencies () {
+dependencies_master () {
     DOCKER_EXISTS=$(command -v docker)
     NODE_EXISTS=$(command -v node)
     PM2_EXISTS=$(command -v pm2)
@@ -81,7 +81,33 @@ dependencies () {
     bussy_indicator "Dependency on \"Kubernetes\"..."
     log "\n"
 
-    PM2_EXISTS=$(command -v pm2)
+    dep_unzip &>>$err_log &
+    bussy_indicator "Dependency on \"unzip\"..."
+    log "\n"
+
+    dep_tar &>>$err_log &
+    bussy_indicator "Dependency on \"tar\"..."
+    log "\n"
+
+    dep_gluster_server &>>$err_log &
+    bussy_indicator "Dependency on \"gluster_server\"..."
+    log "\n"
+
+    sudo systemctl disable glusterd &>>$err_log
+    sudo systemctl stop glusterd &>>$err_log
+
+    dep_mosquitto &>>$err_log &
+    bussy_indicator "Dependency on \"mosquitto\"..."
+    log "\n"
+
+    dep_gitlab_runner &>>$err_log &
+    bussy_indicator "Dependency on \"gitlab-runner\"..."
+    log "\n"
+
+    sudo systemctl disable mosquitto &>>$err_log
+    sudo systemctl stop mosquitto &>>$err_log
+
+        PM2_EXISTS=$(command -v pm2)
     if [ "$PM2_EXISTS" == "" ]; then
         PM2_INSTALL_DIR=/opt
         sudo tar xpf ../../build/offline_files/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
@@ -96,16 +122,31 @@ EOF'
         sudo . /etc/profile.d/node.sh
     fi
 
-    for dockerimage in ../../build/offline_files/docker_images/*.tar; do
-        sudo docker load --input $dockerimage
-    done
+    # Add sysctl settings
+    sudo tee -a /etc/sysctl.d/kubernetes.conf >/dev/null <<'EOF'
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+    sudo sysctl --system
+
+    # Disable swap
+    sudo sed -i '/swap/d' /etc/fstab
+    sudo swapoff -a
+
+    # for dockerimage in ../../build/offline_files/docker_images/*.tar; do
+    #     sudo docker load --input $dockerimage &>>$err_log &
+    #     bussy_indicator "Loading docker image $dockerimage..."
+    #     log "\n"
+    # done
 
     if [ "$IS_GLUSTER_PEER" == "true" ]; then
         GLUSTER_IMG_EXISTS=$(docker images gluster/gluster-centos:gluster4u0_centos7 | sed -n '1!p')
         if [ "$GLUSTER_IMG_EXISTS" == "" ]; then
             if [ "$DISTRO" == "ubuntu" ]; then
                 if [ "$MAJ_V" == "18.04" ]; then
-                    sudo docker load --input ../../build/offline_files/docker_images/gluster-centos-gluster4u0_centos7.tar
+                    sudo docker load --input ../../build/offline_files/docker_images/gluster-centos-gluster4u0_centos7.tar &>>$err_log &
+                    bussy_indicator "Loading docker image gluster-centos..."
+                    log "\n"
                 fi
             fi
 
@@ -237,33 +278,57 @@ install_core_components() {
         sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
         /opt/pm2/bin/pm2 -s save --force
     fi
+
+    
 }
 
 ########################################
 # 
 ########################################
-install_k8s() { 
-    dep_unzip
-    dep_tar
-    dep_gluster_server
-    dep_mosquitto
+init_k8s_master() { 
+    cd $_BASEDIR
+   
+    sudo rm -rf /etc/default/kubelet
 
-#     systemctl disable glusterd
-#     systemctl stop glusterd
+    sudo tee -a /etc/default/kubelet >/dev/null <<EOF
+KUBELET_EXTRA_ARGS=--node-ip=$LOCAL_IP
+EOF
 
-#     systemctl disable mosquitto
-#     systemctl stop mosquitto
+    sudo systemctl enable kubelet 
+    sudo systemctl start kubelet 
 
-#     # Add sysctl settings
-#     cat >>/etc/sysctl.d/kubernetes.conf<<EOF
-# net.bridge.bridge-nf-call-ip6tables = 1
-# net.bridge.bridge-nf-call-iptables = 1
-# EOF
-#     sysctl --system
+    sudo kubeadm init --apiserver-advertise-address=$LOCAL_IP --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU
 
-#     # Disable swap
-#     sed -i '/swap/d' /etc/fstab
-#     swapoff -a
+    cat <<EOT >> $HOME/gentoken.sh
+#!/bin/bash
+kubeadm token create --print-join-command > /joincluster.sh
+EOT
+    sudo chmod +x $HOME/gentoken.sh
+    
+    mkdir -p $HOME/.kube
+    sudo cp /etc/kubernetes/admin.conf $HOME/.kube/config
+    sudo chown -R $USER:$(id -g -n) $HOME/.kube
+
+    sudo cp /etc/kubernetes/admin.conf $HOME/.kube/
+    sudo chown $USER:$(id -g -n) $HOME/.kube/admin.conf
+    echo "export KUBECONFIG=$HOME/.kube/admin.conf" | tee -a ~/.bashrc
+    source ~/.bashrc
+
+    # Deploy flannel network
+    kubectl apply -f ./src/host-node/resources/k8s_templates//kube-flannel.yml
+
+    # Enable PodPresets
+    sudo sed -i "s/enable-admission-plugins=NodeRestriction/enable-admission-plugins=NodeRestriction,PodPreset/g" /etc/kubernetes/manifests/kube-apiserver.yaml
+    sudo sed -i '/- kube-apiserver/a\ \ \ \ - --runtime-config=settings.k8s.io/v1alpha1=true' /etc/kubernetes/manifests/kube-apiserver.yaml
+
+    # Configure OpenID Connect for Keycloak
+    # sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-issuer-url=https://multipaas.keycloak.com/auth/realms/master' /etc/kubernetes/manifests/kube-apiserver.yaml
+    # sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-groups-claim=groups' /etc/kubernetes/manifests/kube-apiserver.yaml
+    # sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-username-claim=email' /etc/kubernetes/manifests/kube-apiserver.yaml
+    # sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-client-id=kubernetes-cluster' /etc/kubernetes/manifests/kube-apiserver.yaml
+    # sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-ca-file=/etc/kubernetes/pki/rootCA.crt' /etc/kubernetes/manifests/kube-apiserver.yaml
+
+    sudo $HOME/gentoken.sh
 }
 
 
@@ -280,92 +345,96 @@ install_k8s() {
 # Figure out what distro we are running
 distro
 
-HN_TASK_LIST=("Kubernetes instances" "GlusterFS" "Both")
-combo_value NODE_ROLE "What tasks should this host-node handle" "Your choice #:" "${HN_TASK_LIST[@]}"
-if [ "$NODE_ROLE" == "Kubernetes instances" ]; then
-    IS_K8S_NODE="true"
-    IS_GLUSTER_PEER="false"
-elif [ "$NODE_ROLE" == "GlusterFS" ]; then
-    IS_K8S_NODE="false"
-    IS_GLUSTER_PEER="true"
-elif [ "$NODE_ROLE" == "Both" ]; then
-    IS_K8S_NODE="true"
-    IS_GLUSTER_PEER="true"
-fi
-log "\n"
+DEP_TARGET_LIST=("Kubernetes master" "Kubernetes worker")
+combo_value DEP_TARGET "What do you wish to install" "Your choice #:" "${DEP_TARGET_LIST[@]}"
+if [ "$DEP_TARGET" == "Kubernetes master" ]; then
+    # Install dependencies
+    dependencies_master
 
-# Install dependencies
-dependencies
-
-# Collect info from user
-collect_informations
-
-sudo sed '/multipaas.com/d' /etc/hosts &>>$err_log
-sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
-
-# configure private registry
-# if [ "$IS_K8S_NODE" == "true" ]; then
-#     authorize_private_registry &>>$err_log &
-#     bussy_indicator "Authorize private registry..."
-#     log "\n"
-# fi
-
-# Install the core components
-install_core_components #&>>$err_log &
-# bussy_indicator "Installing host controller components..."
-# log "\n"
-
-install_k8s #&>>$err_log &
-# bussy_indicator "Installing kubernetes cluster master..."
-# log "\n"
-
-
-
-log "\n"
-
-success "[DONE] MultiPaaS host controller deployed successfully!\n"
-
-if [ "$IS_GLUSTER_PEER" == "true" ]; then
-    # Start the gluster controller
-    if [ "$NEW_DOCKER" == "true" ]; then
-        log "\n"
-        warn "==> Since Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
-        warn "    Please log out, and log back in, then execute the following command:\n"
-        log "\n"
-        log "    docker run \n"
-        log "       -d --privileged=true \n"
-        log "       --restart unless-stopped \n"
-        log "       --net=host -v /dev/:/dev \n"
-        log "       -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \n"
-        log "       -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \n"
-        log "       -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \n"
-        log "       -v $BRICK_MOUNT_PATH:/bricks:z \n"
-        log "       -v /sys/fs/cgroup:/sys/fs/cgroup:ro \n"
-        log "       --name gluster-ctl \n"
-        log "       gluster/gluster-centos:gluster4u0_centos7\n"
-    else
-        docker rm -f gluster-ctl >/dev/null 2>&1
-        
-        docker run \
-            -d --privileged=true \
-            --restart unless-stopped \
-            --net=host -v /dev/:/dev \
-            -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \
-            -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \
-            -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \
-            -v $BRICK_MOUNT_PATH:/bricks:z \
-            -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
-            --name gluster-ctl \
-            gluster/gluster-centos:gluster4u0_centos7 &>/dev/null
+    HN_TASK_LIST=("Kubernetes instances" "GlusterFS" "Both")
+    combo_value NODE_ROLE "What tasks should this host-node handle" "Your choice #:" "${HN_TASK_LIST[@]}"
+    if [ "$NODE_ROLE" == "Kubernetes instances" ]; then
+        IS_K8S_NODE="true"
+        IS_GLUSTER_PEER="false"
+    elif [ "$NODE_ROLE" == "GlusterFS" ]; then
+        IS_K8S_NODE="false"
+        IS_GLUSTER_PEER="true"
+    elif [ "$NODE_ROLE" == "Both" ]; then
+        IS_K8S_NODE="true"
+        IS_GLUSTER_PEER="true"
     fi
-    
-    # Join the gluster network
     log "\n"
-    warn "==> To add this Gluster peer to the Gluster network, execute the following command ON ANY OTHER GLUSTER peer host:\n"
-    warn "    PLEASE NOTE: This is only necessary if this is NOT the first Gluster node for this Gluster network\n"
+
+    # Collect info from user
+    collect_informations
+
+    sudo sed '/multipaas.com/d' /etc/hosts &>>$err_log
+    sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
+
+    # configure private registry
+    # if [ "$IS_K8S_NODE" == "true" ]; then
+    #     authorize_private_registry &>>$err_log &
+    #     bussy_indicator "Authorize private registry..."
+    #     log "\n"
+    # fi
+
+    # Install the core components
+    install_core_components #&>>$err_log &
+    # bussy_indicator "Installing host controller components..."
+    # log "\n"
+
+    init_k8s_master #&>>$err_log &
+    # bussy_indicator "Installing kubernetes cluster master..."
+    # log "\n"
+
     log "\n"
-    log "    docker exec gluster-ctl gluster peer probe $LOCAL_IP\n"
+
+    success "[DONE] MultiPaaS host controller & K8S master deployed successfully!\n"
+
+    if [ "$IS_GLUSTER_PEER" == "true" ]; then
+        # Start the gluster controller
+        if [ "$NEW_DOCKER" == "true" ]; then
+            log "\n"
+            warn "==> Since Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
+            warn "    Please log out, and log back in, then execute the following command:\n"
+            log "\n"
+            log "    docker run \n"
+            log "       -d --privileged=true \n"
+            log "       --restart unless-stopped \n"
+            log "       --net=host -v /dev/:/dev \n"
+            log "       -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \n"
+            log "       -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \n"
+            log "       -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \n"
+            log "       -v $BRICK_MOUNT_PATH:/bricks:z \n"
+            log "       -v /sys/fs/cgroup:/sys/fs/cgroup:ro \n"
+            log "       --name gluster-ctl \n"
+            log "       gluster/gluster-centos:gluster4u0_centos7\n"
+        else
+            docker rm -f gluster-ctl >/dev/null 2>&1
+            
+            docker run \
+                -d --privileged=true \
+                --restart unless-stopped \
+                --net=host -v /dev/:/dev \
+                -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \
+                -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \
+                -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \
+                -v $BRICK_MOUNT_PATH:/bricks:z \
+                -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+                --name gluster-ctl \
+                gluster/gluster-centos:gluster4u0_centos7 &>/dev/null
+        fi
+        
+        # Join the gluster network
+        log "\n"
+        warn "==> To add this Gluster peer to the Gluster network, execute the following command ON ANY OTHER GLUSTER peer host:\n"
+        warn "    PLEASE NOTE: This is only necessary if this is NOT the first Gluster node for this Gluster network\n"
+        log "\n"
+        log "    docker exec gluster-ctl gluster peer probe $LOCAL_IP\n"
+    fi
+    log "\n"
+else
+    echo "Installing worger"
 fi
-log "\n"
 
 cd "$_PWD"

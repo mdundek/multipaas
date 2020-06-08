@@ -177,6 +177,25 @@ dep_jq() {
 ########################################
 # 
 ########################################
+dep_gitlab_runner() {
+    cd $_DIR
+    local C_EXISTS=$(command -v gitlab-runner)
+    if [ "$C_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            if [ "$MAJ_V" == "18.04" ]; then
+                pem_offline_install "gitlab-runner"
+            fi
+        elif [ "$DISTRO" == "redhat" ]; then
+            if [ "$MAJ_V" == "8" ]; then
+                rpm_offline_install "gitlab-runner"
+            fi
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
 dep_gluster_server() {
     cd $_DIR
     local C_EXISTS=$(command -v gluster)

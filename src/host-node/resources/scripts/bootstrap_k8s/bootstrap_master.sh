@@ -42,7 +42,7 @@ sshpass -p 'kubeadmin' sudo scp -o UserKnownHostsFile=/dev/null -o StrictHostKey
 
 # Copy Kube admin config
 echo "[TASK 13] Copy kube admin config to Vagrant user .kube directory"
-mkdir /home/vagrant/.kube
+mkdir -p /home/vagrant/.kube
 cp /etc/kubernetes/admin.conf /home/vagrant/.kube/config
 chown -R vagrant:vagrant /home/vagrant/.kube
 
