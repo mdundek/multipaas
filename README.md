@@ -21,7 +21,7 @@ MultiPaaS is a open source, truely multi-tenant cloud platform that can be insta
 
 
 > IMPORTANT NOTE  
-> `MultiPaaS` is a standalone multi nenant Kubernetes management platform, it is __NOT__ designed to work with public cloud kubernetes implementations such as Amazon EKS, Google GKE or Azure AKS. MultiPaaS uses the official Kuberenetes open-source implementation to provision, manage and run clusters on an independant network that you are in control of.  
+> `MultiPaaS` is a standalone multi-tenant Kubernetes management platform, it is __NOT__ designed to work with public cloud kubernetes implementations such as Amazon EKS, Google GKE or Azure AKS. MultiPaaS uses the official Kuberenetes open-source implementation to provision, manage and run clusters on an independant network that you are in control of.  
 > The documentation is work in progress. Whatever you might see on this repo at the moment is subject to change until the repo is stabalized.
 
 ## Motivations
