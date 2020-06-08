@@ -19,9 +19,16 @@ MultiPaaS is a open source, truely multi-tenant cloud platform that can be insta
 - Load-balancer for your kubernetes applications
 - Abstracted deployments of applications and services on a Kubernetes cluster 
 
+## When would I use MultiPaaS
+
+- If you own and control your datacenter and network
+- You can't / dont want to host your data and applications on public cloud infrastructures
+- You want the convenience of a public cloud environement for your teams & projects, but as a self hosted private cloud native platform.
+
+Think of MultiPaaS as something that resembles RedHat Openshift (way less mature of course given the amount of work that went into the latter), but with multi-tenancy / multi-cluster philosophy as it's core. 
 
 > IMPORTANT NOTE  
-> `MultiPaaS` is a standalone multi-tenant Kubernetes management platform, it is __NOT__ designed to work with public cloud kubernetes implementations such as Amazon EKS, Google GKE or Azure AKS. MultiPaaS uses the official Kuberenetes open-source implementation to provision, manage and run clusters on an independant network that you are in control of.  
+> `MultiPaaS` is a standalone multi-tenant Kubernetes management platform, in other words it is __NOT__ designed to work with public cloud kubernetes implementations such as Amazon EKS, Google GKE or Azure AKS. MultiPaaS uses the official Kuberenetes open-source implementation to provision, manage and run clusters on an independant network that you are in control of.  
 > The documentation is work in progress. Whatever you might see on this repo at the moment is subject to change until the repo is stabalized.
 
 ## Motivations
