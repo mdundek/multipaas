@@ -147,7 +147,7 @@ class TaskGlusterController {
                 data: data
             }));
         } catch (error) {
-            console.log(error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -175,12 +175,12 @@ class TaskGlusterController {
                  task: "provision gluster volume"
              }));
          } catch (_error) {
-             console.log(_error);
-             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
+            console.error(_error);
+            this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                  status: _error.code ? _error.code : 500,
                  message: _error.message,
                  task: "provision gluster volume"
-             }));
+            }));
          }   
     }
 
@@ -199,7 +199,7 @@ class TaskGlusterController {
                 task: "deprovision gluster volume"
             }));
         } catch (_error) {
-            console.log(_error);
+            console.error(_error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: _error.code ? _error.code : 500,
                 message: _error.message,
@@ -237,7 +237,7 @@ class TaskGlusterController {
                 task: "bind volume"
             }));
         } catch (error) {
-            console.log(error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,

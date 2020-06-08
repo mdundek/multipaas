@@ -86,7 +86,7 @@ class OsController {
 					if(code == 0){
 						resolve(stdout.split("\n").filter(o => o.length > 0));
 					} else {
-						console.log(code, stdout, stderr);
+						console.error(code, stdout, stderr);
 						reject(new Error(stderr && stderr.trim().length > 0 ? stderr : "An error occured"));
 					}
 				});

@@ -50,7 +50,7 @@ class TaskServicesController {
         try {
             let r = await OSController.sshExec(data.node.ip, `mkdir -p /mnt/${data.volume.name}-${data.volume.secret}/${data.subFolderName}`, true);
             if(r.code != 0) {
-                console.log(r);
+                console.error(r);
                 throw new Error("Could not create folders");
             } 
     
@@ -60,7 +60,7 @@ class TaskServicesController {
                 data: data
             }));
         } catch (error) {
-            console.log("ERROR 2 =>", error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -142,7 +142,7 @@ class TaskServicesController {
                 data: result
             }));
         } catch (error) {
-            console.log("ERROR 9 =>", error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -168,7 +168,7 @@ class TaskServicesController {
             // Delete helm service
             let r = await OSController.sshExec(data.node.ip, `helm uninstall ${data.service.instanceName}${data.service.namespace ? " --namespace " + data.service.namespace:""}`, true);
             if(r.code != 0) {
-                console.log(JSON.stringify(r, null, 4));
+                console.error(JSON.stringify(r, null, 4));
                 throw new Error("Could not uninstall helm service instance");
             }
 
@@ -179,7 +179,7 @@ class TaskServicesController {
                 if(volume){       
                     let r = await OSController.sshExec(data.node.ip, `rm -rf /mnt/${volume.name}-${volume.secret}/srv-${data.service.instanceName}`, true);
                     if(r.code != 0) {
-                        console.log(r);
+                        console.error(r);
                         throw new Error("Could not delete service folder");
                     } 
                 }
@@ -193,7 +193,7 @@ class TaskServicesController {
                 task: "delete service"
             }));
         } catch (error) {
-            console.log("ERROR 10 =>", error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -236,7 +236,7 @@ class TaskServicesController {
         await OSController.sshExec(node.ip, `rm -rf ${helmChartTargetPath}`, true);
 
         if(r.code != 0) {
-            console.log(JSON.stringify(r, null, 4));
+            console.error(JSON.stringify(r, null, 4));
             throw new Error("Could not deploy service");
         }
 

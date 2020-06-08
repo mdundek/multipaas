@@ -59,7 +59,7 @@ class TaskAppsController {
                 "ts":new Date().toISOString()
             });   
         } catch (error) {
-            console.log("ERROR 6 => ", error);
+            console.error(error);
             await DBController.updateTaskStatus(task, "ERROR", {
                 "type":"ERROR",
                 "step":"DEPLOY_IMAGE",
@@ -95,7 +95,7 @@ class TaskAppsController {
                 "ts":new Date().toISOString()
             });   
         } catch (error) {
-            console.log("ERROR 6 => ", error);
+            console.error(error);
             await DBController.updateTaskStatus(task, "ERROR", {
                 "type":"ERROR",
                 "step":"DELETE_IMAGE",
@@ -129,7 +129,7 @@ class TaskAppsController {
                 "ts":new Date().toISOString()
             });   
         } catch (error) {
-            console.log("ERROR 6 => ", error);
+            console.error(error);
             await DBController.updateTaskStatus(task, "ERROR", {
                 "type":"ERROR",
                 "step":"PROVISION_APP",
@@ -165,7 +165,7 @@ class TaskAppsController {
                 "ts":new Date().toISOString()
             });   
         } catch (error) {
-            console.log("ERROR 6 => ", error);
+            console.error(error);
             await DBController.updateTaskStatus(task, "ERROR", {
                 "type":"ERROR",
                 "step":"SCALE_APP",
@@ -201,7 +201,7 @@ class TaskAppsController {
                 "ts":new Date().toISOString()
             });   
         } catch (error) {
-            console.log("ERROR 6 => ", error);
+            console.error(error);
             await DBController.updateTaskStatus(task, "ERROR", {
                 "type":"ERROR",
                 "step":"PROVISION_APP_VERSION",
@@ -237,7 +237,7 @@ class TaskAppsController {
                 "ts":new Date().toISOString()
             });   
         } catch (error) {
-            console.log("ERROR 6 => ", error);
+            console.error(error);
             await DBController.updateTaskStatus(task, "ERROR", {
                 "type":"ERROR",
                 "step":"CANARY-SPLIT_APPLICATION",
@@ -264,7 +264,6 @@ class TaskAppsController {
                 "ts":new Date().toISOString()
             });
 
-            // console.log("processScheduleReplaceApplicationVersion =>", JSON.stringify(task.payload, null, 4));
             await this.replaceAppVersion(task.payload[0].socketId, task.payload[0].params);
             
             await DBController.updateTaskStatus(task, "DONE", {
@@ -274,7 +273,7 @@ class TaskAppsController {
                 "ts":new Date().toISOString()
             });   
         } catch (error) {
-            console.log("ERROR 6 => ", error);
+            console.error(error);
             await DBController.updateTaskStatus(task, "ERROR", {
                 "type":"ERROR",
                 "step":"REPLACE_APP_VERSION",
@@ -314,7 +313,7 @@ class TaskAppsController {
                 "ts":new Date().toISOString()
             });   
         } catch (error) {
-            console.log("ERROR 6 => ", error);
+            console.error(error);
             await DBController.updateTaskStatus(task, "ERROR", {
                 "type":"ERROR",
                 "step":"DEPROVISION_APP",
@@ -657,7 +656,7 @@ class TaskAppsController {
                 );
             }
         } catch (error) {
-            console.log(error);
+            console.error(error);
             this.mqttController.logEvent(socketId, "error", "An error occured, rolling back");
             /* ************* ROLLBACK ************ */
             if(newDbRoutes) {
@@ -811,7 +810,7 @@ class TaskAppsController {
                 );
             }
         } catch (error) {
-            console.log(error);
+            console.error(error);
             this.mqttController.logEvent(socketId, "error", "An error occured, rolling back");
             /* ************* ROLLBACK ************ */
             if(appVersionDeployed) {
@@ -880,7 +879,7 @@ class TaskAppsController {
                 }
             );
         } catch (error) {
-            console.log(error);
+            console.error(error);
             this.mqttController.logEvent(socketId, "error", "An error occured");
             throw error;
         }
@@ -912,7 +911,7 @@ class TaskAppsController {
                 throw error;
             }
         } catch (error) {
-            console.log(error);
+            console.error(error);
             this.mqttController.logEvent(socketId, "error", "An error occured");
             throw error;
         }
@@ -1029,7 +1028,7 @@ class TaskAppsController {
             this.mqttController.logEvent(socketId, "info", "Deleting old application version");
             await this.uninstallApplicationVersion(dbApp, replaceVersion, masterHost, node);
         } catch (error) {
-            console.log(error);
+            console.error(error);
             this.mqttController.logEvent(socketId, "info", "An error occured, rolling back");
             /* ************* ROLLBACK ************ */
             if(appVersionDeployed) {

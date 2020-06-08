@@ -22,7 +22,7 @@ class TaskKeycloakController {
 
             return { "code": 200, "data": groups };
         } catch (error) {
-            console.log(error);
+            console.error(error);
             return { "code": 500 };
         }
     }

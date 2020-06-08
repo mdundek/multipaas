@@ -52,7 +52,7 @@ class TaskPvcController {
         try {
             volume = await DBController.getVolumeByName(data.workspaceId, data.volumeName);
         } catch (error) {
-            console.log(error);
+            console.error(error);
             return { "code": 500 }
         }
 
@@ -89,7 +89,7 @@ class TaskPvcController {
                 throw error;
             }
         } catch (error) {
-            console.log(error);
+            console.error(error);
             return { "code": 500 }
         }
 
@@ -111,7 +111,7 @@ class TaskPvcController {
                 throw error;
             }
         } catch (error) {
-            console.log(error);
+            console.error(error);
             await this.mqttController.queryRequestResponse(masterNode.k8s_host.ip, "deprovision_pv", {
                 "pvName": pvName,
                 "volume": volume,

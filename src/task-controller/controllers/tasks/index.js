@@ -77,7 +77,7 @@ class TaskController {
                     taskList = await DBController.getPendingTasks();
                 }
             } catch(err) {
-                console.log("ERROR retrieving task(s) =>", err);
+                console.error(err);
             }
 
             for(let i=0; i<taskList.length; i++) {
@@ -130,7 +130,7 @@ class TaskController {
                             await TaskRuntimeController.processScheduledUnbindProxyDomain(taskList[i]);
                         }
                     } catch(err) {
-                        console.log("ERROR processing task", taskList[i], "=>", err);                        
+                        console.error("ERROR processing task", taskList[i], "=>", err);                        
                     } finally {
                         this.bussyTaskIds.splice(this.bussyTaskIds.indexOf(taskList[i].id), 1);
                     }
@@ -273,7 +273,6 @@ class TaskController {
      */
     static async processScheduledDeprovisionWorkspaceResources(task) {
         task.payload = JSON.parse(task.payload);
-        // console.log(JSON.stringify(task.payload, null, 4));
         let collectIps = [];
         try {
             await DBController.updateTaskStatus(task, "IN_PROGRESS", {
@@ -336,7 +335,7 @@ class TaskController {
                     }]
                 );
             } catch (error) {
-                console.log(error);
+                console.error(error);
             }
             
             // Clean up NGinx loadbalancer resource configs

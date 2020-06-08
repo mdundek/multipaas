@@ -136,7 +136,6 @@ class NGinxController {
 
         try {
             let _processServerCleanup = (_configServer, _upstreamBaseNameTcp, _index) => {
-                console.log("_upstreamBaseNameTcp", _upstreamBaseNameTcp);
                 if(_configServer.proxy_pass._value.indexOf(_upstreamBaseNameTcp) == 0) {
                     if(_index != null){
                         config.nginx._remove('server', _index);

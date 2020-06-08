@@ -184,7 +184,7 @@ class TaskVolumeController {
                  data: data
              }));
          } catch (err) {
-             console.log(err);
+             console.error(err);
              this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                  status: err.code ? err.code : 500,
                  message: err.message,

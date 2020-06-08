@@ -52,7 +52,7 @@ exports.Workspaces = class Workspaces extends Service {
                 };
             }
         } catch(err) {
-            console.log(err);
+            console.error(err);
             return {
                 code: 500
             };

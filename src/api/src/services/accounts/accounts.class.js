@@ -105,7 +105,6 @@ exports.Accounts = class Accounts extends Service {
                 };
             } catch (error) {
                 if (transaction) {
-                    // console.log(transaction);
                     await transaction.rollback();
                 }
                 throw error;

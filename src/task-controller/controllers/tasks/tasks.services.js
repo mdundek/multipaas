@@ -38,7 +38,6 @@ class TaskServicesController {
             // snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
 
             if(task.target == "workspace"){
-                // console.log("SIZE =>", task.payload[0].params.pvcSize);
                 await this.provisionServiceToTenantWorkspace(
                     task.payload[0].socketId,
                     task.targetId, 
@@ -50,7 +49,6 @@ class TaskServicesController {
                     task.payload[0].params.instanceName,
                     task.payload[0].params.exposeService,
                     task.payload[0].params.volumeName,
-                    // task.payload[0].params.targetPv,
                     task.payload[0].params.pvcSize,
                     task.payload[0].params.domainId
                 );
@@ -68,7 +66,7 @@ class TaskServicesController {
 
             // await this.parent.cleanUpClusterSnapshot(snapshotData);
         } catch (error) {
-            console.log("ERROR 5 => ", error);
+            console.error(error);
             await DBController.updateTaskStatus(task, "ERROR", {
                 "type":"ERROR",
                 "step":"PROVISIONNING_SERVICE",
@@ -159,7 +157,7 @@ class TaskServicesController {
                 "ts":new Date().toISOString()
             });  
         } catch (error) {
-            console.log("ERROR 6 => ", error);
+            console.error(error);
             this.mqttController.logEvent(task.payload[0].socketId, "error", "Error while deleting service, rollback");
            
             if(restoreVolumeDb){
@@ -417,7 +415,7 @@ class TaskServicesController {
                 );
             }
         } catch (error) {
-            console.log(error);
+            console.error(error);
             this.mqttController.logEvent(socketId, "error", "Error creating NGinx routes, rollback");
             /* ************* ROLLBACK ************ */
             if(newDbRoutes) {

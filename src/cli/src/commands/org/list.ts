@@ -33,7 +33,7 @@ export default class Organization extends Command {
 		} else if(result.code == 503){
 			this.logError(`MultiPaaS is not accessible. Please make sure that you are connected to the right network and try again.`);
 		} else {
-			console.log(JSON.stringify(result, null, 4));
+			// console.log(JSON.stringify(result, null, 4));
 			this.logError("Something went wrong... Please inform the system administrator.");
 		}
 	}

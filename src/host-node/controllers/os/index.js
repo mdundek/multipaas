@@ -204,14 +204,14 @@ class OsController {
 				var child = shell.exec(path, {async:true, silent:true});
 				let errors = [];
 				child.stdout.on('data', (output) => {
-					console.log(output);
+					// console.log(output);
 					output.split("\n").map(l => l.trim()).forEach(l => {
 						if(l.match(OUTPUT_ERROR_REGEX)){
 							errors.push(l);
 						}
 						else if(l.match(OUTPUT_DONE_REGEX)){
 							if(errors.length > 0){
-								console.log("ERROR LINES => ", errors);
+								// console.log("ERROR LINES => ", errors);
 								reject(errors.map(s => new Error(s)));
 							} else {
 								resolve();
@@ -271,7 +271,7 @@ class OsController {
                     ssh.dispose();
                     resolve();
                 }, function(error) {
-                    console.log("err", error);
+                    console.error(error);
                     ssh.dispose();
                     reject(error);
                 })
@@ -298,7 +298,7 @@ class OsController {
                     ssh.dispose();
                     resolve();
                 }, function(error) {
-                    console.log("err", error);
+                    console.error(error);
                     ssh.dispose();
                     reject(error);
                 })
