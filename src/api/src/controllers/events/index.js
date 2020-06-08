@@ -51,7 +51,6 @@ class EventsController {
      * @param {*} event 
      */
     static onClusterEvent(hostName, event) {
-        // console.log(hostName, " =>", event);
         let _cells = event.split("  ").filter(o => o.length > 0).map(o => {o = o.trim();return o;});
         let obj = {};
         if(_cells[0].indexOf("D:") == 0) {
@@ -118,7 +117,7 @@ class EventsController {
             this.deploymentStatus[hostName] = this.deploymentStatus[hostName].filter(o => o.deployment != obj.deployment);
             this.deploymentStatus[hostName].push(obj);
         }
-        console.log(JSON.stringify(this.deploymentStatus, null, 4));
+        // console.log(JSON.stringify(this.deploymentStatus, null, 4));
     }
 }
 EventsController.clients = {};

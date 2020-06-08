@@ -85,7 +85,7 @@ class TaskController {
                 snapshot: snapshotName
             }));
         } catch (_error) {
-            console.log(_error);
+            console.error(_error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: _error.code ? _error.code : 500,
                 message: _error.message,
@@ -109,7 +109,7 @@ class TaskController {
                 }));
             }
         } catch (_error) {
-            console.log(_error);
+            console.error(_error);
             if(topicSplit.length == 7){
                 this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                     status: _error.code ? _error.code : 500,
@@ -135,7 +135,7 @@ class TaskController {
                 }));
             }
         } catch (_error) {
-            console.log(_error);
+            console.error(_error);
             if(topicSplit.length == 7){
                 this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                     status: _error.code ? _error.code : 500,
@@ -195,9 +195,6 @@ class TaskController {
             adminRoleBindingYaml.subjects[0].name = `/mp/${account.name}-${org.name}-${ws.name}/cluster-admin`;
             fs.writeFileSync(wsTmpYamlPath, YAML.stringify(adminRoleBindingYaml));
 
-            // console.log(YAML.stringify(adminRoleBindingYaml));
-            // console.log({ ip: result.nodeIp });
-
             await TaskRuntimeController.applyK8SYaml(wsTmpYamlPath, null, { ip: result.nodeIp });
             await DBController.createK8SMasterNode(result.nodeIp, result.nodeHostname, result.workspaceId, result.hostId, result.hash);
         } catch (err) {
@@ -217,7 +214,7 @@ class TaskController {
                     }
                 } catch(_err) {
                     // TODO: Log rollback error
-                    console.log(_err);
+                    console.error(_err);
                 }
             }
 
@@ -262,7 +259,7 @@ class TaskController {
                     // }
                 } catch(_err) {
                     // TODO: Log rollback error
-                    console.log(_err);
+                    console.error(_err);
                 }
             }
             if(dbId != null) {
@@ -293,7 +290,7 @@ class TaskController {
                 node: payload.masterNode
             }));
         } catch (err) {
-            console.log(err);
+            console.error(err);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${payload.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: Array.isArray(err) ? 500 : (err.code ? err.code : 500),
                 message: Array.isArray(err) ? err.map(e => e.message).join(" ; ") : err.message,
@@ -319,7 +316,7 @@ class TaskController {
                 node: payload.masterNode
             }));
         } catch (err) {
-            console.log(err);
+            console.error(err);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${payload.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: Array.isArray(err) ? 500 : (err.code ? err.code : 500),
                 message: Array.isArray(err) ? err.map(e => e.message).join(" ; ") : err.message,
@@ -348,7 +345,7 @@ class TaskController {
                 task: "addGitlabRunner"
             }));
         } catch (err) {
-            console.log(err);
+            console.error(err);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${payload.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: err.code ? err.code : 500,
                 message: err.message,
@@ -411,7 +408,7 @@ class TaskController {
                 node: payload.workerNode
             }));
         } catch (err) {
-            console.log(err);
+            console.error(err);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${payload.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: Array.isArray(err) ? 500 : (err.code ? err.code : 500),
                 message: Array.isArray(err) ? err.map(e => e.message).join(" ; ") : err.message,

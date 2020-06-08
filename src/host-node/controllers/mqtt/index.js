@@ -47,7 +47,7 @@ class MqttController {
             
             this.client.on('message', this._processIncommingMessage.bind(this));
         }).catch(error => {
-            console.log(error);
+            console.error(error);
             process.exit(1);
         });
     }

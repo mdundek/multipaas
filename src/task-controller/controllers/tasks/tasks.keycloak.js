@@ -50,7 +50,7 @@ class TaskKeycloakController {
                 "ts":new Date().toISOString()
             });   
         } catch (error) {
-            console.log(error);
+            console.error(error);
             await DBController.updateTaskStatus(task,"ERROR", {
                 "type":"ERROR",
                 "step":"CREATE_GROUPS",
@@ -87,7 +87,7 @@ class TaskKeycloakController {
                 "ts":new Date().toISOString()
             });   
         } catch (error) {
-            console.log(error);
+            console.error(error);
             await DBController.updateTaskStatus(task,"ERROR", {
                 "type":"ERROR",
                 "step":"CLEANUP_GROUPS",

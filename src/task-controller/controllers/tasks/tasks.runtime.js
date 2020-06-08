@@ -90,7 +90,7 @@ class TaskRuntimeController {
                     }]
                 );
             } catch (error) {
-                console.log(error);
+                console.error(error);
             }
 
             await DBController.updateTaskStatus(task, "DONE", {
@@ -195,7 +195,7 @@ class TaskRuntimeController {
                             "ts":new Date().toISOString()
                         });
                     } catch(err) {
-                        console.log(err);
+                        console.error(err);
                         this.mqttController.logEvent(task.payload[0].socketId, "error", "Could not scale up cluster");
                         await DBController.updateTaskStatus(task, "ERROR", {
                             "type":"ERROR",
@@ -312,7 +312,7 @@ class TaskRuntimeController {
             client = null;
         } catch (error) {
             this.mqttController.logEvent(task.payload[0].socketId, "error", "An error occured, rolling back");
-            console.log("ERROR =>", error);
+            console.error(error);
             if(client) {
                 await DBController.rollbackTransaction(client);
             }
@@ -375,7 +375,7 @@ class TaskRuntimeController {
             });   
         } catch (error) {
             this.mqttController.logEvent(task.payload[0].socketId, "error", "An error occured, rolling back");
-            console.log("ERROR =>", error);
+            console.error(error);
             
             for(let i=0; i<task.payload[0].flags.portDomainMappings.length; i++) {
                 let mappingConfig = task.payload[0].flags.portDomainMappings[i];
@@ -421,7 +421,7 @@ class TaskRuntimeController {
             );
         } catch (error) {
             this.mqttController.logEvent(task.payload[0].socketId, "error", "An error occured");
-            console.log("ERROR =>", error);
+            console.error(error);
             await DBController.updateTaskStatus(task,"ERROR", {
                 "type":"ERROR",
                 "step":"UNBIND-DOMAIN",
@@ -481,7 +481,7 @@ class TaskRuntimeController {
             });   
         } catch (error) {
             this.mqttController.logEvent(task.payload[0].socketId, "error", "An error occured, rolling back");
-            console.log("ERROR =>", error);
+            console.error(error);
             
             await DBController.updateRouteDomainData(
                 task.payload[0].flags.routeId,
@@ -671,7 +671,7 @@ class TaskRuntimeController {
                         this.mqttController.logEvent(socketId, "info", `Deprovisioning volume ${y+1}/${volumeBindings.length} for node ${workerNodesProfiles[i].node.ip}`);
                         await TaskVolumeController.detatchLocalVolumeFromVM(workerNodesProfiles[i].node.workspaceId, workerNodesProfiles[i], volumeBindings[y].volumeId, true);
                         await TaskVolumeController.deleteLocalVolumeFromNode(workerNodesProfiles[i].host, workerNodesProfiles[i].node, volumeBindings[y].volumeId)
-                    } catch(_e){console.log(_e);}
+                    } catch(_e){console.error(_e);}
                 }
             }
             // Now remove worker VM
@@ -873,7 +873,7 @@ class TaskRuntimeController {
             this.mqttController.logEvent(socketId, "info", "Updating Nginx proxy upstream servers");
             await TaskNginxController.requestUpdateUpstreamServersForCluster(workspaceId);
         } catch(err) {
-            console.log("scaleUpK8SCluster error =>", err);
+            console.error(err);
             let workspaceNodes = await DBController.getK8sWorkspaceNodes(workspaceId);
             // Clean up resources that were created successfully before the exception
             for(let i=0; i<successfullJobResponses.length; i++){
@@ -894,7 +894,7 @@ class TaskRuntimeController {
                             "host": workerHost
                         }], false)
                     } catch (error) {
-                        console.log("rollback error =>", error);
+                        console.error(error);
                     }
                 } 
                 else if(jobItem.task == "provision" && jobItem.nodeType == "master"){
@@ -915,7 +915,7 @@ class TaskRuntimeController {
                         this.mqttController.logEvent(socketId, "info", `Untainting master node`);
                         await this.untaintK8SMaster(masterNodes[i], masterHost)
                     } catch (error) {
-                        console.log("untaintK8SMaster error =>", error);
+                        console.error(error);
                     }
                 }
             }

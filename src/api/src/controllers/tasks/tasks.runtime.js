@@ -202,9 +202,8 @@ class TaskRuntimeController {
                 code: 200
             };
         } catch (error) {
-            console.log(error);
+            console.error(error);
             if (transaction) {
-                // console.log(transaction);
                 await transaction.rollback();
             }
             return { "code": 500 };

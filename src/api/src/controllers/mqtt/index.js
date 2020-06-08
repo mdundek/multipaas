@@ -72,7 +72,7 @@ class MqttController {
                         data: base64Encoded
                     }));
                 } catch (error) {
-                    console.log("ERROR =>", error);
+                    console.error(error);
                     this.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                         status: error.code ? error.code : 500,
                         message: error.message,
@@ -91,7 +91,7 @@ class MqttController {
                         data: base64Encoded
                     }));
                 } catch (error) {
-                    console.log("ERROR =>", error);
+                    console.error(error);
                     this.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                         status: error.code ? error.code : 500,
                         message: error.message,
@@ -106,7 +106,7 @@ class MqttController {
                         services: this.services
                     }));
                 } catch (error) {
-                    console.log("ERROR =>", error);
+                    console.error(error);
                     this.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                         status: error.code ? error.code : 500,
                         message: error.message,
@@ -117,7 +117,7 @@ class MqttController {
                 let data = JSON.parse(message.toString());
                 fs.readFile(data.zipPath, (err, zipData) => {
                     if (err) {
-                        console.log("ERROR =>", err);
+                        console.error(err);
                         return this.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                             status: err.code ? err.code : 500,
                             message: err.message,

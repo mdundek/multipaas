@@ -230,9 +230,6 @@ class TaskIngressController {
         // Loop over services first
         for(let i=0; i<allServices.length; i++){
             if(allServices[i].serviceType == "ClusterIP" && allServices[i].externalServiceName && !allServices[i].tcpStream){
-                
-                // console.log(JSON.stringify(allServices[i], null, 4));
-
                 let baseHostPath = `${account.name}-${org.name}-${allServices[i].workspaceName}-${allServices[i].namespace}-${allServices[i].name}`.toLowerCase();
                 if(baseNamesPortCount[baseHostPath] > 1){
                     baseHostPath = `${baseHostPath}-${allServices[i].port}`;
@@ -353,8 +350,6 @@ class TaskIngressController {
                             }
                         }
                         
-                        // console.log(YAML.stringify(vsContent));
-
                         let ingressFilePath = path.join(process.env.VM_BASE_DIR, "workplaces", data.node.workspaceId.toString(), data.node.hostname, `${tmpFileName}.yaml`);
                         try {
                             fs.writeFileSync(ingressFilePath, YAML.stringify(vsContent));
@@ -769,7 +764,6 @@ class TaskIngressController {
         }
 
         for(let i=0; i<toDelAppRoutesHttp.length; i++) {
-            console.log("DELETING => ", JSON.stringify(toDelAppRoutesHttp[i], null, 4));
             await TaskRuntimeController.kubectl(`kubectl delete VirtualServer ${toDelAppRoutesHttp[i].namespace}-${toDelAppRoutesHttp[i].name}-${toDelAppRoutesHttp[i].virtualPort} --namespace=${toDelAppRoutesHttp[i].namespace}`, node, true);
         }
 

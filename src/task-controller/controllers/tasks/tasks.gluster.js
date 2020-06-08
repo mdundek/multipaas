@@ -162,17 +162,15 @@ class TaskGlusterController {
         try {
             for(let i=0; i<nodeProfiles.length; i++) {
                 if(!upgradeNodeIds || upgradeNodeIds.indexOf(nodeProfiles[i].node.id) != -1){
-                    console.log("A");
                     this.mqttController.logEvent(socketId, "info", `Mounting Gluster volume for node ${i+1}/${nodeProfiles.length}`);
                     await this.mountK8SNodeGlusterVolume(nodeProfiles[i], volume);
-                    console.log("B");
                     successMounts.push(nodeProfiles[i]);
                 }
             }
         } catch (error) {
             this.mqttController.logEvent(socketId, "error", `Could not mount gluster volumes, rollback`);
             for(let i=0; i<successMounts.length; i++) {
-                try { await this.unmountK8SNodeGlusterVolume(successMounts[i], volume); } catch (_error) { console.log(_error); }
+                try { await this.unmountK8SNodeGlusterVolume(successMounts[i], volume); } catch (_error) { console.error(_error); }
             }
             if(successMounts.length > 0){
                 // Remove authorized IPs for gluster volume
@@ -247,7 +245,7 @@ class TaskGlusterController {
         } catch (error) {
             this.mqttController.logEvent(socketId, "info", `An error occured unmounting Gluster volume, rollback`);
             for(let i=0; i<successUnmounts.length; i++) {
-                try { await this.mountK8SNodeGlusterVolume(successUnmounts[i], volume); } catch (_) {console.log(_e)}
+                try { await this.mountK8SNodeGlusterVolume(successUnmounts[i], volume); } catch (_) {console.error(_e)}
             }
             throw error;
         }
@@ -295,9 +293,10 @@ class TaskGlusterController {
                 throw error;
             } 
         } catch (error) {
+            console.error(error);
             this.mqttController.logEvent(socketId, "info", `An error occured setting Gluster authorized IPs, rollback`);
             for(let i=0; i<successUnmounts.length; i++) {
-                try { await this.mountK8SNodeGlusterVolume(successUnmounts[i], volume); } catch (_) {console.log(_e)}
+                try { await this.mountK8SNodeGlusterVolume(successUnmounts[i], volume); } catch (_e) {console.error(_e)}
             }
             throw error;
         }     

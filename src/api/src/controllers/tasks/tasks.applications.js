@@ -369,7 +369,7 @@ class TaskApplicationsController {
             masterNode = workspaceK8SNodes.find(n => n.nodeType == "MASTER");
 
         } catch (error) {
-            console.log(error);
+            console.error(error);
             return { "code": 500 };
         }
 

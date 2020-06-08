@@ -369,7 +369,6 @@ class EngineController {
             let ipHostnameScript = path.join(process.env.VM_BASE_DIR, "provisioning_scripts", "k8s", "get_ip_hostname.sh");
             let masterIpHost = await OSController.execSilentCommand(`${ipHostnameScript} ${workspaceId} master.${hash}`);
             
-            console.log("MASTER IP =>", masterIpHost);
             if(!leasedIp){
                 vagrantTemplateArray = vagrantTemplateArray.map(l => {
                     if(l.indexOf(`master.vm.network "public_network", bridge:`) != -1){
@@ -425,7 +424,7 @@ class EngineController {
                 "targetFolder": targetFolder
             };
         } catch(errArray) {
-            console.log(errArray);
+            console.error(errArray);
             let created = await this.vmExists(`master.${hash}`);
             if(created){
                 await this.stopDeleteVm(`master.${hash}`, workspaceId);
@@ -604,7 +603,7 @@ class EngineController {
                 }
                 this.inMaintenance = false;
             } catch (error) {
-                console.log(error);
+                console.error(error);
                 this.inMaintenance = false;
             }
         })();

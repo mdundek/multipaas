@@ -140,13 +140,12 @@ class TaskServiceController {
      */
     static async getServiceBaseConfig(workspaceId, data, params) {
         try {
-            // console.log(data);
             let targetService = this.services[data.service].versions.find(o => o.version == data.chartVersion);
             let serviceConfigFile = path.join(global.appRoot, "..", "data", "mp_services", "charts", data.service, `${targetService.chartFile.substring(0, targetService.chartFile.lastIndexOf("."))}.yaml`);
 
             return { "code": 200, "config": fs.readFileSync(serviceConfigFile, "utf8") };
         } catch (error) {
-            console.log("ERROR =>", error);
+            console.error(error);
             this.client.publish(`/multipaas/k8s/host/respond/api/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -243,7 +242,7 @@ class TaskServiceController {
             
             return dbService;
         });
-        // console.log(JSON.stringify(services, null, 4));
+       
         if(domainIds.length > 0) {
             let certificates = await DBController.getCertificateForDomains(domainIds);
             services = services.map(service => {

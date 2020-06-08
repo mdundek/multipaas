@@ -478,7 +478,6 @@ class DBController {
      * @param {*} portIndex 
      */
     static async setVolumePortIndex(id, portIndex) {
-        console.log("Setting volume port index ", portIndex);
         let _client = await this.pool.connect();
         try {
             let query = `UPDATE volumes SET "portIndex" = $1 WHERE "id" = $2`;

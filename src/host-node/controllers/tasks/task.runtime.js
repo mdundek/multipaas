@@ -76,7 +76,7 @@ class TaskRuntimeController {
                 task: "create k8s resource"
             }));
         } catch (_error) {
-            console.log(_error);
+            console.error(_error);
             try { await this.kubectl(`kubectl delete ${data.type} ${data.name}${data.ns ? " --namespace=" + data.ns : ""}`, data.node); } catch (error) {}
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: _error.code ? _error.code : 500,
@@ -182,7 +182,7 @@ class TaskRuntimeController {
                 node: data.node
             }));
         } catch (err) {
-            console.log(err);
+            console.error(err);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: Array.isArray(err) ? 500 : (err.code ? err.code : 500),
                 message: Array.isArray(err) ? err.map(e => e.message).join(" ; ") : err.message,
@@ -208,7 +208,7 @@ class TaskRuntimeController {
             }));
             fs.unlinkSync(tmpConfigFilePath);
         } catch (err) {
-            console.log(err);
+            console.error(err);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: Array.isArray(err) ? 500 : (err.code ? err.code : 500),
                 message: Array.isArray(err) ? err.map(e => e.message).join(" ; ") : err.message,
@@ -303,7 +303,7 @@ class TaskRuntimeController {
                 OSController.rmrf(yamlTmpPath);
             }
         } catch (error) {
-            console.log("ERROR =>", error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -335,7 +335,7 @@ class TaskRuntimeController {
 
             let r = await OSController.sshExec(data.node.ip, `mkdir -p ${pvTemplate.spec.local.path}`, true);
             if(r.code != 0) {
-                console.log(r);
+                console.error(r);
                 throw new Error("Could not create folders");
             } 
 
@@ -346,7 +346,7 @@ class TaskRuntimeController {
                 data: data
             }));
         } catch (error) {
-            console.log("ERROR 2 =>", error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -371,7 +371,6 @@ class TaskRuntimeController {
             pvcTemplate.metadata.labels.volumeHash = data.volume.secret;
             pvcTemplate.spec.resources.requests.storage = `${data.size}`;
 
-            // console.log(YAML.stringify(pvcTemplate));
             let yamlTmpPath = path.join(process.env.VM_BASE_DIR, "workplaces", data.workspaceId.toString(), data.node.hostname, `pvc.yml`);
             fs.writeFileSync(yamlTmpPath, YAML.stringify(pvcTemplate));
             await this.applyK8SYaml(yamlTmpPath, data.ns, data.node);     
@@ -381,7 +380,7 @@ class TaskRuntimeController {
                 data: data
             }));
         } catch (error) {
-            console.log("ERROR 3 =>", error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -401,7 +400,7 @@ class TaskRuntimeController {
         try {
             let r = await OSController.sshExec(data.node.ip, `ls /mnt/${data.volume.name}-${data.volume.secret}`, true);
             if(r.code != 0) {
-                console.log(r);
+                console.error(r);
                 throw new Error("Could not list folders");
             } 
             let volumeDirs = [];
@@ -410,7 +409,6 @@ class TaskRuntimeController {
             });
 
             for(let i=0; i<volumeDirs.length; i++) {
-                console.log("Removing PV =>", `${volumeDirs[i]}-pv`);
                 if(data.ns && data.ns == "*") {
                     let allPvs = await this.getK8SResources(data.node, "*", "pv");
                     for(let y=0; y<allPvs.length; y++) {
@@ -456,7 +454,7 @@ class TaskRuntimeController {
                 this.mqttController.client.publish(`/multipaas/cluster/event/${data.node.hostname}`, `S:${line}`);
             });
         } catch (error) {
-            console.log(error);
+            console.error(error);
         }
     }
     
@@ -496,7 +494,7 @@ class TaskRuntimeController {
             await this.removePersistantVolume(data.pvName, data.ns, data.node);     
             let r = await OSController.sshExec(data.node.ip, `rm -rf /mnt/${data.volume.name}-${data.volume.secret}/${data.subFolderName}`, true);
             if(r.code != 0) {
-                console.log(r);
+                console.error(r);
                 throw new Error("Could not delete folders");
             } 
            
@@ -603,7 +601,7 @@ class TaskRuntimeController {
             if(resourceLabels && resourceLabels.length == 1 && r.stderr.indexOf("Error from server (NotFound):") != -1){
                 return [];
             } else {
-                console.log(r);
+                console.error(r);
                 throw new Error("Could not get resources on cluster");
             }
         } 
@@ -670,7 +668,7 @@ class TaskRuntimeController {
         
         let r = await OSController.sshExec(masterNode.ip, cmd, true);
         if(r.code != 0) {
-            console.log(r);
+            console.error(r);
             throw new Error("Could not get resources on cluster");
         } 
         if(r.stdout.toLowerCase().indexOf("no resources found") != -1){
@@ -689,7 +687,7 @@ class TaskRuntimeController {
         
         let r = await OSController.sshExec(masterNode.ip, cmd, true);
         if(r.code != 0) {
-            console.log(r);
+            console.error(r);
             throw new Error("Could not get resources on cluster");
         } 
         if(r.stdout.toLowerCase().indexOf("no resources found") != -1){
@@ -709,7 +707,7 @@ class TaskRuntimeController {
         
         let r = await OSController.sshExec(masterNode.ip, cmd, true);
         if(r.code != 0) {
-            console.log(r);
+            console.error(r);
             throw new Error("Could not get resources on cluster");
         } 
         if(r.stdout.toLowerCase().indexOf("no resources found") != -1){
@@ -761,8 +759,6 @@ class TaskRuntimeController {
             }
         }
 
-        // console.log(JSON.stringify(config, null, 4));
-
         return config;
     }
 
@@ -783,10 +779,9 @@ class TaskRuntimeController {
         
         let r = await OSController.sshExec(masterNode.ip, cmd, true);
         if(r.code != 0) {
-            console.log(r);
+            console.error(r);
             throw new Error("Could not get helm deployments from cluster");
         } 
-        console.log(r);
         return JSON.parse(r.stdout);
     }
 
@@ -811,7 +806,6 @@ class TaskRuntimeController {
                     if(r.stderr.indexOf("6443 was refused") != -1 || r.stderr.indexOf("handshake timeout") != -1){
                         attempts++;
                     } else {
-                        console.log("applyK8SYaml =>", JSON.stringify(r, null, 4));
                         attempts = 31; // Jump out of loop
                     }            
                 }
@@ -830,6 +824,7 @@ class TaskRuntimeController {
      * @param {*} node 
      */
     static async kubectl(command, node, ignoreError) {
+        console.log(command);
         // Wait untill kubectl answers for 100 seconds max
         let attempts = 0;
         let success = false;
@@ -841,7 +836,6 @@ class TaskRuntimeController {
                 if(r.stderr.indexOf("6443 was refused") != -1){
                     attempts++;
                 } else {
-                    console.log(JSON.stringify(r, null, 4));
                     attempts = 31; // Jump out of loop
                 } 
                 await _sleep(1000 * 5);         
@@ -862,7 +856,7 @@ class TaskRuntimeController {
             await OSController.waitUntilUp(node.ip);
             let r = await OSController.sshExec(node.ip, `kubectl get pv ${pvName}${ns ? " --namespace="+ns : ""}`, true);
             if(!ignoreErrors && r.code != 0) {
-                console.log(r);
+                console.error(r);
                 throw new Error("Could not delete PV on cluster");
             } 
             if(r.code == 0 && r.stdout.toLowerCase().indexOf("no resources found") == -1){
@@ -870,7 +864,7 @@ class TaskRuntimeController {
                 await this.kubectl(`kubectl delete pv ${pvName}${ns ? " --namespace="+ns : ""} --grace-period=0 --force`, node);
             }
         } catch (error) {
-            console.log(JSON.stringify(error, null, 4));
+            console.error(JSON.stringify(error, null, 4));
             throw new Error("Could not delete PV on cluster");
         }
     }
@@ -891,7 +885,7 @@ class TaskRuntimeController {
                 await this.kubectl(`kubectl delete pvc ${pvcName}${ns ? " --namespace=" + ns:""}`, node);
             }            
         } catch (error) {
-            console.log(JSON.stringify(error, null, 4));
+            console.error(JSON.stringify(error, null, 4));
             throw new Error("Could not delete PVC on cluster");
         }
     }

@@ -93,7 +93,7 @@ class TaskAppsController {
                 if(log){
                     this.mqttController.logEvent(data.socketId, "info", log);
                 } else if(err) {
-                    console.log("ERROR 1");
+                    console.error(err);
                     this.mqttController.logEvent(data.socketId, "error", err);
                 }
             });
@@ -106,7 +106,7 @@ class TaskAppsController {
             // curl -k -X GET https://registry_user:registry_pass@192.168.0.98:5000/v2/_catalog
             // curl -k -X GET https://registry_user:registry_pass@192.168.0.98:5000/v2/oasis/sdfgsdfg/tags/list 
         } catch (error) {
-            console.log("ERROR 9 =>", error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -138,7 +138,7 @@ class TaskAppsController {
                 output: r
             }));
         } catch (error) {
-            console.log("ERROR 9 =>", error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -164,7 +164,7 @@ class TaskAppsController {
                 task: "delete images"
             }));
         } catch (error) {
-            console.log("ERROR 9 =>", error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -263,7 +263,7 @@ class TaskAppsController {
     static async getRegistryImages(node, orgName, accountName, rUser, rPass) {
         await OSController.sshExec(node.ip, `printf "${rPass}" | docker login registry.multipaas.org --username ${rUser} --password-stdin`);
         let result = await OSController.sshExec(node.ip, `curl -k -X GET https://${encodeURIComponent(rUser)}:${encodeURIComponent(rPass)}@registry.multipaas.org/v2/_catalog`);
-        console.log(result);
+      
         result = JSON.parse(result);
         let repos = result.repositories.filter(o => o.indexOf(`${accountName}/${orgName}/`) == 0);
         let tagCommands = repos.map(o => `curl -k -X GET https://${encodeURIComponent(rUser)}:${encodeURIComponent(rPass)}@registry.multipaas.org/v2/${o}/tags/list`);
@@ -410,7 +410,7 @@ class TaskAppsController {
                 data: result
             }));
         } catch (error) {
-            console.log("ERROR 10 =>", error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -433,16 +433,13 @@ class TaskAppsController {
             // Delete helm app
             let r = await OSController.sshExec(data.node.ip, `helm uninstall ${deploymentName}${data.application.namespace ? " --namespace " + data.application.namespace:""}`, true);
             if(r.code != 0) {
-                console.log(JSON.stringify(r, null, 4));
+                console.error(JSON.stringify(r, null, 4));
                 throw new Error("Could not uninstall helm service instance");
             }
 
             // If no more versions present, we delete ingress roules for this app
             let applicationVersions = await DBController.getApplicationVersionsForWs(data.application.workspaceId);
-            // console.log(JSON.stringify(data, null, 4));
-            // console.log(JSON.stringify(applicationVersions, null, 4));
             let remainingAppVersions = applicationVersions.filter(version => version.applicationId == data.application.id && version.id != data.applicationVersion.id);
-            // console.log(JSON.stringify(remainingAppVersions, null, 4));
             if(remainingAppVersions.length == 0) {
                 await TaskIngressController.cleanupIngressRulesForApplications(data.application, data.node, true);
             } 
@@ -452,7 +449,7 @@ class TaskAppsController {
                 task: "delete application"
             }));
         } catch (error) {
-            console.log("ERROR 10 =>", error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -473,7 +470,6 @@ class TaskAppsController {
             // Scale app
             let r = await OSController.sshExec(data.node.ip, `kubectl scale --replicas=${data.replicaCount} deployment ${data.deployment} -n ${data.ns}`, true);
             if(r.code != 0) {
-                console.log(JSON.stringify(r, null, 4));
                 throw new Error("Could not scale application version");
             }
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
@@ -481,7 +477,7 @@ class TaskAppsController {
                 task: "scale application"
             }));
         } catch (error) {
-            console.log(error);
+            console.error(error);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
                 message: error.message,
@@ -526,7 +522,6 @@ class TaskAppsController {
         await OSController.sshExec(node.ip, `rm -rf ${helmChartTargetPath}`, true);
 
         if(r.code != 0) {
-            console.log(JSON.stringify(r, null, 4));
             throw new Error("Could not deploy app");
         }
 
@@ -561,7 +556,7 @@ class TaskAppsController {
             });
 
         } catch (error) {
-            console.log(error);
+            console.error(error);
             await OSController.sshExec(node.ip, `helm uninstall ${serviceName}${ns ? " --namespace " + ns : ""}`, true);
             throw error;
         }

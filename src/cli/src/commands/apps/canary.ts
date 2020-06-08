@@ -640,7 +640,7 @@ export default class Canary extends Command {
 			this.logError(`MultiPaaS is not accessible. Please make sure that you are connected to the right network and try again.`);
 			return false;
 		} else if(result.code != 200){
-			console.log(JSON.stringify(result, null, 4));
+			// console.log(JSON.stringify(result, null, 4));
 			this.logError("Something went wrong... Please inform the system administrator.");
 			return false;
 		} else {

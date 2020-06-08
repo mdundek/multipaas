@@ -39,17 +39,6 @@ class TaskController {
         TaskKeycloakController.init(this, app, mqttController);
         
         this.services = YAML.parse(fs.readFileSync(path.join(process.env.MP_SERVICES_DIR, "available.yml"), 'utf8'));
-
-        // (async() => {
-        //     try {
-        //         await OSController.hostFeedbackSshExec("172.16.42.1", `ls -l`, (err, out) => {
-        //             console.log("ERR =>", err);
-        //             console.log("OUT =>", out);
-        //         });
-        //     } catch (error) {
-        //         console.log(error);
-        //     }
-        // })();
     }
 
     /**
@@ -537,13 +526,11 @@ class TaskController {
                 case "DEPLOY-IMAGE":
                     provisionTask.data[i].taskType = "Build & push image to registry";
                     data = provisionTask.data[i].payload[0];
-                    console.log(JSON.stringify(data, null, 4));
                     provisionTask.data[i].details = "N/A";
                     break;
                 case "DELETE-IMAGE":
                     provisionTask.data[i].taskType = "Delete image from registry";
                     data = provisionTask.data[i].payload[0];
-                    console.log(JSON.stringify(data, null, 4));
                     provisionTask.data[i].details = "N/A";
                     break;
                 default:
@@ -604,7 +591,7 @@ class TaskController {
                     params
                 );
             } catch(err){
-                console.log(err);
+                console.error(err);
                 return {"code": err.code};
             }
             return {"code": 200, "id": targetOrg.data[0].id};

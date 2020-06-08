@@ -37,7 +37,7 @@ exports.Users = class Users extends Service {
                     }
         
                 } catch(err){
-                    console.log(err);
+                    console.error(err);
                     process.exit(1);
                 }
             })();

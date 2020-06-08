@@ -134,7 +134,7 @@ class TaskVolumeController {
                     "ts":new Date().toISOString()
                 }); 
             } catch (error) {
-                console.log(error);
+                console.error(error);
                 this.mqttController.logEvent(task.payload[0].socketId, "error", "An error occured while binding volume to cluster");
                 if(snapshotData){
                     await this.parent.restoreClusterSnapshot(snapshotData);
@@ -210,7 +210,7 @@ class TaskVolumeController {
                 "ts":new Date().toISOString()
             });   
         } catch (error) {
-            console.log("ERROR 6 => ", error);
+            console.error(error);
             if(snapshotData){
                 await this.parent.restoreClusterSnapshot(snapshotData);
             }
@@ -296,7 +296,7 @@ class TaskVolumeController {
                     "ts":new Date().toISOString()
                 });   
             } catch (error) {
-                console.log("ERROR 4 => ", error);
+                console.error(error);
                 this.mqttController.logEvent(task.payload[0].socketId, "error", "An error occured while provisionning volume, rollback");
                 
                 await DBController.updateTaskStatus(task, "ERROR", {
@@ -382,7 +382,7 @@ class TaskVolumeController {
         } catch (error) {
             this.mqttController.logEvent(socketId, "error", `An error occured detatching the volume, rollback`);
             for(let i=0; i<successDetatch.length; i++) {
-                try { await this.attachLocalVolumeToVM(workspaceId, successDetatch[i], volume); } catch (_) {console.log(_e)}
+                try { await this.attachLocalVolumeToVM(workspaceId, successDetatch[i], volume); } catch (_e) {console.error(_e)}
             }
         }
     }
@@ -433,7 +433,7 @@ class TaskVolumeController {
             }
         } catch (error) {
             // this.mqttController.logEvent(socketId, "error", `An error occured while mounting local volume to nodes, rollback`);
-            console.log(error);
+            console.error(error);
             for(let i=0; i<successMounts.length; i++) {
                 await this.mqttController.queryRequestResponse(successMounts[i].host.ip, "unmount_local_volume", {
                     "nodeProfile": successMounts[i],

@@ -36,28 +36,24 @@ Before installing the `control-plane` and the `host-node` packages on the target
 To prepare the various components, MultiPaaS uses Vagrant. This will keep your build machine clean and ensure that the build outcomes are compatible with the target runtimes.  
 The only components that will be installed locally on your machine are VirtualBox & Vagrant (if not already present). Everything else will happen inside VMs.
 
-> The reason for this preparation step is that we need to download & build everything upfront so that we can install the various components in a offline (as well as online) environement later on.    
+> The reason for this preparation step is that we need to download & build everything upfront so that we can install the various components in a offline (as well as online) environement later on.  
+> PLEASE NOTE: Even if you intend on installing `MultiPaaS` in an online environement, this step is required.     
 
 The preparation script will perform the following tasks:
 
-- Download target OS psecific packages upfront
+- Download target OS specific packages upfront
 - Download all Docker images upfront
 - Build Vagrant boxes required for the `control-plane` and `host-node` environements
 - Install Vagrant base boxes on `control-plane` and `host-node` environements
 - Resolve dependencies for the `host-node` components upfront
 
-> PLEASE NOTE: Even if you intend on installing `MultiPaaS` in an online environement, this step is required.
-
-MultiPaaS uses Vagrant to build everything. This will keep your build machine clean and ensure that the build outcomes are compatible with the target runtimes.  
-The only components that will be installed locally on your machine are VirtualBox & Vagrant (if not already present). Everything else will happen inside VMs.  
-
-Lets start by cloning the repository on a `CentOS / RedHat 8` or `Ubuntu 18.04` machine:
+Lets start by cloning the repository on a `Ubuntu 18.04` or `CentOS / RedHat 8` machine:
 
 ```
 git clone https://github.com/mdundek/multipaas.git
 ```
 
-### A script to prepare for deployment
+### A script to prepare for the deployment
 
 The script is located at `install/build/prepare.sh`. It takes the following arguments:
 
@@ -82,8 +78,7 @@ The script will look for Virtualbox & Vagrant on your system. If not pressent, i
 
 Go have a coffe, this script will take a while to finish (on my Macbook Pro, it takes arount 30 - 40 minutes).
 
-You are now ready to install the MultiPaaS core components. For this, jump to the section [Install the Host Nodes (RedHat / CentOS & Ubuntu)](INSTALL.md#install-the-control-plane-redhat--centos--ubuntu)
-
+You are now ready to install the MultiPaaS core components.  
 
   
 ## Install the Control-Plane environement
@@ -104,7 +99,8 @@ Since all those elements are running inside a VM, it does not matter on what env
 
 > NOTE: If the target machine for the `control-plane` is a different machine that the one used to run the preparation script, then copy the repo folder over to the target machine (using a USB key for instance if the target has no internet connection).
 
-Before installing the `control-plane` components, you will have to import the Vagrant basebox to the target machine. This basebox has been created during the preparation phase of the deployment. To install the box, run the following command:
+Before installing the `control-plane` components, you will have to import the Vagrant basebox to the target machine. This basebox has been created during the preparation phase of the deployment.  
+To install the box on the target machine, run the following command:
 
 ```
 ./install/build/prepare.sh \
@@ -141,7 +137,8 @@ The `host-node` only requires `NodeJS >= 12`, `PM2` to keep the `host-node` serv
 
 > NOTE: If the target machine for the `host-node` is a different machine that the one used to run the preparation script, then copy the repo folder over to the target machine (using a USB key for instance if the target has no internet connection).
 
-Before installing the `host-node` components, you will have to import the Vagrant Kubernetes base boxes to the target machine. Those baseboxes have been created during the preparation phase of the deployment. To install the boxes, run the following command:
+Before installing the `host-node` components, you will have to import the Vagrant Kubernetes base boxes to the target machine. Those baseboxes have been created during the preparation phase of the deployment.  
+To install the boxes on the target machine(s), run the following command:
 
 ```
 ./install/build/prepare.sh \

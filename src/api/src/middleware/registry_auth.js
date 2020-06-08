@@ -95,7 +95,7 @@ module.exports = () => {
 					throw new Error("Unauthorized");
 				}
 			} catch (error) {
-				console.log(error);
+				console.error(error);
 				res.status(401);
 				res.send('ko');
 			}
