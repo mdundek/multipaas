@@ -142,7 +142,7 @@ build_for_ubuntu_bionic() {
     sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
 
     # Add Gluster repo
-    sudo add-apt-repository ppa:gluster/glusterfs-5
+    sudo add-apt-repository -y ppa:gluster/glusterfs-5
 
     sudo apt update -y    
     _CPWD=$(pwd)
