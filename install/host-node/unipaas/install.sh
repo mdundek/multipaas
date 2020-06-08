@@ -348,6 +348,15 @@ distro
 DEP_TARGET_LIST=("Kubernetes master" "Kubernetes worker")
 combo_value DEP_TARGET "What do you wish to install" "Your choice #:" "${DEP_TARGET_LIST[@]}"
 if [ "$DEP_TARGET" == "Kubernetes master" ]; then
+    local KUBECTL_EXISTS=$(command -v kubectl)
+    if [ "$KUBECTL_EXISTS" != "" ]; then
+        local KUBE_RUNNING=$(kubectl cluster-info | grep "Kubernetes master")
+        if [ "$KUBE_RUNNING" != "" ]; then
+            echo "Kubernetes master already running on this host"
+            exit 1
+        fi
+    fi
+    
     # Install dependencies
     dependencies_master
 
