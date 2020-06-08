@@ -93,7 +93,7 @@ dependencies () {
 
     NPM_BUNDLE_EXISTS=$(command -v npm-bundle)
     if [ "$NPM_BUNDLE_EXISTS" == "" ]; then
-        npm install npm-bundle -g
+        sudo npm install npm-bundle -g
     fi
 
     
