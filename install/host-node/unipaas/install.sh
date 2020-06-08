@@ -70,10 +70,9 @@ dependencies () {
 
     dep_docker &>>$err_log &
     bussy_indicator "Dependency on \"Docker CE\"..."
-    log "\n"
-
     sudo usermod -aG docker $USER
-
+    log "\n"
+    
     dep_nodejs &>>$err_log &
     bussy_indicator "Dependency on \"NodeJS\"..."
     log "\n"
@@ -85,7 +84,7 @@ dependencies () {
     PM2_EXISTS=$(command -v pm2)
     if [ "$PM2_EXISTS" == "" ]; then
         PM2_INSTALL_DIR=/opt
-        tar xpf ../../build/offline_files/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
+        sudo tar xpf ../../build/offline_files/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
            
         if [ -d "$PM2_INSTALL_DIR/package" ]; then
             sudo mv $PM2_INSTALL_DIR/package $PM2_INSTALL_DIR/pm2
@@ -94,23 +93,19 @@ dependencies () {
 #!/bin/sh
 export PATH="'$PM2_INSTALL_DIR'/pm2/bin:\$PATH"
 EOF'
-        . /etc/profile.d/node.sh
+        sudo . /etc/profile.d/node.sh
     fi
 
     for dockerimage in ../../build/offline_files/docker_images/*.tar; do
-        docker load --input $dockerimage
+        sudo docker load --input $dockerimage
     done
 
     if [ "$IS_GLUSTER_PEER" == "true" ]; then
-        GLUSTER_IMG_EXISTS=$(sudo docker images gluster/gluster-centos:gluster4u0_centos7 | sed -n '1!p')
+        GLUSTER_IMG_EXISTS=$(docker images gluster/gluster-centos:gluster4u0_centos7 | sed -n '1!p')
         if [ "$GLUSTER_IMG_EXISTS" == "" ]; then
             if [ "$DISTRO" == "ubuntu" ]; then
                 if [ "$MAJ_V" == "18.04" ]; then
-                    sudo docker load --input ../build/ubuntu_bionic/docker-images/gluster-centos-gluster4u0_centos7.tar
-                fi
-            elif [ "$DISTRO" == "redhat" ]; then
-                if [ "$MAJ_V" == "8" ]; then
-                    sudo docker load --input ../build/centos8/docker-images/gluster-centos-gluster4u0_centos7.tar
+                    sudo docker load --input ../../build/offline_files/docker_images/gluster-centos-gluster4u0_centos7.tar
                 fi
             fi
 
@@ -234,14 +229,14 @@ install_core_components() {
     rm env
 
     log "\n"
-    # HOST_NODE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-host-node")
-    # if [ "$HOST_NODE_DEPLOYED" == "" ]; then
-    #     npm i
-    #     /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
-    #     /opt/pm2/bin/pm2 -s startup
-    #     sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-    #     /opt/pm2/bin/pm2 -s save --force
-    # fi
+    HOST_NODE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-host-node")
+    if [ "$HOST_NODE_DEPLOYED" == "" ]; then
+        npm i
+        /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
+        /opt/pm2/bin/pm2 -s startup
+        sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
+        /opt/pm2/bin/pm2 -s save --force
+    fi
 }
 
 
@@ -290,9 +285,9 @@ sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.mul
 # fi
 
 # Install the core components
-install_core_components &>>$err_log &
-bussy_indicator "Installing host controller components..."
-log "\n"
+install_core_components #&>>$err_log &
+# bussy_indicator "Installing host controller components..."
+# log "\n"
 
 log "\n"
 

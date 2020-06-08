@@ -122,7 +122,6 @@ dependencies () {
                     sudo docker load --input ../build/centos8/docker-images/gluster-centos-gluster4u0_centos7.tar
                 fi
             fi
-
         fi
     fi
 }

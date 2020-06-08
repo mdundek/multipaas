@@ -84,10 +84,9 @@ dependencies () {
 
     sudo echo "" # Ask user for sudo password now
 
-    NODE_EXISTS=$(command -v npm)
-    if [ "$NODE_EXISTS" == "" ]; then
-        curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-        apt-get install -y nodejs
+    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/nodejs)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/nodejs
+        wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/debs/nodejs/node-v12.18.0-linux-x64.tar.xz
     fi
 
     NPM_BUNDLE_EXISTS=$(command -v npm-bundle)
@@ -108,7 +107,7 @@ build_for_ubuntu_bionic() {
     cd $_DIR
     chown _apt /var/lib/update-notifier/package-data-downloads/partial/
 
-    OFFLINE_FOLDER="$(dirname "$_DIR")/offline_files"
+    
     # DOCKER
     if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/containerd)" ]; then
         mkdir $OFFLINE_FOLDER/debs/containerd
@@ -124,6 +123,8 @@ build_for_ubuntu_bionic() {
         mkdir $OFFLINE_FOLDER/debs/docker-ce
         wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/docker-ce/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb
     fi
+
+    
 
     dpkg -i $OFFLINE_FOLDER/debs/containerd/*.deb
     dpkg -i $OFFLINE_FOLDER/debs/docker-ce-cli/*.deb
@@ -141,21 +142,11 @@ build_for_ubuntu_bionic() {
     download_deb kubeadm
     download_deb kubelet
     download_deb kubectl
-    download_deb nodejs
     download_deb sshpass
 
+    
+
     cd $_CPWD
-
-    # Bundle pm2
-    mkdir -p ./npm-tmp
-    cd ./npm-tmp
-    npm-bundle pm2@4.4.0
-    npm-bundle pm2-logrotate@2.7.0
-
-    mv ./pm2-4.4.0.tgz ../../offline_files/npm-modules/pm2-4.4.0.tgz
-    mv ./pm2-logrotate-2.7.0.tgz ../../offline_files/npm-modules/pm2-logrotate-2.7.0.tgz
-    cd ..
-    rm -rf ./npm-tmp
 
     # Download docker images
     # Clear layer cach to prevent stuck corrupt image layers
@@ -191,6 +182,8 @@ if [ "$DISTRO" != "ubuntu" ] || [ "$MAJ_V" != "18.04" ]; then
     echo "Unsupported OS. This script only works on Ubuntu 18.04"
     exit 1
 fi
+
+OFFLINE_FOLDER="$(dirname "$_DIR")/offline_files"
 
 # Install dependencies
 dependencies

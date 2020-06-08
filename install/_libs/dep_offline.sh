@@ -230,7 +230,19 @@ dep_nodejs() {
     if [ $INSTALL_NODE = 1 ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "nodejs"
+                sudo mkdir -p /opt/nodejs
+                sudo chmod -R 755 /opt/nodejs
+                sudo cp ../../build/offline_files/debs/nodejs/node-v12.18.0-linux-x64.tar.xz /opt
+                sudo cd /opt
+                sudo tar xf /opt/node-v12.18.0-linux-x64.tar.xz --directory /opt/nodejs
+                sudo rm -rf /opt/node-v12.18.0-linux-x64.tar.xz
+                sudo mv /opt/nodejs/node-v12.18.0-linux-x64/* /opt/nodejs
+                sudo rm -rf /opt/nodejs/node-v12.18.0-linux-x64
+                echo 'export NODEJS_HOME=/opt/nodejs/bin' >> ~/.profile
+                echo 'export PATH=$NODEJS_HOME:$PATH' >> ~/.profile
+                echo 'export NODEJS_HOME=/opt/nodejs/bin' >> ~/.bashrc
+                echo 'export PATH=$NODEJS_HOME:$PATH' >> ~/.bashrc
+                . ~/.profile
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
