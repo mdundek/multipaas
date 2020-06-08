@@ -36,7 +36,8 @@ Before installing the `control-plane` and the `host-node` packages on the target
 To prepare the various components, MultiPaaS uses Vagrant. This will keep your build machine clean and ensure that the build outcomes are compatible with the target runtimes.  
 The only components that will be installed locally on your machine are VirtualBox & Vagrant (if not already present). Everything else will happen inside VMs.
 
-> The reason for this preparation step is that we need to download & build everything upfront so that we can install the various components in a offline (as well as online) environement later on.    
+> The reason for this preparation step is that we need to download & build everything upfront so that we can install the various components in a offline (as well as online) environement later on.  
+> PLEASE NOTE: Even if you intend on installing `MultiPaaS` in an online environement, this step is required.     
 
 The preparation script will perform the following tasks:
 
@@ -45,11 +46,6 @@ The preparation script will perform the following tasks:
 - Build Vagrant boxes required for the `control-plane` and `host-node` environements
 - Install Vagrant base boxes on `control-plane` and `host-node` environements
 - Resolve dependencies for the `host-node` components upfront
-
-> PLEASE NOTE: Even if you intend on installing `MultiPaaS` in an online environement, this step is required.
-
-MultiPaaS uses Vagrant to build everything. This will keep your build machine clean and ensure that the build outcomes are compatible with the target runtimes.  
-The only components that will be installed locally on your machine are VirtualBox & Vagrant (if not already present). Everything else will happen inside VMs.  
 
 Lets start by cloning the repository on a `CentOS / RedHat 8` or `Ubuntu 18.04` machine:
 
