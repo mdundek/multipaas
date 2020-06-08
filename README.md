@@ -3,13 +3,6 @@
 ![MultiPaaS Banner](./resources/banner.png)
 
 
-## IMPORTANT
-
-> PLEASE NOTE:
-> 
-> MultiPaaS documentation is in the process of being written as we speak. Whatever you might see on this repo at the moment is uncomplete and subject to change until this message disappears.
-
-
 ## What is MultiPaaS
 
 MultiPaaS is a open source, truely multi-tenant cloud platform that can be installed on any Intel/AMD 64 bit based hardware components. It is based on Kubernetes at it's core, providing organizations and teams with isolated clusters and a collection of managed services to be deployed. Some of MultiPaaS's features are:
@@ -25,6 +18,11 @@ MultiPaaS is a open source, truely multi-tenant cloud platform that can be insta
 - Centralized user-management and SSO using Keycloak
 - Load-balancer for your kubernetes applications
 - Abstracted deployments of applications and services on a Kubernetes cluster 
+
+
+> IMPORTANT NOTE  
+> `MultiPaaS` is a standalone multi nenant Kubernetes management platform, it is __NOT__ designed to work with public cloud kubernetes implementations such as Amazon EKS, Google GKE or Azure AKS. MultiPaaS uses the official Kuberenetes open-source implementation to provision, manage and run clusters on an independant network that you are in control of.  
+> The documentation is work in progress. Whatever you might see on this repo at the moment is subject to change until the repo is stabalized.
 
 ## Motivations
 
