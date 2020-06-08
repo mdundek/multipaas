@@ -138,6 +138,8 @@ build_for_ubuntu_bionic() {
     sudo dpkg -i $OFFLINE_FOLDER/debs/containerd/*.deb
     sudo dpkg -i $OFFLINE_FOLDER/debs/docker-ce-cli/*.deb
     sudo dpkg -i $OFFLINE_FOLDER/debs/docker-ce/*.deb
+    sudo gpasswd -a $USER docker
+    newgrp docker
 
     # GITLAB-RUNNER
     curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash
