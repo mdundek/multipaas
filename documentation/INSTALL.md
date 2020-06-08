@@ -82,8 +82,7 @@ The script will look for Virtualbox & Vagrant on your system. If not pressent, i
 
 Go have a coffe, this script will take a while to finish (on my Macbook Pro, it takes arount 30 - 40 minutes).
 
-You are now ready to install the MultiPaaS core components. For this, jump to the section [Install the Host Nodes (RedHat / CentOS & Ubuntu)](INSTALL.md#install-the-control-plane-redhat--centos--ubuntu)
-
+You are now ready to install the MultiPaaS core components.  
 
   
 ## Install the Control-Plane environement
