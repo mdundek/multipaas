@@ -97,21 +97,10 @@ dependencies () {
     fi
 
     
-
     dep_wget &>>$err_log &
     bussy_indicator "Dependency on \"wget\"..."
     log "\n"
-}
 
-
-########################################
-# BUILD FOR TARGET UBUNTU
-########################################
-build_for_ubuntu_bionic() {
-    cd $_DIR
-    sudo chown _apt /var/lib/update-notifier/package-data-downloads/partial/
-
-    
     # DOCKER
     if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/containerd)" ]; then
         mkdir $OFFLINE_FOLDER/debs/containerd
@@ -134,11 +123,26 @@ build_for_ubuntu_bionic() {
         wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/debs/nodejs/node-v12.18.0-linux-x64.tar.xz
     fi
     
+    DOCKER_EXISTS=$(command -v docker)
+    if [ "$DOCKER_EXISTS" == "" ]; then
+        sudo dpkg -i $OFFLINE_FOLDER/debs/containerd/*.deb
+        sudo dpkg -i $OFFLINE_FOLDER/debs/docker-ce-cli/*.deb
+        sudo dpkg -i $OFFLINE_FOLDER/debs/docker-ce/*.deb
+        sudo gpasswd -a $USER docker
+    fi
+    
+}
 
-    sudo dpkg -i $OFFLINE_FOLDER/debs/containerd/*.deb
-    sudo dpkg -i $OFFLINE_FOLDER/debs/docker-ce-cli/*.deb
-    sudo dpkg -i $OFFLINE_FOLDER/debs/docker-ce/*.deb
-    sudo gpasswd -a $USER docker
+
+########################################
+# BUILD FOR TARGET UBUNTU
+########################################
+build_for_ubuntu_bionic() {
+    cd $_DIR
+    sudo chown _apt /var/lib/update-notifier/package-data-downloads/partial/
+
+    
+    
 
     # GITLAB-RUNNER
     curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash
@@ -160,9 +164,9 @@ build_for_ubuntu_bionic() {
 
     # Download docker images
     # Clear layer cach to prevent stuck corrupt image layers
-    systemctl stop docker
-    rm -rf /var/lib/docker
-    systemctl start docker
+    sudo systemctl stop docker
+    sudo rm -rf /var/lib/docker
+    sudo systemctl start docker
     sleep 2
 
     IFS=$'\r\n' GLOBIGNORE='*' command eval  'DIMG_LIST=($(cat ../offline_files/docker_images/image-list.cfg))'
