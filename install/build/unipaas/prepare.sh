@@ -144,18 +144,39 @@ build_for_ubuntu_bionic() {
     # Add Gluster repo
     sudo add-apt-repository -y ppa:gluster/glusterfs-5
 
-    sudo apt update -y    
+    sudo apt update -y &>>$err_log &
+    bussy_indicator "Updating repos..."
+    log "\n"
+
     _CPWD=$(pwd)
 
-    download_deb kubeadm
-    download_deb kubelet
-    download_deb kubectl
-    download_deb sshpass
-    download_deb unzip
-    download_deb mosquitto
-    download_deb software-properties-common
-    download_deb glusterfs-server
-    download_deb glusterfs-client
+    download_deb kubeadm &>>$err_log &
+    bussy_indicator "Downloading repo kubeadm..."
+    log "\n"
+    download_deb kubelet &>>$err_log &
+    bussy_indicator "Downloading repo kubelet..."
+    log "\n"
+    download_deb kubectl &>>$err_log &
+    bussy_indicator "Downloading repo kubectl..."
+    log "\n"
+    download_deb sshpass &>>$err_log &
+    bussy_indicator "Downloading repo sshpass..."
+    log "\n"
+    download_deb unzip &>>$err_log &
+    bussy_indicator "Downloading repo unzip..."
+    log "\n"
+    download_deb mosquitto &>>$err_log &
+    bussy_indicator "Downloading repo mosquitto..."
+    log "\n"
+    download_deb software-properties-common &>>$err_log &
+    bussy_indicator "Downloading repo software-properties-common..."
+    log "\n"
+    download_deb glusterfs-server &>>$err_log &
+    bussy_indicator "Downloading repo glusterfs-server..."
+    log "\n"
+    download_deb glusterfs-client &>>$err_log &
+    bussy_indicator "Downloading repo glusterfs-client..."
+    log "\n"
 
 
     ########## Download docker images
@@ -175,7 +196,9 @@ build_for_ubuntu_bionic() {
             D_IMG=$(echo $PACKAGE | cut -d' ' -f1)
             D_VER=$(echo $PACKAGE | cut -d' ' -f2)
             F_NAME=$(echo $PACKAGE | cut -d' ' -f3)
-            fetch_docker_images $D_IMG $D_VER $F_NAME
+            fetch_docker_images $D_IMG $D_VER $F_NAME &>>$err_log &
+            bussy_indicator "Downloading docker image $D_IMG..."
+            log "\n"
         fi
     done
 }
