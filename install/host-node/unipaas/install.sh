@@ -169,6 +169,14 @@ collect_informations() {
     log "\n"
     read_input "Enter the control-plane VM IP:" MASTER_IP  
     log "\n"
+
+    curl --output /dev/null --silent --head --fail http://$MASTER_IP:3030
+    if ["$?" != "0"]; then
+        error "Control-plane API server is not responding.\n"
+        error "Make sure the firewall is not blocking port 3030 on the control-plane.\n"
+        exit 1
+    fi
+
     read_input "Enter the PostgreSQL database password (same than the MultiPaaS admin password chosen during the control-plane installation):" PW
     log "\n"
 
@@ -375,13 +383,13 @@ if [ "$DEP_TARGET" == "Kubernetes master" ]; then
     sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
 
     # Install the core components
-    install_core_components #&>>$err_log &
-    # bussy_indicator "Installing host controller components..."
-    # log "\n"
+    install_core_components &>>$err_log &
+    bussy_indicator "Installing host controller components..."
+    log "\n"
 
-    init_k8s_master #&>>$err_log &
-    # bussy_indicator "Installing kubernetes cluster master..."
-    # log "\n"
+    init_k8s_master &>>$err_log &
+    bussy_indicator "Installing kubernetes cluster master..."
+    log "\n"
 
     log "\n"
 
@@ -437,7 +445,7 @@ if [ "$IS_K8S_NODE" == "true" ]; then
     warn "Manually configure access to your private docker registry on every K8S node:\n"
     log "\n"
     log "1. Grab the config script from the control-plane installation system (\$HOME/configPrivateRegistry.sh)\n"
-    log "2. Put the script somewhere locally, and execute the script with sudo\n"
+    log "2. Put the script somewhere locally, and execute the script with sudo (sudo ./configPrivateRegistry.sh)\n"
     log "\n"
     log "Once done, your node has the required certificate needed to access the private registry.\n"
     log "\n"

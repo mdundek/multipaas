@@ -20,7 +20,7 @@ exports.Cli = class Cli {
 	}
 
 	async get (id, params) {
-		return {};
+		return {"code": 200, "mode": process.env.MP_MODE};
 	}
 
 	/**

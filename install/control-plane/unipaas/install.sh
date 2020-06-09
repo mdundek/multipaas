@@ -166,6 +166,7 @@ install_core_components() {
     mkdir -p $HOME/.multipaas/nginx/letsencrypt
     mkdir -p $HOME/.multipaas/postgres/pg-init-scripts
     mkdir -p $HOME/.multipaas/gitlab
+    mkdir -p $HOME/.multipaas/docker-registry/data
 
     mkdir -p $HOME/.multipaas/auth/registry
     mkdir -p $HOME/.multipaas/auth/nginx
@@ -272,8 +273,8 @@ EOF
     docker run -d \
         --name multipaas-registry \
         --restart=always -p 5000:5000 \
-        -v /mnt/docker-registry/data/:/var/lib/registry \
-        -v /opt/docker/containers/docker-registry/auth:/auth \
+        -v $HOME/.multipaas/docker-registry/data/:/var/lib/registry \
+        -v $HOME/.multipaas/auth/registry:/auth \
         -e "REGISTRY_AUTH=htpasswd" \
         -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
         -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
@@ -323,7 +324,7 @@ EOF
         -v $HOME/.multipaas/nginx/conf.d:/etc/nginx/conf.d:ro \
         -v $HOME/.multipaas/nginx/nginx.conf:/etc/nginx/nginx.conf \
         -v $HOME/.multipaas/nginx/letsencrypt:/etc/letsencrypt \
-        -v /opt/docker/containers/nginx-registry/auth:/auth \
+        -v $HOME/.multipaas/auth/nginx:/auth \
         -v $HOME/multipaas/install/build/offline_files:/www/static \
         -v $NGINX_CRT_FOLDER:/certs \
         nginx:1.17.10-alpine &>>$err_log &
@@ -357,8 +358,8 @@ EOF
         -e ENABLE_NGINX_STREAM_DOMAIN_NAME=true \
         -e MP_SERVICES_DIR=/usr/src/app/data/mp_services \
         -v $HOME/multipaas:/usr/src/app/data \
-        -v /opt/docker/containers/docker-registry/auth:/usr/src/app/auth-docker \
-        -v /opt/docker/containers/nginx-registry/auth:/usr/src/app/auth-nginx \
+        -v $HOME/.multipaas/auth/registry:/usr/src/app/auth-docker \
+        -v $HOME/.multipaas/auth/nginx:/usr/src/app/auth-nginx \
         multipaas-api:0.9 &>>$err_log &
     bussy_indicator "Starting multipaas-api..."
     log "\n"
