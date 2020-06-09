@@ -16,11 +16,13 @@ exports.Cli = class Cli {
 	}
 
 	async find (params) {
-		return [];
+		return [{
+			"mode": process.env.MP_MODE
+		}];
 	}
 
 	async get (id, params) {
-		return {"code": 200, "mode": process.env.MP_MODE};
+		return {"code": 200};
 	}
 
 	/**

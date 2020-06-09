@@ -89,8 +89,8 @@ class APIClient {
     async join(host) {
         this.initApiConnection(host);
         try{
-            await this.app.service("cli").find({});
-
+            let result = await this.app.service("cli").find({});
+            console.log(result);
             if(!this.apiJson){
                 this.apiJson = {};
             }
