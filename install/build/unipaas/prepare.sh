@@ -112,6 +112,8 @@ build_for_ubuntu_bionic() {
 
     ########## Download binaries
 
+    _CPWD=$(pwd)
+    
     # Nodejs
     if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/nodejs)" ]; then
         mkdir $OFFLINE_FOLDER/debs/nodejs
@@ -151,6 +153,7 @@ build_for_ubuntu_bionic() {
     curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add &>>$err_log &
     bussy_indicator "Adding repo key K8S..."
     log "\n"
+
     sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main" &>>$err_log &
     bussy_indicator "Adding repo K8S..."
     log "\n"
@@ -164,35 +167,46 @@ build_for_ubuntu_bionic() {
     bussy_indicator "Updating repos..."
     log "\n"
 
-    _CPWD=$(pwd)
-
     download_deb kubeadm &>>$err_log &
     bussy_indicator "Downloading repo kubeadm..."
     log "\n"
+
     download_deb kubelet &>>$err_log &
     bussy_indicator "Downloading repo kubelet..."
     log "\n"
+
     download_deb kubectl &>>$err_log &
     bussy_indicator "Downloading repo kubectl..."
     log "\n"
+
     download_deb sshpass &>>$err_log &
     bussy_indicator "Downloading repo sshpass..."
     log "\n"
+
     download_deb unzip &>>$err_log &
     bussy_indicator "Downloading repo unzip..."
     log "\n"
+
+    download_deb jq &>>$err_log &
+    bussy_indicator "Downloading repo jq..."
+    log "\n"
+
     download_deb mosquitto &>>$err_log &
     bussy_indicator "Downloading repo mosquitto..."
     log "\n"
+
     download_deb software-properties-common &>>$err_log &
     bussy_indicator "Downloading repo software-properties-common..."
     log "\n"
+
     download_deb glusterfs-server &>>$err_log &
     bussy_indicator "Downloading repo glusterfs-server..."
     log "\n"
+
     download_deb glusterfs-client &>>$err_log &
     bussy_indicator "Downloading repo glusterfs-client..."
     log "\n"
+
     download_deb gitlab-runner &>>$err_log &
     bussy_indicator "Downloading repo gitlab-runner..."
     log "\n"
