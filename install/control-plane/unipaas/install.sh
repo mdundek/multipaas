@@ -42,41 +42,60 @@ dependencies () {
     sudo systemctl enable docker > /dev/null 2>&1 
     sudo systemctl start docker > /dev/null 2>&1 
 
-    sudo docker load --input ../../build/offline_files/docker_images/eclipse-mosquitto-1.6.tar &>>$err_log &
-    bussy_indicator "Loading docker image eclipse-mosquitto..."
-    log "\n"
 
-    sudo docker load --input ../../build/offline_files/docker_images/keycloak-9.0.3.tar &>>$err_log &
-    bussy_indicator "Loading docker image keycloak..."
-    log "\n"
+    if [ "$(docker images | grep -E 'eclipse-mosquitto.*1.6')" == "" ]; then
+        sudo docker load --input ../../build/offline_files/docker_images/eclipse-mosquitto-1.6.tar &>>$err_log &
+        bussy_indicator "Loading docker image eclipse-mosquitto..."
+        log "\n"
+    fi
 
-    sudo docker load --input ../../build/offline_files/docker_images/gitlab-ce-12.10.1-ce.0.tar &>>$err_log &
-    bussy_indicator "Loading docker image gitlab-ce..."
-    log "\n"
+    if [ "$(docker images | grep -E 'keycloak.*9.0.3')" == "" ]; then
+        sudo docker load --input ../../build/offline_files/docker_images/keycloak-9.0.3.tar &>>$err_log &
+        bussy_indicator "Loading docker image keycloak..."
+        log "\n"
+    fi
 
-    sudo docker load --input ../../build/offline_files/docker_images/nginx-1.17.10-alpine.tar &>>$err_log &
-    bussy_indicator "Loading docker image nginx..."
-    log "\n"
+    if [ "$(docker images | grep -E 'gitlab-ce.*12.10.1-ce.0')" == "" ]; then
+        sudo docker load --input ../../build/offline_files/docker_images/gitlab-ce-12.10.1-ce.0.tar &>>$err_log &
+        bussy_indicator "Loading docker image gitlab-ce..."
+        log "\n"
+    fi
 
-    sudo docker load --input ../../build/offline_files/docker_images/registry-2.7.1.tar &>>$err_log &
-    bussy_indicator "Loading docker image registry..."
-    log "\n"
+    if [ "$(docker images | grep -E 'nginx.*1.17.10-alpine')" == "" ]; then
+        sudo docker load --input ../../build/offline_files/docker_images/nginx-1.17.10-alpine.tar &>>$err_log &
+        bussy_indicator "Loading docker image nginx..."
+        log "\n"
+    fi
 
-    sudo docker load --input ../../build/offline_files/docker_images/postgres-12.2-alpine.tar &>>$err_log &
-    bussy_indicator "Loading docker image postgres..."
-    log "\n"
+    if [ "$(docker images | grep -E 'registry.*2.7.1')" == "" ]; then
+        sudo docker load --input ../../build/offline_files/docker_images/registry-2.7.1.tar &>>$err_log &
+        bussy_indicator "Loading docker image registry..."
+        log "\n"
+    fi
 
-    sudo docker load --input ../../build/offline_files/docker_images/node-12.16.2.tar &>>$err_log &
-    bussy_indicator "Loading docker image node..."
-    log "\n"
+    if [ "$(docker images | grep -E 'postgres.*12.2-alpine')" == "" ]; then
+        sudo docker load --input ../../build/offline_files/docker_images/postgres-12.2-alpine.tar &>>$err_log &
+        bussy_indicator "Loading docker image postgres..."
+        log "\n"
+    fi
 
-    sudo docker load --input ../../build/offline_files/docker_images/multipaas-api-0.9.tar &>>$err_log &
-    bussy_indicator "Loading docker image multipaas-api..."
-    log "\n"
+    if [ "$(docker images | grep -E 'node.*12.16.2')" == "" ]; then
+        sudo docker load --input ../../build/offline_files/docker_images/node-12.16.2.tar &>>$err_log &
+        bussy_indicator "Loading docker image node..."
+        log "\n"
+    fi
 
-    sudo docker load --input ../../build/offline_files/docker_images/multipaas-ctrl-0.9.tar &>>$err_log &
-    bussy_indicator "Loading docker image multipaas-ctrl..."
-    log "\n"
+    if [ "$(docker images | grep -E 'multipaas-api.*0.9')" == "" ]; then
+        sudo docker load --input ../../build/offline_files/docker_images/multipaas-api-0.9.tar &>>$err_log &
+        bussy_indicator "Loading docker image multipaas-api..."
+        log "\n"
+    fi
+
+    if [ "$(docker images | grep -E 'multipaas-ctrl.*0.9')" == "" ]; then
+        sudo docker load --input ../../build/offline_files/docker_images/multipaas-ctrl-0.9.tar &>>$err_log &
+        bussy_indicator "Loading docker image multipaas-ctrl..."
+        log "\n"
+    fi
 }
 
 ########################################
@@ -269,8 +288,8 @@ EOF
         --name multipaas-postgresql \
         --restart unless-stopped \
         --network host \
-        -v /home/vagrant/.multipaas/postgres/data:/var/lib/postgresql/data \
-        -v /home/vagrant/.multipaas/postgres/pg-init-scripts:/docker-entrypoint-initdb.d \
+        -v $HOME/.multipaas/postgres/data:/var/lib/postgresql/data \
+        -v $HOME/.multipaas/postgres/pg-init-scripts:/docker-entrypoint-initdb.d \
         -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
         -e KEYCLOAK_USER=keycloak \
         -e KEYCLOAK_PASS=$KEYCLOAK_PASSWORD \
@@ -296,11 +315,11 @@ EOF
         --name multipaas-nginx \
         --restart unless-stopped \
         --network host \
-        -v /home/vagrant/.multipaas/nginx/conf.d:/etc/nginx/conf.d:ro \
-        -v /home/vagrant/.multipaas/nginx/nginx.conf:/etc/nginx/nginx.conf \
-        -v /home/vagrant/.multipaas/nginx/letsencrypt:/etc/letsencrypt \
+        -v $HOME/.multipaas/nginx/conf.d:/etc/nginx/conf.d:ro \
+        -v $HOME/.multipaas/nginx/nginx.conf:/etc/nginx/nginx.conf \
+        -v $HOME/.multipaas/nginx/letsencrypt:/etc/letsencrypt \
         -v /opt/docker/containers/nginx-registry/auth:/auth \
-        -v /home/vagrant/multipaas/install/build/offline_files:/www/static \
+        -v $HOME/multipaas/install/build/offline_files:/www/static \
         -v $NGINX_CRT_FOLDER:/certs \
         nginx:1.17.10-alpine
 
@@ -308,8 +327,8 @@ EOF
         --name multipaas-mosquitto \
         --restart unless-stopped \
         --network host \
-        -v /home/vagrant/.multipaas/postgres/data:/mosquitto/data \
-        -v /home/vagrant/.multipaas/postgres/log:/mosquitto/log \
+        -v $HOME/.multipaas/postgres/data:/mosquitto/data \
+        -v $HOME/.multipaas/postgres/log:/mosquitto/log \
         -v /etc/localtime:/etc/localtime \
         eclipse-mosquitto:1.6
 
@@ -328,7 +347,7 @@ EOF
         -e CRYPTO_KEY=YDbxyG16Q6ujlCpjXH2Pq7nPAtJF66jLGwx4RYkHqhY= \
         -e ENABLE_NGINX_STREAM_DOMAIN_NAME=true \
         -e MP_SERVICES_DIR=/usr/src/app/data/mp_services \
-        -v /home/vagrant/multipaas:/usr/src/app/data \
+        -v $HOME/multipaas:/usr/src/app/data \
         -v /opt/docker/containers/docker-registry/auth:/usr/src/app/auth-docker \
         -v /opt/docker/containers/nginx-registry/auth:/usr/src/app/auth-nginx \
         multipaas-api:0.9
@@ -348,7 +367,7 @@ EOF
         -e DHCP_RESERVED=$DHCP_RESERVED \
         -e DHCT_USE_PING=true \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        -v /home/vagrant/.multipaas/nginx:/usr/src/app/nginx \
+        -v $HOME/.multipaas/nginx:/usr/src/app/nginx \
         -v $NGINX_USERS_CRT_FOLDER:/certs \
         multipaas-ctrl:0.9
 }
@@ -569,9 +588,9 @@ sudo docker run -d \
   --name multipaas-gitlab \
   --restart unless-stopped \
   --add-host multipaas.keycloak.com:172.17.0.1 \
-  --volume /home/vagrant/.multipaas/gitlab/config:/etc/gitlab \
-  --volume /home/vagrant/.multipaas/gitlab/logs:/var/log/gitlab \
-  --volume /home/vagrant/.multipaas/gitlab/data:/var/opt/gitlab \
+  --volume $HOME/.multipaas/gitlab/config:/etc/gitlab \
+  --volume $HOME/.multipaas/gitlab/logs:/var/log/gitlab \
+  --volume $HOME/.multipaas/gitlab/data:/var/opt/gitlab \
   gitlab/gitlab-ce:12.10.1-ce.0
 ENDOFFILE
 

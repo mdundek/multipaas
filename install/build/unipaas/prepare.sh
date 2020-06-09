@@ -108,6 +108,34 @@ dependencies () {
     log "\n"
 }
 
+build_multipaas_api() {
+    cd $BASE_FOLDER/src/api
+    rm -rf node_modules
+    rm -rf package-lock.json
+    docker build -t multipaas-api:0.9 .
+    if [ $? -ne 0 ]; then
+        echo "Error building MultiPaaS API docker image"
+        exit 1
+    fi
+    docker save -o $BASE_FOLDER/install/build/offline_files/docker_images/multipaas-api-0.9.tar multipaas-api:0.9
+    docker rmi multipaas-api:0.9
+    docker images purge
+}
+
+build_multipaas_ctrl() {
+    cd $BASE_FOLDER/src/task-controller
+    rm -rf node_modules
+    rm -rf package-lock.json
+    docker build -t multipaas-ctrl:0.9 .
+    if [ $? -ne 0 ]; then
+        echo "Error building MultiPaaS Ctrl docker image"
+        exit 1
+    fi
+    docker save -o $BASE_FOLDER/install/build/offline_files/docker_images/multipaas-ctrl-0.9.tar multipaas-ctrl:0.9
+    docker rmi multipaas-ctrl:0.9
+    docker images purge
+}
+
 
 ########################################
 # BUILD FOR TARGET UBUNTU
@@ -251,29 +279,13 @@ build_for_ubuntu_bionic() {
     BASE_FOLDER="$(dirname "$BASE_FOLDER")"
 
     # Build & export multipaas docker images
-    cd $BASE_FOLDER/src/api
-    rm -rf node_modules
-    rm -rf package-lock.json
-    docker build -t multipaas-api:0.9 .
-    if [ $? -ne 0 ]; then
-        echo "Error building MultiPaaS API docker image"
-        exit 1
-    fi
-    docker save -o $BASE_FOLDER/install/build/offline_files/docker_images/multipaas-api-0.9.tar multipaas-api:0.9
-    docker rmi multipaas-api:0.9
-    docker images purge
+    build_multipaas_api &>>$err_log &
+    bussy_indicator "Building multipaas api service..."
+    log "\n"
 
-    cd $BASE_FOLDER/src/task-controller
-    rm -rf node_modules
-    rm -rf package-lock.json
-    docker build -t multipaas-ctrl:0.9 .
-    if [ $? -ne 0 ]; then
-        echo "Error building MultiPaaS Ctrl docker image"
-        exit 1
-    fi
-    docker save -o $BASE_FOLDER/install/build/offline_files/docker_images/multipaas-ctrl-0.9.tar multipaas-ctrl:0.9
-    docker rmi multipaas-ctrl:0.9
-    docker images purge
+    build_multipaas_api &>>$err_log &
+    bussy_indicator "Building multipaas controller service..."
+    log "\n"
 }
 
 ########################################
