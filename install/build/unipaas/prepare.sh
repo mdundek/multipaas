@@ -151,23 +151,28 @@ build_for_ubuntu_bionic() {
     fi
     
     # GITLAB-RUNNER
-    curl -s -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash &>>$err_log &
-    bussy_indicator "Adding repo gitlab-runner..."
-    log "\n"
+    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/gitlab-runner)" ]; then
+        curl -s -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash &>>$err_log &
+        bussy_indicator "Adding repo gitlab-runner..."
+        log "\n"
+    fi
 
     # KUBERNETES
-    curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add &>>$err_log &
-    bussy_indicator "Adding repo key K8S..."
-    log "\n"
-
-    sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main" &>>$err_log &
-    bussy_indicator "Adding repo K8S..."
-    log "\n"
+    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/kubeadm)" ]; then
+        curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add &>>$err_log &
+        bussy_indicator "Adding repo key K8S..."
+        log "\n"
+        sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main" &>>$err_log &
+        bussy_indicator "Adding repo K8S..."
+        log "\n"
+    fi
 
     # Add Gluster repo
-    sudo add-apt-repository -y ppa:gluster/glusterfs-5 &>>$err_log &
-    bussy_indicator "Adding repo GlusterFS..."
-    log "\n"
+    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/glusterfs-server)" ]; then
+        sudo add-apt-repository -y ppa:gluster/glusterfs-5 &>>$err_log &
+        bussy_indicator "Adding repo GlusterFS..."
+        log "\n"
+    fi
 
     sudo apt update -y &>>$err_log &
     bussy_indicator "Updating repos..."
@@ -254,7 +259,7 @@ build_for_ubuntu_bionic() {
         echo "Error building MultiPaaS API docker image"
         exit 1
     fi
-    docker save -o $BASE_FOLDER/install/build/offline_files/docker-images/multipaas-api-0.9.tar multipaas-api:0.9
+    docker save -o $BASE_FOLDER/install/build/offline_files/docker_images/multipaas-api-0.9.tar multipaas-api:0.9
     docker rmi multipaas-api:0.9
     docker images purge
 
@@ -266,7 +271,7 @@ build_for_ubuntu_bionic() {
         echo "Error building MultiPaaS Ctrl docker image"
         exit 1
     fi
-    docker save -o $BASE_FOLDER/install/build/offline_files/docker-images/multipaas-ctrl-0.9.tar multipaas-ctrl:0.9
+    docker save -o $BASE_FOLDER/install/build/offline_files/docker_images/multipaas-ctrl-0.9.tar multipaas-ctrl:0.9
     docker rmi multipaas-ctrl:0.9
     docker images purge
 }
