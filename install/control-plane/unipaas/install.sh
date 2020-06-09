@@ -465,6 +465,7 @@ setup_keycloak() {
         -H "Authorization: Bearer $KC_TOKEN" \
         --data '{"clientRole": true,"name": "mp-sysadmin"}' \
         https://multipaas.keycloak.com/auth/admin/realms/master/clients/$CLIENT_UUID/roles
+
     SYSADMIN_ROLE_UUID=$(curl -s -k --request GET \
         -H "Accept: application/json" \
         -H "Content-Type:application/json" \
@@ -696,13 +697,20 @@ install_gitlab
 
 
 # Create default account, org and workspace
+U_ID=$(curl -s http://$LOCAL_IP:3030/authentication/ \
+    -H 'Content-Type: application/json' \
+    --data-binary '{ "strategy": "local", "email": "'"$MP_U"'", "password": "'"$MP_P"'" }' | jq -r '.user.id')
+
 MP_TOKEN=$(curl -s http://$LOCAL_IP:3030/authentication/ \
     -H 'Content-Type: application/json' \
     --data-binary '{ "strategy": "local", "email": "'"$MP_U"'", "password": "'"$MP_P"'" }' | jq -r '.accessToken')
 
-
-
-
+ACC_ID=$(curl -s -k \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $MP_TOKEN" \
+    -X POST \
+    -d '{ "name": "unipaas" }' \
+    http://$LOCAL_IP:3030/accounts | jq -r '.id')
 
 
 

@@ -27,7 +27,7 @@ exports.Accounts = class Accounts extends Service {
 
         let adminToken = null;
         let kcUser = null;
-
+console.log(process.env.MP_MODE);
         if(process.env.MP_MODE == "unicloud") {
             if(potentialUsers.length != 1) {
                 let error = new Error('Unauthorized');
