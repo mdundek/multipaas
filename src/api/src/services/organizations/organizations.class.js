@@ -75,7 +75,7 @@ exports.Organizations = class Organizations extends Service {
 	 * execSilentCommand
 	 * @param {*} command 
 	 */
-	static async _execSilentCommand(command, ignoreErrorCode) {
+	async _execSilentCommand(command, ignoreErrorCode) {
 		console.log(command);
 		return new Promise((resolve, reject) => {
 			try {
