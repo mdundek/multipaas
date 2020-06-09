@@ -15,10 +15,7 @@ exports.Accounts = class Accounts extends Service {
      * @param {*} params 
      */
     async create (data, params) {
-        console.log(data);
-        console.log(typeof data);
         const { name, email, password } = data;
-        console.log(1);
         // If user exists, make sure he has not his own account
         let potentialUsers = await this.app.service('users').find({
             paginate: false,
@@ -27,45 +24,80 @@ exports.Accounts = class Accounts extends Service {
             },
             _internalRequest: true
         });
-        console.log(2, potentialUsers);
-        if(potentialUsers.length == 1 && password) {
-            let error = new Error('This user already has an account');
-            error.statusCode = 412;
-            error.code = 412;
-            return error;
+
+        let adminToken = null;
+        let kcUser = null;
+
+        if(process.env.MP_MODE == "unicloud") {
+            if(potentialUsers.length != 1) {
+                let error = new Error('Unauthorized');
+                error.statusCode = 401;
+                error.code = 401;
+                return error;
+            }
+
+            adminToken = await Keycloak.adminAuthenticate(this.app);
+            kcUser = await Keycloak.getUserByEmail(adminToken, email);
+            if(kcUser && password && email == process.env.API_SYSADMIN_USER) {
+                await Keycloak.authenticate(email, password, true);
+                let accounts = await this.app.service('accounts').find({
+                    paginate: false,
+                    query: {},
+                    _internalRequest: true
+                });
+                if(accounts.length != 0) {
+                    let error = new Error('Unicloud already has a default account');
+                    error.statusCode = 401;
+                    error.code = 401;
+                    return error;
+                }
+            }
+            else {
+                let error = new Error('Unauthorized');
+                error.statusCode = 401;
+                error.code = 401;
+                return error;
+            }
         }
-console.log(3);
-        let adminToken = await Keycloak.adminAuthenticate(this.app);
-        console.log(4);
-        let kcUser = await Keycloak.getUserByEmail(adminToken, email);
-        console.log(5);
-        if(kcUser && password) {
-            await Keycloak.authenticate(email, password, true);
-        }
-        console.log(6);
-        if(potentialUsers.length == 1) {
-            let accountUsers = await this.app.service('acc-users').find({
-                paginate: false,
-                query: {
-                    "userId": potentialUsers[0].id
-                },
-                _internalRequest: true
-            });
-            if(accountUsers.find(o => o.isAccountOwner)){
+        else {
+            if(potentialUsers.length == 1 && password) {
                 let error = new Error('This user already has an account');
                 error.statusCode = 412;
                 error.code = 412;
                 return error;
             }
+            
+            adminToken = await Keycloak.adminAuthenticate(this.app);
+            kcUser = await Keycloak.getUserByEmail(adminToken, email);
+            
+            if(kcUser && password) {
+                await Keycloak.authenticate(email, password, true);
+            }
+            
+            if(potentialUsers.length == 1) {
+                let accountUsers = await this.app.service('acc-users').find({
+                    paginate: false,
+                    query: {
+                        "userId": potentialUsers[0].id
+                    },
+                    _internalRequest: true
+                });
+                if(accountUsers.find(o => o.isAccountOwner)){
+                    let error = new Error('This user already has an account');
+                    error.statusCode = 412;
+                    error.code = 412;
+                    return error;
+                }
+            }
         }
-        console.log(7);
+        
         let accounts = await this.app.service('accounts').find({
             query: {
                 "name": name
             },
             _internalRequest: true
         });
-        console.log(8);
+        
         if(accounts.total == 0){
             let transaction = null;
             try {
