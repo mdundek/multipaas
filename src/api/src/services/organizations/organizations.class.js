@@ -79,6 +79,7 @@ exports.Organizations = class Organizations extends Service {
         const { name, registryUser, registryPass } = data;
         let transaction = null;
         try{
+            console.log(1);
             // Check to see if org already exists
             if((await this.app.service('organizations').find({
                 "query": {
@@ -91,6 +92,7 @@ exports.Organizations = class Organizations extends Service {
                 return new Conflict(new Error('This organization name already exists'));
             } 
             else {
+                console.log(2);
                 // Gen registry user pass hash
                 let cryptoData = await this._hashPass(registryPass);
             
@@ -106,7 +108,7 @@ exports.Organizations = class Organizations extends Service {
                     "bcryptSalt": cryptoData.salt,
                     "accountId":  data.accountId
                 }, params);
-               
+                console.log(3);
                 // Create org admin user link
                 let orgUser = await this.app.service('org-users').create({
                     "organizationId": newOrg.id,
@@ -115,19 +117,20 @@ exports.Organizations = class Organizations extends Service {
                 }, params);
 
                 try {
+                    console.log(4);
                     // Create user/pass for NGinx & Registry
                     let REGISTYRY_PASSWD_PATH="/usr/src/app/auth-docker/htpasswd";
                     if (!fs.existsSync(REGISTYRY_PASSWD_PATH)) {
                         fs.writeFileSync(REGISTYRY_PASSWD_PATH, '');
                     }
                     await this._sshExec(process.env.REGISTRY_IP, `docker run --entrypoint htpasswd registry:2.7.1 -Bbn ${registryUser} ${registryPass} >> /opt/docker/containers/docker-registry/auth/htpasswd`);
-                       
+                    console.log(5);
                     let NGINX_PASSWD_PATH="/usr/src/app/auth-nginx/htpasswd";
                     if (!fs.existsSync(NGINX_PASSWD_PATH)) {
                         fs.writeFileSync(NGINX_PASSWD_PATH, '');
                     }
                     await this._sshExec(process.env.REGISTRY_IP, `docker run --entrypoint htpasswd registry:2.7.1 -bn ${registryUser} ${registryPass} >> /opt/docker/containers/nginx-registry/auth/htpasswd`);
-                    
+                    console.log(6);
                     await transaction.commit();
                 } catch (_error) {
                     if (transaction) {
