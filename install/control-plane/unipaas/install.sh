@@ -246,14 +246,109 @@ EOF
 
     touch $HOME/.multipaas/mosquitto/log/mosquitto.log
     chmod o+w $HOME/.multipaas/mosquitto/log/mosquitto.log
-    chown 1883:1883 $HOME/.multipaas/mosquitto/log -R
+    sudo chown 1883:1883 $HOME/.multipaas/mosquitto/log -R
 
 
+    docker run -d \
+        --name multipaas-registry \
+        --restart=always -p 5000:5000 \
+        -v /mnt/docker-registry/data/:/var/lib/registry \
+        -v /opt/docker/containers/docker-registry/auth:/auth \
+        -e "REGISTRY_AUTH=htpasswd" \
+        -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
+        -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
+        -e REGISTRY_STORAGE_DELETE_ENABLED=true \
+        -v $NGINX_CRT_FOLDER:/certs \
+        -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/docker-registry.crt \
+        -e REGISTRY_HTTP_TLS_KEY=/certs/docker-registry.key \
+        registry:2.7.1
 
+    docker run -d \
+        --name multipaas-postgresql \
+        --restart unless-stopped \
+        --network host \
+        -v /home/vagrant/.multipaas/postgres/data:/var/lib/postgresql/data \
+        -v /home/vagrant/.multipaas/postgres/pg-init-scripts:/docker-entrypoint-initdb.d \
+        -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+        -e KEYCLOAK_USER=keycloak \
+        -e KEYCLOAK_PASS=$KEYCLOAK_PASSWORD \
+        -e MYCLOUD_USER=multipaas \
+        -e MYCLOUD_PASS=multipaaspass \
+        postgres:12.2-alpine
 
+    docker run -d \
+        --name multipaas-keycloak \
+        --restart=always -p 8888:8080 \
+        -e DB_VENDOR=POSTGRES \
+        -e KEYCLOAK_PASSWORD=$KEYCLOAK_PASSWORD \
+        -e KEYCLOAK_USER=admin \
+        -e DB_DATABASE=keycloak \
+        -e DB_PORT=5432 \
+        -e DB_USER=keycloak \
+        -e DB_PASSWORD=$KEYCLOAK_PASSWORD \
+        -e DB_ADDR=$DB_HOST \
+        -e PROXY_ADDRESS_FORWARDING=true \
+        jboss/keycloak:9.0.3
 
+    docker run -d \
+        --name multipaas-nginx \
+        --restart unless-stopped \
+        --network host \
+        -v /home/vagrant/.multipaas/nginx/conf.d:/etc/nginx/conf.d:ro \
+        -v /home/vagrant/.multipaas/nginx/nginx.conf:/etc/nginx/nginx.conf \
+        -v /home/vagrant/.multipaas/nginx/letsencrypt:/etc/letsencrypt \
+        -v /opt/docker/containers/nginx-registry/auth:/auth \
+        -v /home/vagrant/multipaas/install/build/offline_files:/www/static \
+        -v $NGINX_CRT_FOLDER:/certs \
+        nginx:1.17.10-alpine
 
-   
+    docker run -d \
+        --name multipaas-mosquitto \
+        --restart unless-stopped \
+        --network host \
+        -v /home/vagrant/.multipaas/postgres/data:/mosquitto/data \
+        -v /home/vagrant/.multipaas/postgres/log:/mosquitto/log \
+        -v /etc/localtime:/etc/localtime \
+        eclipse-mosquitto:1.6
+
+    docker run -d \
+        --name multipaas-api \
+        --restart unless-stopped \
+        --network host \
+        -e NGINX_HOST_IP=$NGINX_HOST_IP \
+        -e DB_HOST=$DB_HOST \
+        -e DB_USER=$POSTGRES_USER \
+        -e DB_PASS=$DB_PASS \
+        -e MOSQUITTO_IP=$MOSQUITTO_IP \
+        -e API_SYSADMIN_USER=$API_SYSADMIN_USER \
+        -e API_SYSADMIN_PASSWORD=$API_SYSADMIN_PASSWORD \
+        -e REGISTRY_IP=$REGISTRY_IP \
+        -e CRYPTO_KEY=YDbxyG16Q6ujlCpjXH2Pq7nPAtJF66jLGwx4RYkHqhY= \
+        -e ENABLE_NGINX_STREAM_DOMAIN_NAME=true \
+        -e MP_SERVICES_DIR=/usr/src/app/data/mp_services \
+        -v /home/vagrant/multipaas:/usr/src/app/data \
+        -v /opt/docker/containers/docker-registry/auth:/usr/src/app/auth-docker \
+        -v /opt/docker/containers/nginx-registry/auth:/usr/src/app/auth-nginx \
+        multipaas-api:0.9
+
+    docker run -d \
+        --name multipaas-ctrl \
+        --restart unless-stopped \
+        --network host \
+        -e DB_HOST=$DB_HOST \
+        -e DB_USER=$POSTGRES_USER \
+        -e DB_PASS=$DB_PASS \
+        -e MOSQUITTO_IP=$MOSQUITTO_IP \
+        -e NGINX_HOST_IP=$NGINX_HOST_IP \
+        -e ENABLE_NGINX_STREAM_DOMAIN_NAME=true \
+        -e DHCP_OVERWRITE=true \
+        -e DHCP_MASK=$DHCP_MASK \
+        -e DHCP_RESERVED=$DHCP_RESERVED \
+        -e DHCT_USE_PING=true \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v /home/vagrant/.multipaas/nginx:/usr/src/app/nginx \
+        -v $NGINX_USERS_CRT_FOLDER:/certs \
+        multipaas-ctrl:0.9
 }
 
 ########################################
@@ -440,6 +535,14 @@ install_gitlab() {
 ########################################
 # LOGIC...
 ########################################
+
+
+if [ -d "$HOME/.multipaas" ]; then
+    echo "The control plane is already installed on this machine"
+    exit 1
+fi
+
+
 /usr/bin/clear
 
 base64 -d <<<"ICAgXyAgICBfICAgICAgIF8gX19fX18gICAgICAgICAgICAgX19fX18gICAgX19fX18gX19fX18gIAogIHwgfCAgfCB8ICAgICAoXykgIF9fIFwgICAgICAgICAgIC8gX19fX3wgIC8gX19fX3wgIF9fIFwgCiAgfCB8ICB8IHxfIF9fICBffCB8X18pIHxfIF8gIF9fIF98IChfX18gICB8IHwgICAgfCB8X18pIHwKICB8IHwgIHwgfCAnXyBcfCB8ICBfX18vIF9gIHwvIF9gIHxcX19fIFwgIHwgfCAgICB8ICBfX18vIAogIHwgfF9ffCB8IHwgfCB8IHwgfCAgfCAoX3wgfCAoX3wgfF9fX18pIHwgfCB8X19fX3wgfCAgICAgCiAgIFxfX19fL3xffCB8X3xffF98ICAgXF9fLF98XF9fLF98X19fX18vICAgXF9fX19ffF98ICAgICA="
