@@ -106,9 +106,9 @@ dependencies_master () {
     bussy_indicator "Dependency on \"mosquitto\"..."
     log "\n"
 
-    dep_gitlab_runner #&>>$err_log &
-    # bussy_indicator "Dependency on \"gitlab-runner\"..."
-    # log "\n"
+    dep_gitlab_runner &>>$err_log &
+    bussy_indicator "Dependency on \"gitlab-runner\"..."
+    log "\n"
 
     sudo systemctl disable mosquitto &>>$err_log
     sudo systemctl stop mosquitto &>>$err_log
@@ -344,7 +344,7 @@ combo_value DEP_TARGET "What do you wish to install" "Your choice #:" "${DEP_TAR
 if [ "$DEP_TARGET" == "Kubernetes master" ]; then
     KUBECTL_EXISTS=$(command -v kubectl)
     if [ "$KUBECTL_EXISTS" != "" ]; then
-        KUBE_RUNNING=$(kubectl cluster-info | grep "Kubernetes master") &>>$err_log
+        KUBE_RUNNING=$(kubectl cluster-info | grep "Kubernetes master")
         if [ "$KUBE_RUNNING" != "" ]; then
             echo "Kubernetes master already running on this host"
             exit 1
