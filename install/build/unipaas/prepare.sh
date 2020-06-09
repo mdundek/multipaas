@@ -88,9 +88,9 @@ dependencies () {
     bussy_indicator "Dependency on \"wget\"..."
     log "\n"
 
-    dep_node &>>$err_log &
-    bussy_indicator "Dependency on \"node\"..."
-    log "\n"
+    dep_node #&>>$err_log &
+    # bussy_indicator "Dependency on \"node\"..."
+    # log "\n"
 
     dep_npm_bundle &>>$err_log &
     bussy_indicator "Dependency on \"npm_bundle\"..."
