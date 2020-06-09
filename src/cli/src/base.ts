@@ -43,7 +43,14 @@ export default abstract class extends Command {
 	 */
 	logWarn(msg:string) {
         this.warn(`${msg}`)
-  	}
+	}
+	
+	/**
+	 * isUnipaas
+	 */
+	isUnipaas() {
+		return this.fapi.apiJson && this.fapi.apiJson.unipaas;
+	}
 
 	/**
 	 * init

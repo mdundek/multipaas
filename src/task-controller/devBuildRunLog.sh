@@ -15,19 +15,19 @@ docker run -d \
     --name multipaas-ctrl \
     --restart unless-stopped \
     --network host \
-    -e DB_HOST=192.168.1.101 \
+    -e DB_HOST=192.168.1.12 \
     -e DB_USER=postgres \
-    -e DB_PASS=multipaas2020 \
-    -e MOSQUITTO_IP=192.168.1.101 \
+    -e DB_PASS=li14ebe14 \
+    -e MOSQUITTO_IP=192.168.1.12 \
     -e DHCP_OVERWRITE=true \
     -e DHCP_MASK=192.168.1 \
-    -e DHCP_RESERVED=[250,251,252,253,254,101] \
+    -e DHCP_RESERVED=[250,251,252,253,254,12] \
     -e DHCT_USE_PING=true \
-    -e NGINX_HOST_IP=192.168.1.101 \
+    -e NGINX_HOST_IP=192.168.1.12 \
     -e ENABLE_NGINX_STREAM_DOMAIN_NAME=true \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -v /home/vagrant/.multipaas/nginx:/usr/src/app/nginx \
-    -v /opt/docker/containers/nginx/certs/users:/certs \
+    -v $HOME/.multipaas/nginx:/usr/src/app/nginx \
+    -v $NGINX_USERS_CRT_FOLDER:/certs \
     multipaas-ctrl:0.9
 
 cd "$_PWD" 

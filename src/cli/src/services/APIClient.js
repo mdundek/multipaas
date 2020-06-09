@@ -90,9 +90,14 @@ class APIClient {
         this.initApiConnection(host);
         try{
             let result = await this.app.service("cli").find({});
-            console.log(result);
+        
             if(!this.apiJson){
                 this.apiJson = {};
+            }
+            if(result.length == 1 && result[0].mode == "unipaas") {
+                this.apiJson.unipaas = true;
+            } else {
+                this.apiJson.unipaas = false;
             }
             this.apiJson.uri = host;
             this._saveApi();
