@@ -447,7 +447,7 @@ log "\n\n"
 distro
 
 # Install dependencies
-dependencies
+# dependencies
 
 # Collect info from user
 collect_informations
