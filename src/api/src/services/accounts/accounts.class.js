@@ -29,6 +29,7 @@ exports.Accounts = class Accounts extends Service {
         let kcUser = null;
 
         if(process.env.MP_MODE == "unipaas") {
+            console.log(potentialUsers.length);
             if(potentialUsers.length != 1) {
                 let error = new Error('Unauthorized');
                 error.statusCode = 401;
@@ -38,6 +39,7 @@ exports.Accounts = class Accounts extends Service {
 
             adminToken = await Keycloak.adminAuthenticate(this.app);
             kcUser = await Keycloak.getUserByEmail(adminToken, email);
+            console.log(kcUser, email, process.env.API_SYSADMIN_USER);
             if(kcUser && password && email == process.env.API_SYSADMIN_USER) {
                 await Keycloak.authenticate(email, password, true);
                 let accounts = await this.app.service('accounts').find({
@@ -45,6 +47,9 @@ exports.Accounts = class Accounts extends Service {
                     query: {},
                     _internalRequest: true
                 });
+
+                console.log(accounts);
+
                 if(accounts.length != 0) {
                     let error = new Error('Unicloud already has a default account');
                     error.statusCode = 401;
