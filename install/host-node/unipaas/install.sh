@@ -133,11 +133,11 @@ EOF'
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
 EOF
-    sudo sysctl --system
+    sudo sysctl --system &>>$err_log
 
     # Disable swap
-    sudo sed -i '/swap/d' /etc/fstab
-    sudo swapoff -a
+    sudo sed -i '/swap/d' /etc/fstab &>>$err_log
+    sudo swapoff -a &>>$err_log
 
     # for dockerimage in ../../build/offline_files/docker_images/*.tar; do
     #     sudo docker load --input $dockerimage &>>$err_log &
