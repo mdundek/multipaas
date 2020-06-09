@@ -27,7 +27,7 @@ exports.Accounts = class Accounts extends Service {
             },
             _internalRequest: true
         });
-        console.log(2);
+        console.log(2, potentialUsers);
         if(potentialUsers.length == 1 && password) {
             let error = new Error('This user already has an account');
             error.statusCode = 412;
