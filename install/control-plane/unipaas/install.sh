@@ -112,6 +112,7 @@ configure_firewall() {
 install_core_components() {
     BASE_FOLDER="$(dirname "$_DIR")"
     BASE_FOLDER="$(dirname "$BASE_FOLDER")"
+    BASE_FOLDER="$(dirname "$BASE_FOLDER")"
 
     cd $BASE_FOLDER
 
@@ -134,18 +135,116 @@ install_core_components() {
     REGISTRY_IP="$LOCAL_IP"
     DB_PASS=$POSTGRES_PASSWORD
 
+    mkdir -p $HOME/.multipaas/nginx/certs
+    mkdir -p $HOME/.multipaas/nginx/certs/tenants
+    mkdir -p $HOME/.multipaas/nginx/conf.d
+    mkdir -p $HOME/.multipaas/nginx/letsencrypt
+    mkdir -p $HOME/.multipaas/postgres/pg-init-scripts
+    mkdir -p $HOME/.multipaas/gitlab
 
+    mkdir -p $HOME/.multipaas/auth/registry
+    mkdir -p $HOME/.multipaas/auth/nginx
 
-    
+    cp $BASE_FOLDER/install/control-plane/pg_resources/create-multiple-postgresql-databases.sh $HOME/.multipaas/postgres/pg-init-scripts
+    cp $BASE_FOLDER/install/control-plane/nginx_resources/nginx.conf $HOME/.multipaas/nginx
+    cp $BASE_FOLDER/install/control-plane/nginx_resources/registry.conf $HOME/.multipaas/nginx/conf.d
+    cp $BASE_FOLDER/install/control-plane/nginx_resources/keycloak.conf $HOME/.multipaas/nginx/conf.d
+    cp $BASE_FOLDER/install/control-plane/nginx_resources/gitlab.conf $HOME/.multipaas/nginx/conf.d
+    touch $HOME/.multipaas/nginx/conf.d/default.conf
+    touch $HOME/.multipaas/nginx/conf.d/tcp.conf
+    mkdir -p $HOME/.multipaas/postgres/data
+    mkdir -p $HOME/.multipaas/mosquitto/config
+    mkdir -p $HOME/.multipaas/mosquitto/data
+    mkdir -p $HOME/.multipaas/mosquitto/log
 
+    mkdir -p $HOME/tmp
 
+    sed -i "s/<MYCLOUD_API_HOST_PORT>/$API_IP:3030/g" $HOME/.multipaas/nginx/conf.d/registry.conf
 
+    NGINX_CRT_FOLDER=$HOME/.multipaas/nginx/certs
+    NGINX_USERS_CRT_FOLDER=$HOME/.multipaas/nginx/certs/tenants
+    chmod a+rw $NGINX_USERS_CRT_FOLDER
 
+    # Gitlab
+    printf "FR\nGaronne\nToulouse\nmultipaas\nITLAB\nmultipaas.gitlab.com\nmultipaas@multipaas.com\n" | openssl req -newkey rsa:2048 -nodes -sha256 -x509 -days 365 \
+        -keyout $NGINX_CRT_FOLDER/nginx-gitlab.key \
+        -out $NGINX_CRT_FOLDER/nginx-gitlab.crt > /dev/null 2>&1
+    # Registry
+    printf "FR\nGaronne\nToulouse\nmultipaas\nITLAB\nmultipaas.registry.com\nmultipaas@multipaas.com\n" | openssl req -newkey rsa:2048 -nodes -sha256 -x509 -days 365 \
+        -keyout $NGINX_CRT_FOLDER/docker-registry.key \
+        -out $NGINX_CRT_FOLDER/docker-registry.crt > /dev/null 2>&1 
+    printf "FR\nGaronne\nToulouse\nmultipaas\nITLAB\nregistry.multipaas.org\nmultipaas@multipaas.com\n" | openssl req -newkey rsa:2048 -nodes -sha256 -x509 -days 365 \
+        -keyout $NGINX_CRT_FOLDER/nginx-registry.key \
+        -out $NGINX_CRT_FOLDER/nginx-registry.crt > /dev/null 2>&1 
+    # Keycloak
+    cat <<EOT >> ssl.conf
+[ req ]
+distinguished_name	= req_distinguished_name
+attributes		= req_attributes
 
+[ req_distinguished_name ]
+countryName			= Country Name (2 letter code)
+countryName_min			= 2
+countryName_max			= 2
+stateOrProvinceName		= State or Province Name (full name)
+localityName			= Locality Name (eg, city)
+0.organizationName		= Organization Name (eg, company)
+organizationalUnitName		= Organizational Unit Name (eg, section)
+commonName			= Common Name (eg, fully qualified host name)
+commonName_max			= 64
+emailAddress			= Email Address
+emailAddress_max		= 64
 
+[ req_attributes ]
+challengePassword		= A challenge password
+challengePassword_min		= 4
+challengePassword_max		= 20
 
+req_extensions = v3_req
 
+[ v3_req ]
+# Extensions to add to a certificate request
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+EOT
+    openssl genrsa -out \
+        $NGINX_CRT_FOLDER/rootCA.key \
+        4096 > /dev/null 2>&1
+    openssl req -x509 -new -nodes \
+        -key $NGINX_CRT_FOLDER/rootCA.key -sha256 -days 1024 \
+        -out $NGINX_CRT_FOLDER/rootCA.crt \
+        -subj /C=FR/ST=Garonne/L=Toulouse/O=multipaas/OU=ITLAB/CN=multipaas.keycloak.com/emailAddress=multipaas@multipaas.com > /dev/null 2>&1
+    openssl genrsa \
+        -out $NGINX_CRT_FOLDER/nginx-keycloak.key \
+        2048 > /dev/null 2>&1
+    openssl req -config ./ssl.conf -new \
+        -key $NGINX_CRT_FOLDER/nginx-keycloak.key \
+        -out $NGINX_CRT_FOLDER/nginx-keycloak.csr \
+        -subj /C=FR/ST=Garonne/L=Toulouse/O=multipaas/OU=ITLAB/CN=multipaas.keycloak.com/emailAddress=multipaas@multipaas.com > /dev/null 2>&1
+    openssl x509 -req \
+        -in $NGINX_CRT_FOLDER/nginx-keycloak.csr \
+        -CA $NGINX_CRT_FOLDER/rootCA.crt \
+        -CAkey $NGINX_CRT_FOLDER/rootCA.key \
+        -CAcreateserial \
+        -out $NGINX_CRT_FOLDER/nginx-keycloak.crt \
+        -days 500 -sha256 -extensions v3_req -extfile ssl.conf > /dev/null 2>&1
 
+    echo "$API_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com" >> /etc/hosts
+
+    DR_CRED=$(docker run --entrypoint htpasswd registry:2.7.1 -Bbn multipaas_master_user multipaas_master_pass)
+    NR_CRED=$(docker run --entrypoint htpasswd registry:2.7.1 -bn multipaas_master_user multipaas_master_pass)
+
+    cat > $HOME/.multipaas/auth/nginx/htpasswd << EOF
+$DR_CRED
+EOF
+
+    cat > $HOME/.multipaas/auth/registry/htpasswd << EOF
+$NR_CRED
+EOF
+
+    touch $HOME/.multipaas/mosquitto/log/mosquitto.log
+    chmod o+w $HOME/.multipaas/mosquitto/log/mosquitto.log
+    chown 1883:1883 $HOME/.multipaas/mosquitto/log -R
 
 
 

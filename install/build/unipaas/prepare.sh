@@ -249,15 +249,6 @@ build_for_ubuntu_bionic() {
     docker save -o $BASE_FOLDER/install/build/offline_files/docker-images/multipaas-ctrl-0.9.tar multipaas-ctrl:0.9
     docker rmi multipaas-ctrl:0.9
     docker images purge
-
-
-
-
-
-
-
-
-
 }
 
 ########################################
