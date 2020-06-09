@@ -229,7 +229,9 @@ EOT
         -out $NGINX_CRT_FOLDER/nginx-keycloak.crt \
         -days 500 -sha256 -extensions v3_req -extfile ssl.conf > /dev/null 2>&1
 
-    echo "$API_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com" >> /etc/hosts
+        sudo tee -a /etc/hosts >/dev/null <<EOF
+$API_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com
+EOF
 
     DR_CRED=$(docker run --entrypoint htpasswd registry:2.7.1 -Bbn multipaas_master_user multipaas_master_pass)
     NR_CRED=$(docker run --entrypoint htpasswd registry:2.7.1 -bn multipaas_master_user multipaas_master_pass)
