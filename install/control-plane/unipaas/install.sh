@@ -693,6 +693,43 @@ setup_keycloak
 # # Install gitlab
 install_gitlab
 
+
+
+# Create default account, org and workspace
+MP_TOKEN=$(curl -s http://$LOCAL_IP:3030/authentication/ \
+    -H 'Content-Type: application/json' \
+    --data-binary '{ "strategy": "local", "email": "'"$MP_U"'", "password": "'"$MP_P"'" }' | jq -r '.accessToken')
+
+
+
+
+
+
+
+
+
+
+curl -s -k \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $MP_TOKEN" \
+    -X POST \
+    -d '{ "action": "account", "params": {"accountName":"unipaas", "email": "'"$MP_U"'", "password": "'"$MP_P"'"} }' \
+    http://$LOCAL_IP:3030/cli
+
+
+
+
+
+# ORG_ID=$(curl -s -k \
+#     -H "Content-Type: application/json" \
+#     -H "Authorization: Bearer $MP_TOKEN" \
+#     -X POST \
+#     -d '{"name":"local", "registryUser": "", "registryPass": "", "bcryptSalt": "", "": "", "": "", "": "", "": ""}' \
+#     http://$LOCAL_IP:3030/organizations | jq -r '.id')
+
+
+
+
 CRT="$(cat $NGINX_CRT_FOLDER/docker-registry.crt)"
 CRT_NGINX="$(cat $NGINX_CRT_FOLDER/nginx-registry.crt)"
 

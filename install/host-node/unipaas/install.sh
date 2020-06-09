@@ -177,7 +177,11 @@ collect_informations() {
         exit 1
     fi
 
-    read_input "Enter the PostgreSQL database password (same than the MultiPaaS admin password chosen during the control-plane installation):" PW
+
+    log "\n"
+    read_input "Enter the MultiPaaS master user email address:" MPU
+    log "\n"
+    read_input "Enter the MultiPaaS master user email address:" PW
     log "\n"
 
     if [ "$IS_GLUSTER_PEER" == "true" ]; then   
@@ -390,8 +394,42 @@ if [ "$DEP_TARGET" == "Kubernetes master" ]; then
     init_k8s_master &>>$err_log &
     bussy_indicator "Installing kubernetes cluster master..."
     log "\n"
-
     log "\n"
+
+
+
+    HNAME=$(hostname)
+
+    MP_TOKEN=$(curl -s http://$MASTER_IP:3030/authentication/ \
+        -H 'Content-Type: application/json' \
+        --data-binary '{ "strategy": "local", "email": "'"$MPU"'", "password": "'"$PW"'" }' | jq -r '.accessToken')
+
+    H_ID=$(curl -s -k \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $MP_TOKEN" \
+        -X POST \
+        -d '{ "ip": "'"$LOCAL_IP"'", "hostname": "'"$HNAME"'", "status": "ready" }' \
+        http://$LOCAL_IP:3030/k8s_hosts | jq -r '.id')
+    RHASH=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 8 | head -n 1)
+    curl -s -k \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $MP_TOKEN" \
+        -X POST \
+        -d '{ "ip": "'"$LOCAL_IP"'", "hostname": "'"$HNAME"'", "status": "ready" }' \
+        http://$LOCAL_IP:3030/k8s_nodes 2>&1 | log_error_sanitizer
+
+
+{
+    "hash": "$RHASH",
+    "nodeType": "MASTER",
+    "ip": "'"$LOCAL_IP"'",
+    "hostname": "master.'"$RHASH"'",
+    "workspaceId": "",
+    "k8sHostId": '"$H_ID"'
+    
+}
+
+
 
     success "[DONE] MultiPaaS host controller & K8S master deployed successfully!\n"
 

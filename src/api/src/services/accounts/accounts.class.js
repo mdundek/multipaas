@@ -15,6 +15,8 @@ exports.Accounts = class Accounts extends Service {
      * @param {*} params 
      */
     async create (data, params) {
+        console.log(data);
+        console.log(typeof data);
         const { name, email, password } = data;
 
         // If user exists, make sure he has not his own account
@@ -28,7 +30,7 @@ exports.Accounts = class Accounts extends Service {
         if(potentialUsers.length == 1 && password) {
             let error = new Error('This user already has an account');
             error.statusCode = 412;
-            err.code = 412;
+            error.code = 412;
             return error;
         }
 
@@ -49,7 +51,7 @@ exports.Accounts = class Accounts extends Service {
             if(accountUsers.find(o => o.isAccountOwner)){
                 let error = new Error('This user already has an account');
                 error.statusCode = 412;
-                err.code = 412;
+                error.code = 412;
                 return error;
             }
         }
