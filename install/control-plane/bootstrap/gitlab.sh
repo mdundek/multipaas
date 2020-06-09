@@ -85,7 +85,7 @@ GITLAB_TOKEN=$(date +%s | sha256sum | base64 | head -c 32 ; echo)
 docker exec -t -u git multipaas-gitlab gitlab-rails r "token_digest = Gitlab::CryptoHelper.sha256 \"$GITLAB_TOKEN\"; token = PersonalAccessToken.new(user: User.where(id: 1).first, name: 'temp token', token_digest: token_digest, scopes: [:api]); token.save"'!'
 
 # Disable registration
-curl --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" http://$GITLAB_IP:8929/api/v4/application/settings?signup_enabled=false&allow_local_requests_from_hooks_and_services=true&allow_local_requests_from_web_hooks_and_services=true&allow_local_requests_from_system_hooks=true
+curl --silent --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" http://$GITLAB_IP:8929/api/v4/application/settings?signup_enabled=false&allow_local_requests_from_hooks_and_services=true&allow_local_requests_from_web_hooks_and_services=true&allow_local_requests_from_system_hooks=true
 # after_sign_out_path
 
 docker stop multipaas-gitlab

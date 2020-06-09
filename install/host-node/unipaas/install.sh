@@ -383,13 +383,6 @@ if [ "$DEP_TARGET" == "Kubernetes master" ]; then
     sudo sed '/multipaas.com/d' /etc/hosts &>>$err_log
     sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
 
-    # configure private registry
-    # if [ "$IS_K8S_NODE" == "true" ]; then
-    #     authorize_private_registry &>>$err_log &
-    #     bussy_indicator "Authorize private registry..."
-    #     log "\n"
-    # fi
-
     # Install the core components
     install_core_components #&>>$err_log &
     # bussy_indicator "Installing host controller components..."
@@ -446,7 +439,17 @@ if [ "$DEP_TARGET" == "Kubernetes master" ]; then
     fi
     log "\n"
 else
-    echo "Installing worger"
+    echo "Installing worker"
+fi
+
+if [ "$IS_K8S_NODE" == "true" ]; then
+    warn "Manually configure access to your private docker registry on every K8S node:\n"
+    log "\n"
+    log "1. Grab the config script from the control-plane installation system (\$HOME/configPrivateRegistry.sh)\n"
+    log "2. Put the script somewhere locally, and execute the script with sudo\n"
+    log "\n"
+    log "Once done, your node has the required certificate needed to access the private registry.\n"
+    log "\n"
 fi
 
 cd "$_PWD"

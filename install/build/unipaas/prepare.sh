@@ -283,7 +283,7 @@ build_for_ubuntu_bionic() {
     bussy_indicator "Building multipaas api service..."
     log "\n"
 
-    build_multipaas_api &>>$err_log &
+    build_multipaas_ctrl &>>$err_log &
     bussy_indicator "Building multipaas controller service..."
     log "\n"
 }

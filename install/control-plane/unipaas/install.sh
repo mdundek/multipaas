@@ -269,7 +269,6 @@ EOF
     chmod o+w $HOME/.multipaas/mosquitto/log/mosquitto.log
     sudo chown 1883:1883 $HOME/.multipaas/mosquitto/log -R
 
-
     docker run -d \
         --name multipaas-registry \
         --restart=always -p 5000:5000 \
@@ -282,7 +281,9 @@ EOF
         -v $NGINX_CRT_FOLDER:/certs \
         -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/docker-registry.crt \
         -e REGISTRY_HTTP_TLS_KEY=/certs/docker-registry.key \
-        registry:2.7.1
+        registry:2.7.1 &>>$err_log &
+    bussy_indicator "Starting registry..."
+    log "\n"
 
     docker run -d \
         --name multipaas-postgresql \
@@ -295,7 +296,9 @@ EOF
         -e KEYCLOAK_PASS=$KEYCLOAK_PASSWORD \
         -e MYCLOUD_USER=multipaas \
         -e MYCLOUD_PASS=multipaaspass \
-        postgres:12.2-alpine
+        postgres:12.2-alpine &>>$err_log &
+    bussy_indicator "Starting postgres..."
+    log "\n"
 
     docker run -d \
         --name multipaas-keycloak \
@@ -309,7 +312,9 @@ EOF
         -e DB_PASSWORD=$KEYCLOAK_PASSWORD \
         -e DB_ADDR=$DB_HOST \
         -e PROXY_ADDRESS_FORWARDING=true \
-        jboss/keycloak:9.0.3
+        jboss/keycloak:9.0.3 &>>$err_log &
+    bussy_indicator "Starting keycloak..."
+    log "\n"
 
     docker run -d \
         --name multipaas-nginx \
@@ -321,7 +326,9 @@ EOF
         -v /opt/docker/containers/nginx-registry/auth:/auth \
         -v $HOME/multipaas/install/build/offline_files:/www/static \
         -v $NGINX_CRT_FOLDER:/certs \
-        nginx:1.17.10-alpine
+        nginx:1.17.10-alpine &>>$err_log &
+    bussy_indicator "Starting nginx..."
+    log "\n"
 
     docker run -d \
         --name multipaas-mosquitto \
@@ -330,7 +337,9 @@ EOF
         -v $HOME/.multipaas/postgres/data:/mosquitto/data \
         -v $HOME/.multipaas/postgres/log:/mosquitto/log \
         -v /etc/localtime:/etc/localtime \
-        eclipse-mosquitto:1.6
+        eclipse-mosquitto:1.6 &>>$err_log &
+    bussy_indicator "Starting eclipse-mosquitto..."
+    log "\n"
 
     docker run -d \
         --name multipaas-api \
@@ -350,7 +359,9 @@ EOF
         -v $HOME/multipaas:/usr/src/app/data \
         -v /opt/docker/containers/docker-registry/auth:/usr/src/app/auth-docker \
         -v /opt/docker/containers/nginx-registry/auth:/usr/src/app/auth-nginx \
-        multipaas-api:0.9
+        multipaas-api:0.9 &>>$err_log &
+    bussy_indicator "Starting multipaas-api..."
+    log "\n"
 
     docker run -d \
         --name multipaas-ctrl \
@@ -369,7 +380,9 @@ EOF
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v $HOME/.multipaas/nginx:/usr/src/app/nginx \
         -v $NGINX_USERS_CRT_FOLDER:/certs \
-        multipaas-ctrl:0.9
+        multipaas-ctrl:0.9 &>>$err_log &
+    bussy_indicator "Starting multipaas-ctrl..."
+    log "\n"
 }
 
 ########################################
@@ -617,7 +630,7 @@ ENDOFFILE
     docker exec -t -u git multipaas-gitlab gitlab-rails r "token_digest = Gitlab::CryptoHelper.sha256 \"$GITLAB_TOKEN\"; token = PersonalAccessToken.new(user: User.where(id: 1).first, name: 'temp token', token_digest: token_digest, scopes: [:api]); token.save"'!'
 
     # Disable registration
-    curl --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" http://$GITLAB_IP:8929/api/v4/application/settings?signup_enabled=false&allow_local_requests_from_hooks_and_services=true&allow_local_requests_from_web_hooks_and_services=true&allow_local_requests_from_system_hooks=true
+    curl --silent --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" http://$GITLAB_IP:8929/api/v4/application/settings?signup_enabled=false&allow_local_requests_from_hooks_and_services=true&allow_local_requests_from_web_hooks_and_services=true&allow_local_requests_from_system_hooks=true
     # after_sign_out_path
 
     docker stop multipaas-gitlab
@@ -679,26 +692,22 @@ setup_keycloak
 # # Install gitlab
 install_gitlab
 
-AUTOSTART_FILE=/etc/systemd/system/multipaas.service
-if [ -f "$AUTOSTART_FILE" ]; then
-    success "Autostart service enabled, skipping...\n"
-else 
-    cd $_DIR
-    CURRENT_USER=$(id -u -n)
-    DOT_CFG_DIR=$HOME/.multipaas
+CRT="$(cat $NGINX_CRT_FOLDER/docker-registry.crt)"
+CRT_NGINX="$(cat $NGINX_CRT_FOLDER/nginx-registry.crt)"
 
-    sudo cp ../startup_cp.sh $DOT_CFG_DIR/startup_cp.sh
-    sudo chmod +wx $DOT_CFG_DIR/startup_cp.sh
-    sudo sed -i "s/<BASE_FOLDER>/${BASE_FOLDER//\//\\/}/g" $DOT_CFG_DIR/startup_cp.sh
+echo "#!/bin/bash"  >> $HOME/configPrivateRegistry.sh
+echo "mkdir -p /etc/docker/certs.d/multipaas.registry.com:5000" >> $HOME/configPrivateRegistry.sh
+echo "cat <<EOT >> /etc/docker/certs.d/multipaas.registry.com:5000/ca.crt" >> $HOME/configPrivateRegistry.sh
+echo "$CRT"  >> $HOME/configPrivateRegistry.sh
+echo "EOT"  >> $HOME/configPrivateRegistry.sh
+echo "mkdir -p /etc/docker/certs.d/registry.multipaas.org" >> $HOME/configPrivateRegistry.sh
+echo "cat <<EOT >> /etc/docker/certs.d/registry.multipaas.org/ca.crt" >> $HOME/configPrivateRegistry.sh
+echo "$CRT_NGINX"  >> $HOME/configPrivateRegistry.sh
+echo "EOT"  >> $HOME/configPrivateRegistry.sh
+echo "systemctl stop docker && systemctl start docker"  >> $HOME/configPrivateRegistry.sh
 
-    sudo cp ./multipaas.service $AUTOSTART_FILE
-    sudo sed -i "s/<USER>/$CURRENT_USER/g" $AUTOSTART_FILE
-    sudo sed -i "s/<DOT_CFG_DIR>/${DOT_CFG_DIR//\//\\/}/g" $AUTOSTART_FILE
-
-    sudo systemctl daemon-reload
-    sudo systemctl enable multipaas.service
-    sudo systemctl start multipaas.service
-fi
+sudo chown $USER: $HOME/configPrivateRegistry.sh
+chmod +x $HOME/configPrivateRegistry.sh
 
 # Done
 log "\n"
