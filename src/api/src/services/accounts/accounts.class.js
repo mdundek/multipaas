@@ -139,7 +139,8 @@ exports.Accounts = class Accounts extends Service {
             
                 await transaction.commit();
                 return {
-                    code: 200
+                    code: 200,
+                    account: newAccount
                 };
             } catch (error) {
                 if (transaction) {
