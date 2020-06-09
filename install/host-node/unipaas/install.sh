@@ -342,7 +342,7 @@ distro
 DEP_TARGET_LIST=("Kubernetes master" "Kubernetes worker")
 combo_value DEP_TARGET "What do you wish to install" "Your choice #:" "${DEP_TARGET_LIST[@]}"
 if [ "$DEP_TARGET" == "Kubernetes master" ]; then
-    KUBECTL_EXISTS=$(command -v kubectl)
+    KUBECTL_EXISTS=$(command -v kubeadm)
     if [ "$KUBECTL_EXISTS" != "" ]; then
         KUBE_RUNNING=$(kubectl cluster-info | grep "Kubernetes master")
         if [ "$KUBE_RUNNING" != "" ]; then
