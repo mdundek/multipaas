@@ -229,10 +229,6 @@ EOT
         -out $NGINX_CRT_FOLDER/nginx-keycloak.crt \
         -days 500 -sha256 -extensions v3_req -extfile ssl.conf > /dev/null 2>&1
 
-        sudo tee -a /etc/hosts >/dev/null <<EOF
-$API_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com
-EOF
-
     DR_CRED=$(docker run --entrypoint htpasswd registry:2.7.1 -Bbn multipaas_master_user multipaas_master_pass)
     NR_CRED=$(docker run --entrypoint htpasswd registry:2.7.1 -bn multipaas_master_user multipaas_master_pass)
 
@@ -507,7 +503,7 @@ install_gitlab() {
     GITLAB_SECRET=${GITLAB_SECRET:1:${#GITLAB_SECRET}-2}
 
     # Login to MultiPaaS with sysadmin credentials
-    MP_TOKEN=$(curl -s http://$LOCAL_IP:3030/authentication/ \
+    MP_TOKEN=$(curl -s http://$VM_IP:3030/authentication/ \
         -H 'Content-Type: application/json' \
         --data-binary '{ "strategy": "local", "email": "'"$MP_U"'", "password": "'"$MP_P"'" }' | jq -r '.accessToken')
 
@@ -518,9 +514,95 @@ install_gitlab() {
         -d '{"key":"KEYCLOAK_GITLAB_SECRET","value":"'"$GITLAB_SECRET"'"}' \
         http://$LOCAL_IP:3030/settings 2>&1 | log_error_sanitizer
 
-    log "Installing and configuring GitLab"
+    POSTGRES_PASSWORD="$MP_P"
+    API_SYSADMIN_PASSWORD="$MP_P"
+    GITLAB_IP="$LOCAL_IP"
+    GITLAB_KC_SECRET="$GITLAB_SECRET"
 
-    
+    touch ./_drun.sh
+    chmod +rwx ./_drun.sh 
+
+    cat > ./_drun.sh << ENDOFFILE
+#!/bin/bash
+sudo docker run -d \
+  --hostname multipaas.gitlab.com \
+  --env GITLAB_OMNIBUS_CONFIG="\
+  gitlab_rails['gitlab_shell_ssh_port'] = 2289;\
+  gitlab_rails['initial_root_password'] = '<API_SYSADMIN_PASSWORD>';\
+  gitlab_rails['gitlab_signin_enabled'] = false;\
+  external_url 'http://<IP_PLACEHOLDER>:8929';\
+  gitlab_rails['omniauth_allow_single_sign_on'] = ['openid_connect'];\
+  gitlab_rails['omniauth_sync_email_from_provider'] = 'openid_connect';\
+  gitlab_rails['omniauth_sync_profile_from_provider'] = ['openid_connect'];\
+  gitlab_rails['omniauth_sync_profile_attributes'] = ['email'];\
+  gitlab_rails['omniauth_block_auto_created_users'] = false;\
+  gitlab_rails['omniauth_providers'] = [\
+    {\
+      'name' => 'openid_connect',\
+      'label' => 'keycloak',\
+      'args' => {\
+        'name' => 'openid_connect',\
+        'scope' => ['openid','profile'],\
+        'response_type' => 'code',\
+        'issuer' => 'https://multipaas.keycloak.com/auth/realms/master',\
+        'discovery' => true,\
+        'client_auth_method' => 'query',\
+        'uid_field' => 'email',\
+        'send_scope_to_token_endpoint' => 'false',\
+        'client_options' => {\
+          'identifier' => 'gitlab',\
+          'secret' => '<GITLAB_KC_SECRET>',\
+          'redirect_uri' => 'https://multipaas.gitlab.com/users/auth/openid_connect/callback',\
+          'end_session_endpoint' => 'https://multipaas.keycloak.com/auth/realms/master/protocol/openid-connect/logout'\
+        }\
+      }\
+    }\
+  ];\
+  "\
+  --publish 8929:8929 --publish 2289:22 \
+  --name multipaas-gitlab \
+  --restart unless-stopped \
+  --add-host multipaas.keycloak.com:172.17.0.1 \
+  --volume /home/vagrant/.multipaas/gitlab/config:/etc/gitlab \
+  --volume /home/vagrant/.multipaas/gitlab/logs:/var/log/gitlab \
+  --volume /home/vagrant/.multipaas/gitlab/data:/var/opt/gitlab \
+  gitlab/gitlab-ce:12.10.1-ce.0
+ENDOFFILE
+
+    sed -i "s/<IP_PLACEHOLDER>/$GITLAB_IP/g" ./_drun.sh
+    sed -i "s/<API_SYSADMIN_PASSWORD>/$API_SYSADMIN_PASSWORD/g" ./_drun.sh
+    sed -i "s/<GITLAB_KC_SECRET>/$GITLAB_KC_SECRET/g" ./_drun.sh
+
+    ./_drun.sh > /dev/null 2>&1
+    rm -rf ./_drun.sh
+
+    ########################################
+    # Reconfigure GitLab & restart it
+    ########################################
+    echo "Waiting for GitLab to be up and running (this can take up to 4 minutes)"
+    until $(curl --output /dev/null --silent --head --fail http://$GITLAB_IP:8929/users/sign_in); do
+        printf '.'
+        sleep 5
+    done
+
+    # Copy root CA from NGInx Keycloak to Gitlab container
+    docker cp $NGINX_CRT_FOLDER/rootCA.crt multipaas-gitlab:/etc/gitlab/trusted-certs/rootCA.crt
+
+    GITLAB_TOKEN=$(date +%s | sha256sum | base64 | head -c 32 ; echo)
+    docker exec -t -u git multipaas-gitlab gitlab-rails r "token_digest = Gitlab::CryptoHelper.sha256 \"$GITLAB_TOKEN\"; token = PersonalAccessToken.new(user: User.where(id: 1).first, name: 'temp token', token_digest: token_digest, scopes: [:api]); token.save"'!'
+
+    # Disable registration
+    curl --request PUT --header "PRIVATE-TOKEN: $GITLAB_TOKEN" http://$GITLAB_IP:8929/api/v4/application/settings?signup_enabled=false&allow_local_requests_from_hooks_and_services=true&allow_local_requests_from_web_hooks_and_services=true&allow_local_requests_from_system_hooks=true
+    # after_sign_out_path
+
+    docker stop multipaas-gitlab
+    docker start multipaas-gitlab
+    echo "Waiting for GitLab to be up and running (this can take up to 4 minutes)"
+    until $(curl --output /dev/null --silent --head --fail http://$GITLAB_IP:8929/users/sign_in); do
+        printf '.'
+        sleep 5
+    done
+
     log "\n"
     return 0
 }
@@ -537,7 +619,7 @@ install_gitlab() {
 ########################################
 
 
-if [ -d "$HOME/.multipaas" ]; then
+if [ -d "$HOME/.multipaas/nginx" ]; then
     echo "The control plane is already installed on this machine"
     exit 1
 fi
@@ -552,7 +634,7 @@ log "\n\n"
 distro
 
 # Install dependencies
-# dependencies
+dependencies
 
 # Collect info from user
 collect_informations
@@ -560,38 +642,38 @@ collect_informations
 # Configure firewall
 # configure_firewall &>>$err_log
 
-# Install the core components
-install_core_components
-
 sudo sed '/multipaas.com/d' /etc/hosts &>>$err_log
 sudo -- sh -c "echo $LOCAL_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com multipaas.static.com >> /etc/hosts" &>>$err_log
 
+# Install the core components
+install_core_components
+
 # # Setup keycloak admin client
-# setup_keycloak
+setup_keycloak
 
 # # Install gitlab
-# install_gitlab
+install_gitlab
 
-# AUTOSTART_FILE=/etc/systemd/system/multipaas.service
-# if [ -f "$AUTOSTART_FILE" ]; then
-#     success "Autostart service enabled, skipping...\n"
-# else 
-#     CURRENT_USER=$(id -u -n)
-#     DOT_CFG_DIR=$HOME/.multipaas
-#     mkdir -p $DOT_CFG_DIR
+AUTOSTART_FILE=/etc/systemd/system/multipaas.service
+if [ -f "$AUTOSTART_FILE" ]; then
+    success "Autostart service enabled, skipping...\n"
+else 
+    cd $_DIR
+    CURRENT_USER=$(id -u -n)
+    DOT_CFG_DIR=$HOME/.multipaas
 
-#     sudo cp ./startup_cp.sh $DOT_CFG_DIR/startup_cp.sh
-#     sudo chmod +wx $DOT_CFG_DIR/startup_cp.sh
-#     sudo sed -i "s/<BASE_FOLDER>/${BASE_FOLDER//\//\\/}/g" $DOT_CFG_DIR/startup_cp.sh
+    sudo cp ../startup_cp.sh $DOT_CFG_DIR/startup_cp.sh
+    sudo chmod +wx $DOT_CFG_DIR/startup_cp.sh
+    sudo sed -i "s/<BASE_FOLDER>/${BASE_FOLDER//\//\\/}/g" $DOT_CFG_DIR/startup_cp.sh
 
-#     sudo cp ./multipaas.service $AUTOSTART_FILE
-#     sudo sed -i "s/<USER>/$CURRENT_USER/g" $AUTOSTART_FILE
-#     sudo sed -i "s/<DOT_CFG_DIR>/${DOT_CFG_DIR//\//\\/}/g" $AUTOSTART_FILE
+    sudo cp ./multipaas.service $AUTOSTART_FILE
+    sudo sed -i "s/<USER>/$CURRENT_USER/g" $AUTOSTART_FILE
+    sudo sed -i "s/<DOT_CFG_DIR>/${DOT_CFG_DIR//\//\\/}/g" $AUTOSTART_FILE
 
-#     sudo systemctl daemon-reload
-#     sudo systemctl enable multipaas.service
-#     sudo systemctl start multipaas.service
-# fi
+    sudo systemctl daemon-reload
+    sudo systemctl enable multipaas.service
+    sudo systemctl start multipaas.service
+fi
 
 # Done
 log "\n"
