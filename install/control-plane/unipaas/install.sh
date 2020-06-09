@@ -357,6 +357,7 @@ EOF
         -e CRYPTO_KEY=YDbxyG16Q6ujlCpjXH2Pq7nPAtJF66jLGwx4RYkHqhY= \
         -e ENABLE_NGINX_STREAM_DOMAIN_NAME=true \
         -e MP_SERVICES_DIR=/usr/src/app/data/mp_services \
+        -v /var/run/docker.sock:/var/run/docker.sock \
         -v $HOME/multipaas:/usr/src/app/data \
         -v $HOME/.multipaas/auth/registry:/usr/src/app/auth-docker \
         -v $HOME/.multipaas/auth/nginx:/usr/src/app/auth-nginx \

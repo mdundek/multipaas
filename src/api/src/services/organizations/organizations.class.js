@@ -141,7 +141,7 @@ exports.Organizations = class Organizations extends Service {
                     
 
                     if(process.env.MP_MODE == "unipaas") {
-                        await this._execSilentCommand(`docker run --entrypoint htpasswd registry:2.7.1 -Bbn ${registryUser} ${registryPass} >> $HOME/.multipaas/auth/registry/htpasswd`);
+                        await this._execSilentCommand(`docker run --entrypoint htpasswd registry:2.7.1 -Bbn ${registryUser} ${registryPass} >> /usr/src/app/auth-docker/htpasswd`);
                     } else {
                         let REGISTYRY_PASSWD_PATH="/usr/src/app/auth-docker/htpasswd";
                         if (!fs.existsSync(REGISTYRY_PASSWD_PATH)) {
@@ -156,7 +156,7 @@ exports.Organizations = class Organizations extends Service {
                    
                    
                     if(process.env.MP_MODE == "unipaas") {
-                        await this._execSilentCommand(`docker run --entrypoint htpasswd registry:2.7.1 -bn ${registryUser} ${registryPass} >> $HOME/.multipaas/auth/nginx/htpasswd`);
+                        await this._execSilentCommand(`docker run --entrypoint htpasswd registry:2.7.1 -bn ${registryUser} ${registryPass} >> /usr/src/app/auth-nginx/htpasswd`);
                     } else {
                         let NGINX_PASSWD_PATH="/usr/src/app/auth-nginx/htpasswd";
                         if (!fs.existsSync(NGINX_PASSWD_PATH)) {
