@@ -106,9 +106,9 @@ dependencies_master () {
     bussy_indicator "Dependency on \"mosquitto\"..."
     log "\n"
 
-    dep_gitlab_runner &>>$err_log &
-    bussy_indicator "Dependency on \"gitlab-runner\"..."
-    log "\n"
+    dep_gitlab_runner #&>>$err_log &
+    # bussy_indicator "Dependency on \"gitlab-runner\"..."
+    # log "\n"
 
     sudo systemctl disable mosquitto &>>$err_log
     sudo systemctl stop mosquitto &>>$err_log
@@ -228,15 +228,6 @@ collect_informations() {
 
         GLUSTER_VOLUME="${VOL_NAME[1]}"
     fi
-}
-
-########################################
-# 
-########################################
-authorize_private_registry() {
-    sshpass -p 'kubeadmin' scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$MASTER_IP:/home/vagrant/configPrivateRegistry.sh ./configPrivateRegistry.sh &>/dev/null
-    sudo ./configPrivateRegistry.sh &>/dev/null
-    rm -rf ./configPrivateRegistry.sh &>/dev/null
 }
 
 ########################################
