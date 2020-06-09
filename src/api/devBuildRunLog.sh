@@ -21,7 +21,7 @@ docker run -d \
     -e DB_USER=postgres \
     -e DB_PASS=li14ebe14 \
     -e MOSQUITTO_IP=192.168.1.12 \
-    -e API_SYSADMIN_USER=multipaas@gmail.com \
+    -e API_SYSADMIN_USER=mdundek@gmail.com \
     -e API_SYSADMIN_PASSWORD=li14ebe14 \
     -e REGISTRY_IP=192.168.1.12 \
     -e CRYPTO_KEY=YDbxyG16Q6ujlCpjXH2Pq7nPAtJF66jLGwx4RYkHqhY= \
