@@ -16,6 +16,17 @@ err_log=$_DIR/std.log
 dependencies () {
     sudo echo "" # Ask user for sudo password now
 
+    DK_EXISTS=$(command -v docker)
+    dep_docker &>>$err_log &
+    bussy_indicator "Dependency on \"Docker CE\"..."
+    log "\n"
+    if [ "$DK_EXISTS" == "" ]; then
+        log "\n"
+        warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
+        warn "    Please log out, and log back in, then execute this script again.\n"
+        exit 1
+    fi
+
     dep_jq &>>$err_log &
     bussy_indicator "Dependency on \"jq\"..."
     log "\n"
@@ -26,11 +37,6 @@ dependencies () {
 
     dep_sshpass &>>$err_log &
     bussy_indicator "Dependency on \"sshpass\"..."
-    log "\n"
-
-    dep_docker &>>$err_log &
-    bussy_indicator "Dependency on \"Docker CE\"..."
-    sudo usermod -aG docker $USER
     log "\n"
 
     sudo systemctl enable docker > /dev/null 2>&1 

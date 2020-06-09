@@ -18,19 +18,19 @@ _BASEDIR="$(dirname "$_BASEDIR")"
 # 
 ########################################
 dependencies_master () {
-    DOCKER_EXISTS=$(command -v docker)
+    DK_EXISTS=$(command -v docker)
     NODE_EXISTS=$(command -v node)
     PM2_EXISTS=$(command -v pm2)
 
     if [ "$IS_K8S_NODE" == "true" ]; then
-        if [ "$DOCKER_EXISTS" == "" ] || [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
+        if [ "$DK_EXISTS" == "" ] || [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
             log "==> This script will install the following components:\n"
             log "\n"
         else
             log "==> This script will install and configure the host-node services.\n"
         fi
     else
-        if [ "$DOCKER_EXISTS" == "" ] || [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
+        if [ "$DK_EXISTS" == "" ] || [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
             log "==> This script will install the following components:\n"
             log "\n"
         else
@@ -38,7 +38,7 @@ dependencies_master () {
         fi
     fi
 
-    if [ "$DOCKER_EXISTS" == "" ]; then
+    if [ "$DK_EXISTS" == "" ]; then
         log "- Docker CE\n"
     fi
     if [ "$NODE_EXISTS" == "" ]; then
@@ -58,6 +58,17 @@ dependencies_master () {
 
     sudo echo "" # Ask user for sudo password now
 
+    dep_docker &>>$err_log &
+    bussy_indicator "Dependency on \"Docker CE\"..."
+    sudo usermod -aG docker $USER
+    log "\n"
+    if [ "$DK_EXISTS" == "" ]; then
+        log "\n"
+        warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
+        warn "    Please log out, and log back in, then execute this script again.\n"
+        exit 1
+    fi
+
     if [ "$IS_K8S_NODE" == "true" ]; then
         dep_tar &>>$err_log &
         bussy_indicator "Dependency on \"tar\"..."
@@ -67,11 +78,6 @@ dependencies_master () {
         bussy_indicator "Dependency on \"sshpass\"..."
         log "\n"
     fi
-
-    dep_docker &>>$err_log &
-    bussy_indicator "Dependency on \"Docker CE\"..."
-    sudo usermod -aG docker $USER
-    log "\n"
     
     dep_nodejs &>>$err_log &
     bussy_indicator "Dependency on \"NodeJS\"..."

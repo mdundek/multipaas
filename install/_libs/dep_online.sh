@@ -50,11 +50,12 @@ dep_docker() {
     local C_EXISTS=$(command -v docker)
     if [ "$C_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
-            sudo apt install -y docker.io
+            sudo apt install -y docker.io && sudo usermod -aG docker $USER
         elif [ "$DISTRO" == "redhat" ]; then
             echo "OS not supported yet"
             exit 1
         fi
+        NEW_DOCKER="true"
     fi
 }
 

@@ -88,18 +88,24 @@ dependencies () {
     bussy_indicator "Dependency on \"wget\"..."
     log "\n"
 
-    dep_node #&>>$err_log &
-    # bussy_indicator "Dependency on \"node\"..."
-    # log "\n"
+    DK_EXISTS=$(command -v docker)
+    dep_docker &>>$err_log &
+    bussy_indicator "Dependency on \"docker\"..."
+    log "\n"
+    if [ "$DK_EXISTS" == "" ]; then
+        log "\n"
+        warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
+        warn "    Please log out, and log back in, then execute this script again.\n"
+        exit 1
+    fi
+
+    dep_node &>>$err_log &
+    bussy_indicator "Dependency on \"node\"..."
+    log "\n"
 
     dep_npm_bundle &>>$err_log &
     bussy_indicator "Dependency on \"npm_bundle\"..."
     log "\n"
-
-    dep_docker &>>$err_log &
-    bussy_indicator "Dependency on \"docker\"..."
-    log "\n"
-    
 }
 
 
