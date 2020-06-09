@@ -18,7 +18,7 @@ exports.Accounts = class Accounts extends Service {
         console.log(data);
         console.log(typeof data);
         const { name, email, password } = data;
-
+        console.log(1);
         // If user exists, make sure he has not his own account
         let potentialUsers = await this.app.service('users').find({
             paginate: false,
@@ -27,19 +27,22 @@ exports.Accounts = class Accounts extends Service {
             },
             _internalRequest: true
         });
+        console.log(2);
         if(potentialUsers.length == 1 && password) {
             let error = new Error('This user already has an account');
             error.statusCode = 412;
             error.code = 412;
             return error;
         }
-
+console.log(3);
         let adminToken = await Keycloak.adminAuthenticate(this.app);
+        console.log(4);
         let kcUser = await Keycloak.getUserByEmail(adminToken, email);
+        console.log(5);
         if(kcUser && password) {
             await Keycloak.authenticate(email, password, true);
         }
-
+        console.log(6);
         if(potentialUsers.length == 1) {
             let accountUsers = await this.app.service('acc-users').find({
                 paginate: false,
@@ -55,13 +58,14 @@ exports.Accounts = class Accounts extends Service {
                 return error;
             }
         }
-        
+        console.log(7);
         let accounts = await this.app.service('accounts').find({
             query: {
                 "name": name
             },
             _internalRequest: true
         });
+        console.log(8);
         if(accounts.total == 0){
             let transaction = null;
             try {
