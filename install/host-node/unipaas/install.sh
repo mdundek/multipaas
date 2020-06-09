@@ -350,10 +350,10 @@ if [ "$DEP_TARGET" == "Kubernetes master" ]; then
             exit 1
         fi
     fi
-    
+    echo "=================="
     # Install dependencies
     dependencies_master
-
+echo "=================="
     HN_TASK_LIST=("Kubernetes instances" "GlusterFS" "Both")
     combo_value NODE_ROLE "What tasks should this host-node handle" "Your choice #:" "${HN_TASK_LIST[@]}"
     if [ "$NODE_ROLE" == "Kubernetes instances" ]; then
