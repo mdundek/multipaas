@@ -29,11 +29,12 @@ class TaskController {
         // Prepare the environment scripts
         (async () => {
             this.ip = await OSController.getIp();
-
-            if(process.env.CLUSTER_ENGINE == "virtualbox") {
-                EngineController = require("../engines/virtualbox/index");
+            if(process.env.MP_MODE != "unipaas") {
+                if(process.env.CLUSTER_ENGINE == "virtualbox") {
+                    EngineController = require("../engines/virtualbox/index");
+                }
+                await EngineController.init(this.mqttController);
             }
-            await EngineController.init(this.mqttController);
 
             TaskRuntimeController.init(this, this.mqttController);
             TaskGlusterController.init(this, this.mqttController);
