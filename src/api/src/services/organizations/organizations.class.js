@@ -98,6 +98,7 @@ exports.Organizations = class Organizations extends Service {
      * @param {*} params 
      */
     async create (data, params) {
+        console.log(data);
         const { name, registryUser, registryPass } = data;
         let transaction = null;
         try{
@@ -113,13 +114,14 @@ exports.Organizations = class Organizations extends Service {
                 return new Conflict(new Error('This organization name already exists'));
             } 
             else {
+                console.log(1);
                 // Gen registry user pass hash
                 let cryptoData = await this._hashPass(registryPass);
             
                 const sequelize = this.app.get('sequelizeClient');
                 transaction = await sequelize.transaction();
                 params.sequelize = { transaction };
-
+                console.log(2);
                 // Create org
                 let newOrg = await super.create({
                     "name": name,
@@ -128,14 +130,14 @@ exports.Organizations = class Organizations extends Service {
                     "bcryptSalt": cryptoData.salt,
                     "accountId":  data.accountId
                 }, params);
-               
+                console.log(3);
                 // Create org admin user link
                 let orgUser = await this.app.service('org-users').create({
                     "organizationId": newOrg.id,
                     "userId":  params.user.id,
                     "permissions": "ORG_ADMIN"
                 }, params);
-
+                console.log(4);
                 try {
                     // Create user/pass for NGinx & Registry
                     if(process.env.MP_MODE == "unipaas") {
@@ -147,7 +149,7 @@ exports.Organizations = class Organizations extends Service {
                         }
                         await this._sshExec(process.env.REGISTRY_IP, `docker run --entrypoint htpasswd registry:2.7.1 -Bbn ${registryUser} ${registryPass} >> /opt/docker/containers/docker-registry/auth/htpasswd`);
                     }
-
+                    console.log(5);
                     if(process.env.MP_MODE == "unipaas") {
                         await this._execSilentCommand(`docker run --entrypoint htpasswd registry:2.7.1 -bn ${registryUser} ${registryPass} >> /usr/src/app/auth-nginx/htpasswd`);
                     } else {
@@ -157,6 +159,7 @@ exports.Organizations = class Organizations extends Service {
                         }
                         await this._sshExec(process.env.REGISTRY_IP, `docker run --entrypoint htpasswd registry:2.7.1 -bn ${registryUser} ${registryPass} >> /opt/docker/containers/nginx-registry/auth/htpasswd`);
                     }
+                    console.log(6);
                     await transaction.commit();
                 } catch (_error) {
                     if (transaction) {
@@ -164,7 +167,7 @@ exports.Organizations = class Organizations extends Service {
                     }
                     throw _error;
                 }
-                
+                console.log(7);
                 return {
                     code: 200,
                     data: {
