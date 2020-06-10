@@ -32,19 +32,21 @@ exports.Workspaces = class Workspaces extends Service {
             else {
                 let newWs = await super.create(data, params);
 
-                await TaskController.schedule(
-                    "CREATE-K8S-CLUSTER",
-                    "workspace",
-                    newWs.id,
-                    [{
-                        "type":"INFO",
-                        "step":"PROVISION",
-                        "socketId": socketId,
-                        "clusterAdminUserEmail": params.user.email, 
-                        "ts":new Date().toISOString()
-                    }],
-                    params
-                );
+                if(process.env.MP_MODE != "unipaas") {
+                    await TaskController.schedule(
+                        "CREATE-K8S-CLUSTER",
+                        "workspace",
+                        newWs.id,
+                        [{
+                            "type":"INFO",
+                            "step":"PROVISION",
+                            "socketId": socketId,
+                            "clusterAdminUserEmail": params.user.email, 
+                            "ts":new Date().toISOString()
+                        }],
+                        params
+                    );
+                }
 
                 return {
                     code: 200,
