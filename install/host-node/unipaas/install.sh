@@ -120,11 +120,11 @@ EOF
     sudo sed -i '/swap/d' /etc/fstab &>>$err_log
     sudo swapoff -a &>>$err_log
 
-    # for dockerimage in ../../build/offline_files/docker_images/*.tar; do
-    #     sudo docker load --input $dockerimage &>>$err_log &
-    #     bussy_indicator "Loading docker image $dockerimage..."
-    #     log "\n"
-    # done
+    for dockerimage in ../../build/offline_files/docker_images/*.tar; do
+        sudo docker load --input $dockerimage &>>$err_log &
+        bussy_indicator "Loading docker image $dockerimage..."
+        log "\n"
+    done
 
     if [ "$IS_GLUSTER_PEER" == "true" ]; then
         GLUSTER_IMG_EXISTS=$(docker images gluster/gluster-centos:gluster4u0_centos7 | sed -n '1!p')
