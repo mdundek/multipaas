@@ -255,6 +255,11 @@ build_for_ubuntu_bionic() {
     bussy_indicator "Downloading repo libc6-dev..."
     log "\n"
 
+    download_deb libnl-3-200 &>>$err_log &
+    bussy_indicator "Downloading repo libnl-3-200..."
+    log "\n"
+    
+
     ########## Download docker images
 
     cd $_CPWD

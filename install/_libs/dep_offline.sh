@@ -203,6 +203,7 @@ dep_gluster_server() {
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
                 deb_offline_install "libc6-dev"
+                deb_offline_install "libnl-3-200"
                 deb_offline_install "glusterfs-server"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
@@ -330,7 +331,7 @@ dep_nodejs() {
                 sudo mkdir -p /opt/nodejs
                 sudo chmod -R 755 /opt/nodejs
                 sudo cp ../../build/offline_files/debs/nodejs/node-v12.18.0-linux-x64.tar.xz /opt
-                sudo cd /opt
+                cd /opt
                 sudo tar xf /opt/node-v12.18.0-linux-x64.tar.xz --directory /opt/nodejs
                 sudo rm -rf /opt/node-v12.18.0-linux-x64.tar.xz
                 sudo mv /opt/nodejs/node-v12.18.0-linux-x64/* /opt/nodejs
