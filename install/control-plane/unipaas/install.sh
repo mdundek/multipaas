@@ -346,6 +346,7 @@ EOF
         --name multipaas-api \
         --restart unless-stopped \
         --network host \
+        -e MP_MODE=unipaas \
         -e NGINX_HOST_IP=$NGINX_HOST_IP \
         -e DB_HOST=$DB_HOST \
         -e DB_USER=$POSTGRES_USER \
@@ -722,25 +723,3 @@ log " ==> $LOCAL_IP multipaas.com multipaas.registry.com registry.multipaas.org 
 log "\n"
 
 cd "$_PWD"
-
-
-
-
-
-
-
-
-
-
-
-MP_TOKEN=$(curl -s http://192.168.1.12:3030/authentication/ \
-        -H 'Content-Type: application/json' \
-        --data-binary '{ "strategy": "local", "email": "mdundek@gmail.com", "password": "li14ebe14" }' | jq -r '.accessToken')
-
-
-curl -s -k \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $MP_TOKEN" \
-        -X POST \
-        -d '{"accountId":2,"name":"foo-org","registryUser":"foo@bar.com","registryPass":"foobar"}' \
-        http://192.168.1.12:3030/organizations

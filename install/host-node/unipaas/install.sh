@@ -563,7 +563,6 @@ create_account_and_register() {
                 exit 1
             else
                 cp_api_get EXISTING_ACC "accounts?name=$ACC_NAME"
-                echo "EXISTING_ACC => $EXISTING_ACC"
                 ACC_ID=$(echo "$EXISTING_ACC" | jq -r '.data[0].id')
                 VALIDE="1"
             fi
@@ -607,9 +606,7 @@ create_account_and_register() {
 
             # super...
             J_PAYLOAD='{"accountId":'"$ACC_ID"',"name":"'"$ORG_NAME"'","registryUser":"'"$RU"'","registryPass":"'"$RP"'"}'
-            echo "J_PAYLOAD => $J_PAYLOAD"
             cp_api_create ORG_CR_RESP "organizations" $J_PAYLOAD
-            echo "ORG_CR_RESP => $ORG_CR_RESP"
             if [ "$(echo "$ORG_CR_RESP" | jq -r '.code')" != "200" ]; then
                 error "An error occured, could not create organization"
                 exit 1
