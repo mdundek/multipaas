@@ -28,6 +28,7 @@ class MqttController {
             };
             this.client = mqtt.connect(options.host, options);
             this.client.on('connect', () => {
+                console.log("Connected");
                 this.online = true;
                
                 this.client.subscribe(`/multipaas/k8s/host/query/${this.ip}/#`);
