@@ -3,22 +3,22 @@
 host="192.168.1.12"
 node_ip="192.168.1.67"
 
-clean="output input cmds"
+# clean="output input cmds"
 p="backpipe"
-pid=$(cat pidfile)
+# pid=$(cat pidfile)
 
 topic_pub="/unipaas/cmd/response/$node_ip"
 topic_sub="/unipaas/cmd/request/$node_ip"
 
-ctrl_c() {
-  	echo "Cleaning up..."
-	rm -f $p;rm "$clean";kill $pid 2>/dev/null
-	if [[ "$?" -eq "0" ]]; then
-		exit 0
-	else
-		exit 1
-	fi
-}
+# ctrl_c() {
+#   	echo "Cleaning up..."
+# 	rm -f $p;rm "$clean";kill $pid 2>/dev/null
+# 	if [[ "$?" -eq "0" ]]; then
+# 		exit 0
+# 	else
+# 		exit 1
+# 	fi
+# }
 
 listen(){
 	([ ! -p "$p" ]) && mkfifo $p
@@ -33,18 +33,18 @@ listen(){
 	done
 }
 
-usage(){
-	echo "  UniPaaS Satelite"
-	echo "  Usage: $0 <mqtt server>"
-}
+# usage(){
+# 	echo "  UniPaaS Satelite"
+# 	echo "  Usage: $0 <mqtt server>"
+# }
 
-case "$1" in
--h|--host)
-trap ctrl_c INT
+# case "$1" in
+# -h|--host)
+# trap ctrl_c INT
 listen
-;;
-*)
-usage
-exit 1
-;;
-esac
+# ;;
+# *)
+# usage
+# exit 1
+# ;;
+# esac
