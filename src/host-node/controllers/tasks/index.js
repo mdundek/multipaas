@@ -42,14 +42,16 @@ class TaskController {
             TaskAppsController.init(this, this.mqttController);
             TaskIngressController.init(this, this.mqttController);
 
-            setInterval(() => {
+            if(process.env.MP_MODE != "unipaas") {
+                setInterval(() => {
+                    EngineController.ensureNodesStarted();
+                }, 2 * 60 * 1000); // Every 2 minutes
                 EngineController.ensureNodesStarted();
-            }, 2 * 60 * 1000); // Every 2 minutes
-            EngineController.ensureNodesStarted();
 
-            setInterval(() => {
-                this.maintenance();
-            }, 10 * 60 * 1000); // Every 10 minutes
+                setInterval(() => {
+                    this.maintenance();
+                }, 10 * 60 * 1000); // Every 10 minutes
+            }
         })();
     }
 

@@ -27,10 +27,19 @@ dependency_docker () {
     log "\n"
     if [ "$DK_EXISTS" == "" ]; then
         log "\n"
-        warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
-        warn "    You will also have to add the registry certificates to the docker engine trusted certificates base\n" 
-        warn "    before you can execute this script again (See documentation).\n"
-        warn "    Once done, please log out, and log back in, then execute this script again.\n"
+        warn "==> Docker was just installed, you will have to restart\n"
+        warn "    your session before starting the cluster-ctl container.\n"
+        warn "    You will also have to add the registry certificates to\n"
+        warn "    the docker engine trusted certificates base:\n" 
+        warn "\n"
+        warn " 1. Grab the config script from the control-plane\n"
+        warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
+        warn " 2. Put the script somewhere locally, and execute the\n"
+        warn "    script with sudo (sudo ./configPrivateRegistry.sh)\n"
+        warn "\n"
+        warn "    Once done, please log out, and log back in, then execute\n"
+        warn "    this script again.\n"
+
         exit 1
     fi
 }
@@ -420,59 +429,59 @@ EOT
     sudo $HOME/gentoken.sh
 
     # Enable k8s deployment logger
-#     cat > /k8s_event_logger.sh <<'EOF'
-# #!/bin/bash
+    sudo tee -a /k8s_event_logger.sh >/dev/null <<'EOF'
+#!/bin/bash
 
-# m_dep() {
-#     kubectl get deployments --all-namespaces --watch -o wide 2>&1 | cluster_deployment_event_logger
-# }
-# m_rep() {
-#     kubectl get statefulsets --all-namespaces --watch -o wide 2>&1 | cluster_statefullset_event_logger
-# }
-# cluster_deployment_event_logger() {
-#     while read IN
-#     do
-#         LWC=$(echo "$IN" | awk '{print tolower($0)}')
-#         mosquitto_pub -h <MQTT_IP> -t /multipaas/cluster/event/$HOSTNAME -m "D:$LWC"
-#     done
-#     m_dep
-# }
-# cluster_statefullset_event_logger() {
-#     while read IN
-#     do
-#         LWC=$(echo "$IN" | awk '{print tolower($0)}')
-#         mosquitto_pub -h <MQTT_IP> -t /multipaas/cluster/event/$HOSTNAME -m "S:$LWC"
-#     done
-#     m_rep
-# }
-# sleep 20
-# m_dep
-# m_rep
-# EOF
+m_dep() {
+    kubectl get deployments --all-namespaces --watch -o wide 2>&1 | cluster_deployment_event_logger
+}
+m_rep() {
+    kubectl get statefulsets --all-namespaces --watch -o wide 2>&1 | cluster_statefullset_event_logger
+}
+cluster_deployment_event_logger() {
+    while read IN
+    do
+        LWC=$(echo "$IN" | awk '{print tolower($0)}')
+        mosquitto_pub -h <MQTT_IP> -t /multipaas/cluster/event/$HOSTNAME -m "D:$LWC"
+    done
+    m_dep
+}
+cluster_statefullset_event_logger() {
+    while read IN
+    do
+        LWC=$(echo "$IN" | awk '{print tolower($0)}')
+        mosquitto_pub -h <MQTT_IP> -t /multipaas/cluster/event/$HOSTNAME -m "S:$LWC"
+    done
+    m_rep
+}
+sleep 20
+m_dep
+m_rep
+EOF
+   
+    sudo chmod a+wx /k8s_event_logger.sh
+    sudo sed -i "s/<MQTT_IP>/$MASTER_IP/g" /k8s_event_logger.sh
 
-#     chmod a+wx /k8s_event_logger.sh
-#     sed -i "s/<MQTT_IP>/$C_IP/g" /k8s_event_logger.sh
+    sudo tee -a /etc/systemd/system/multipaasevents.service >/dev/null <<'EOF'
+[Unit]
+Description=Multipaas Cluster Event Monitor
+After=syslog.target network.target
 
-#     cat > /etc/systemd/system/multipaasevents.service <<'EOF'
-# [Unit]
-# Description=Multipaas Cluster Event Monitor
-# After=syslog.target network.target
+[Service]
+Type=simple
+ExecStart=/k8s_event_logger.sh
+TimeoutStartSec=0
+Restart=always
+RestartSec=120
+User=vagrant
 
-# [Service]
-# Type=simple
-# ExecStart=/k8s_event_logger.sh
-# TimeoutStartSec=0
-# Restart=always
-# RestartSec=120
-# User=vagrant
+[Install]
+WantedBy=default.target
+EOF
 
-# [Install]
-# WantedBy=default.target
-# EOF
-
-#     systemctl daemon-reload
-#     systemctl enable multipaasevents.service
-#     systemctl start multipaasevents.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable multipaasevents.service
+    sudo systemctl start multipaasevents.service
 }
 
 cp_api_auth() {
@@ -773,16 +782,6 @@ if [ "$DEP_TARGET" == "Kubernetes master" ]; then
     log "\n"
 else
     echo "Installing worker"
-fi
-
-if [ "$IS_K8S_NODE" == "true" ]; then
-    warn "Manually configure access to your private docker registry on every K8S node:\n"
-    log "\n"
-    log "1. Grab the config script from the control-plane installation system (\$HOME/configPrivateRegistry.sh)\n"
-    log "2. Put the script somewhere locally, and execute the script with sudo (sudo ./configPrivateRegistry.sh)\n"
-    log "\n"
-    log "Once done, your node has the required certificate needed to access the private registry.\n"
-    log "\n"
 fi
 
 cd "$_PWD"

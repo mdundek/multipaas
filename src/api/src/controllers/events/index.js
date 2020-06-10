@@ -117,7 +117,7 @@ class EventsController {
             this.deploymentStatus[hostName] = this.deploymentStatus[hostName].filter(o => o.deployment != obj.deployment);
             this.deploymentStatus[hostName].push(obj);
         }
-        // console.log(JSON.stringify(this.deploymentStatus, null, 4));
+        console.log(JSON.stringify(this.deploymentStatus, null, 4));
     }
 }
 EventsController.clients = {};
