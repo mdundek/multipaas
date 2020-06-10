@@ -36,31 +36,7 @@ dependency_docker () {
 }
 
 dependencies_master () {
-    NODE_EXISTS=$(command -v node)
-    PM2_EXISTS=$(command -v pm2)
-
-    if [ "$IS_K8S_NODE" == "true" ]; then
-        if [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
-            log "==> This script will install the following components:\n"
-            log "\n"
-        else
-            log "==> This script will install and configure the host-node services.\n"
-        fi
-    else
-        if [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
-            log "==> This script will install the following components:\n"
-            log "\n"
-        else
-            log "==> This script will install and configure the host-node services.\n"
-        fi
-    fi
-
-    if [ "$NODE_EXISTS" == "" ]; then
-        log "- NodeJS\n"
-    fi
-    if [ "$PM2_EXISTS" == "" ]; then
-        log "- PM2\n"
-    fi
+    log "==> This script will install and configure the host-node services.\n"
     log "\n"
     read_input "Do you wish to continue (y/n)?" CONTINUE_INSTALL
     while [[ "$CONTINUE_INSTALL" != 'y' ]] && [[ "$CONTINUE_INSTALL" != 'n' ]]; do
@@ -176,7 +152,7 @@ collect_informations() {
     log "\n"
 
     curl --output /dev/null --silent --head --fail http://$MASTER_IP:3030
-    if ["$?" != "0"]; then
+    if [ "$?" != "0" ]; then
         error "Control-plane API server is not responding.\n"
         error "Make sure the firewall is not blocking port 3030 on the control-plane.\n"
         exit 1
