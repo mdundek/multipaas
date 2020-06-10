@@ -21,16 +21,29 @@ topic_sub="/unipaas/cmd/request/$node_ip"
 # }
 
 listen(){
-	([ ! -p "$p" ]) && mkfifo $p
-	(mosquitto_sub -h $host -t $topic_sub >$p 2>/dev/null) &
-	echo "$!" > pidfile
-	while read line <$p
-	do
-		echo $line > cmds
 
-		(bash cmds | tee out) && mosquitto_pub -h $host -t $topic_pub -f out;>out
 
-	done
+
+	mosquitto_sub -h $host -t $topic_sub |  
+	while IFS= read -r line  
+	do  
+			echo $line 
+	done  
+
+
+
+
+
+	# ([ ! -p "$p" ]) && mkfifo $p
+	# (mosquitto_sub -h $host -t $topic_sub >$p 2>/dev/null) &
+	# echo "$!" > pidfile
+	# while read line <$p
+	# do
+	# 	echo $line > cmds
+
+	# 	(bash cmds | tee out) && mosquitto_pub -h $host -t $topic_pub -f out;>out
+
+	# done
 }
 
 # usage(){
