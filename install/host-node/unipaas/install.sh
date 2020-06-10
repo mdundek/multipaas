@@ -48,8 +48,6 @@ dependencies_master () {
 
     sudo echo "" # Ask user for sudo password now
 
-    
-
     if [ "$IS_K8S_NODE" == "true" ]; then
         dep_tar &>>$err_log &
         bussy_indicator "Dependency on \"tar\"..."
@@ -60,9 +58,9 @@ dependencies_master () {
         log "\n"
     fi
     
-    dep_nodejs #&>>$err_log &
-    #bussy_indicator "Dependency on \"NodeJS\"..."
-    #log "\n"
+    dep_nodejs &>>$err_log &
+    bussy_indicator "Dependency on \"NodeJS\"..."
+    log "\n"
 
     dep_kubernetes &>>$err_log &
     bussy_indicator "Dependency on \"Kubernetes\"..."
@@ -97,7 +95,7 @@ dependencies_master () {
     PM2_EXISTS=$(command -v pm2)
     if [ "$PM2_EXISTS" == "" ]; then
         PM2_INSTALL_DIR=/opt
-        sudo tar xpf ../../build/offline_files/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
+        sudo tar xpf $_BASEDIR/install/build/offline_files/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
            
         if [ -d "$PM2_INSTALL_DIR/package" ]; then
             sudo mv $PM2_INSTALL_DIR/package $PM2_INSTALL_DIR/pm2
