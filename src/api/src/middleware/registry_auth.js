@@ -19,6 +19,7 @@ module.exports = () => {
 		(async() => {
 			try {
 				if(req.headers.authorization) {
+					console.log("HERE");
 					// console.log("HEADERS =>", JSON.stringify(req.headers, null, 4));
 					
 					// --------------- PULL -------------
@@ -51,6 +52,11 @@ module.exports = () => {
 					// TODO: If credentials belong to super user, then authorize everything
 
 					let uriRequest = req.headers["registry-call"];
+
+
+					console.log("uriRequest =>", uriRequest);
+
+
 					let uriArray = uriRequest.split(" ");
 					let uri = uriArray.find(o => o.indexOf("/v2/") == 0);
 					let uriSplit = uri.split("/").filter(o => o.length > 0);
