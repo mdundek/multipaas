@@ -258,6 +258,11 @@ build_for_ubuntu_bionic() {
     download_deb libnl-3-200 &>>$err_log &
     bussy_indicator "Downloading repo libnl-3-200..."
     log "\n"
+
+    download_deb libonig4 &>>$err_log &
+    bussy_indicator "Downloading repo libonig4..."
+    log "\n"
+    
     
 
     ########## Download docker images
