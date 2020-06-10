@@ -130,7 +130,7 @@ dependencies_master () {
 #!/bin/sh
 export PATH="'$PM2_INSTALL_DIR'/pm2/bin:\$PATH"
 EOF'
-        sudo . /etc/profile.d/node.sh
+        . /etc/profile.d/node.sh
     fi
 
     # Add sysctl settings

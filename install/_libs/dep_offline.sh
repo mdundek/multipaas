@@ -19,7 +19,7 @@ rpm_offline_install() {
 ########################################
 # 
 ########################################
-pem_offline_install() {
+deb_offline_install() {
     if [ ! -d "../build/ubuntu_bionic/debs/$1" ] && [ ! -d "../../build/offline_files/debs/$1" ]; then
         error "The local lib files for dependecy $1 have not been found.\n"
         error "Please run the preparation script first before continuing.\n"
@@ -41,7 +41,7 @@ dep_wget() {
     if [ "$WGET_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "wget"
+                deb_offline_install "wget"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -60,7 +60,7 @@ dep_curl() {
     if [ "$CURL_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "curl"
+                deb_offline_install "curl"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -79,13 +79,13 @@ dep_vbox() {
     if [ "$VIRTUALBOX_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "make"
-                pem_offline_install "perl"
-                pem_offline_install "gcc"
+                deb_offline_install "make"
+                deb_offline_install "perl"
+                deb_offline_install "gcc"
                 sudo dpkg -i ../build/ubuntu_bionic/debs/virtualbox-6.1/libpython2.7-minimal_*.deb
                 sudo dpkg -i ../build/ubuntu_bionic/debs/virtualbox-6.1/python2.7-minimal_*.deb
                 sudo dpkg -i ../build/ubuntu_bionic/debs/virtualbox-6.1/python-minimal_*.deb
-                pem_offline_install "virtualbox-6.1" && sudo usermod -aG vboxusers $USER
+                deb_offline_install "virtualbox-6.1" && sudo usermod -aG vboxusers $USER
             fi
         fi
         if [ "$DISTRO" == "redhat" ]; then
@@ -98,7 +98,7 @@ dep_vbox() {
     if [ "$VAGRANT_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "vagrant"
+                deb_offline_install "vagrant"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -117,9 +117,9 @@ dep_docker() {
     if [ "$DOCKER_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "containerd"
-                pem_offline_install "docker-ce-cli"
-                pem_offline_install "docker-ce" && sudo usermod -aG docker $USER
+                deb_offline_install "containerd"
+                deb_offline_install "docker-ce-cli"
+                deb_offline_install "docker-ce" && sudo usermod -aG docker $USER
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -141,9 +141,9 @@ dep_kubernetes() {
     if [ "$K8S_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "kubeadm"
-                pem_offline_install "kubectl"
-                pem_offline_install "kubelet"
+                deb_offline_install "kubeadm"
+                deb_offline_install "kubectl"
+                deb_offline_install "kubelet"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -164,7 +164,7 @@ dep_jq() {
     if [ "$JQ_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "jq"
+                deb_offline_install "jq"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -183,7 +183,7 @@ dep_gitlab_runner() {
     if [ "$C_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "gitlab-runner"
+                deb_offline_install "gitlab-runner"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -202,7 +202,7 @@ dep_gluster_server() {
     if [ "$C_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "glusterfs-server"
+                deb_offline_install "glusterfs-server"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -221,7 +221,7 @@ dep_mosquitto() {
     if [ "$C_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "mosquitto"
+                deb_offline_install "mosquitto"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -240,7 +240,7 @@ dep_tar() {
     if [ "$TAR_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "tar"
+                deb_offline_install "tar"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -259,7 +259,7 @@ dep_unzip() {
     if [ "$UNZIP_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "unzip"
+                deb_offline_install "unzip"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -278,7 +278,7 @@ dep_sshpass() {
     if [ "$SSHPASS_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                pem_offline_install "sshpass"
+                deb_offline_install "sshpass"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then

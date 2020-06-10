@@ -238,17 +238,24 @@ build_for_ubuntu_bionic() {
     bussy_indicator "Downloading repo software-properties-common..."
     log "\n"
 
-    download_deb glusterfs-server &>>$err_log &
-    bussy_indicator "Downloading repo glusterfs-server..."
-    log "\n"
-
     download_deb glusterfs-client &>>$err_log &
     bussy_indicator "Downloading repo glusterfs-client..."
+    log "\n"
+
+    download_deb glusterfs-server &>>$err_log &
+    bussy_indicator "Downloading repo glusterfs-server..."
     log "\n"
 
     download_deb gitlab-runner &>>$err_log &
     bussy_indicator "Downloading repo gitlab-runner..."
     log "\n"
+
+
+    
+    # Delete : docker-engine_
+
+
+
 
 
     ########## Download docker images
