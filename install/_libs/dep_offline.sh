@@ -202,6 +202,7 @@ dep_gluster_server() {
     if [ "$C_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
+                deb_offline_install "libc6-dev"
                 deb_offline_install "glusterfs-server"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
@@ -288,6 +289,26 @@ dep_sshpass() {
     fi
 }
 
+
+
+# set PATH so it includes user's private bin if it exists
+if [ -d "$HOME/bin" ] ; then
+    PATH="$HOME/bin:$PATH"
+fi
+
+# set PATH so it includes user's private bin if it exists
+if [ -d "$HOME/.local/bin" ] ; then
+    PATH="$HOME/.local/bin:$PATH"
+fi
+export NODEJS_HOME=/opt/nodejs/bin
+export PATH=$NODEJS_HOME:$PATH
+export NODEJS_HOME=/opt/nodejs/bin
+export PATH=$NODEJS_HOME:$PATH
+export NODEJS_HOME=/opt/nodejs/bin
+export PATH=$NODEJS_HOME:$PATH
+
+
+
 ########################################
 # 
 ########################################
@@ -318,7 +339,9 @@ dep_nodejs() {
                 echo 'export PATH=$NODEJS_HOME:$PATH' >> ~/.profile
                 echo 'export NODEJS_HOME=/opt/nodejs/bin' >> ~/.bashrc
                 echo 'export PATH=$NODEJS_HOME:$PATH' >> ~/.bashrc
-                . ~/.profile
+                source ~/.profile
+
+                echo "$(node --version)"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then

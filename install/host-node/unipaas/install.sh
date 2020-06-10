@@ -84,9 +84,9 @@ dependencies_master () {
         log "\n"
     fi
     
-    dep_nodejs &>>$err_log &
-    bussy_indicator "Dependency on \"NodeJS\"..."
-    log "\n"
+    dep_nodejs #&>>$err_log &
+    #bussy_indicator "Dependency on \"NodeJS\"..."
+    #log "\n"
 
     dep_kubernetes &>>$err_log &
     bussy_indicator "Dependency on \"Kubernetes\"..."

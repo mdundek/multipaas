@@ -248,15 +248,12 @@ build_for_ubuntu_bionic() {
 
     download_deb gitlab-runner &>>$err_log &
     bussy_indicator "Downloading repo gitlab-runner..."
+    rm -rf $OFFLINE_FOLDER/debs/gitlab-runner/docker-engine_*.deb
     log "\n"
 
-
-    
-    # Delete : docker-engine_
-
-
-
-
+    download_deb libc6-dev &>>$err_log &
+    bussy_indicator "Downloading repo libc6-dev..."
+    log "\n"
 
     ########## Download docker images
 
