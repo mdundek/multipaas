@@ -342,8 +342,6 @@ dep_nodejs() {
                 echo 'export NODEJS_HOME=/opt/nodejs/bin' >> ~/.bashrc
                 echo 'export PATH=$NODEJS_HOME:$PATH' >> ~/.bashrc
                 source ~/.profile
-
-                echo "$(node --version)"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then

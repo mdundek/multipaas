@@ -118,23 +118,98 @@ EOF
     sudo sed -i '/swap/d' /etc/fstab &>>$err_log
     sudo swapoff -a &>>$err_log
 
-    for dockerimage in ../../build/offline_files/docker_images/*.tar; do
-        sudo docker load --input $dockerimage &>>$err_log &
-        bussy_indicator "Loading docker image $dockerimage..."
-        log "\n"
-    done
+
+    sudo docker load --input ../../build/offline_files/docker_images/coredns-1.6.7.tar &>>$err_log &
+    bussy_indicator "Loading image coredns-1.6.7.tar..."
+    log "\n"
+
+    sudo docker load --input ../../build/offline_files/docker_images/etcd-3.4.3-0.tar &>>$err_log &
+    bussy_indicator "Loading image etcd-3.4.3-0.tar..."
+    log "\n"
+
+    sudo docker load --input ../../build/offline_files/docker_images/flannel-v0.12.0-amd64.tar &>>$err_log &
+    bussy_indicator "Loading image flannel-v0.12.0-amd64.tar..."
+    log "\n"
+
+    sudo docker load --input ../../build/offline_files/docker_images/gitlab-runner-v12.10.1.tar &>>$err_log &
+    bussy_indicator "Loading image gitlab-runner-v12.10.1.tar..."
+    log "\n"
+
+    sudo docker load --input ../../build/offline_files/docker_images/kube-apiserver-v1.18.3.tar &>>$err_log &
+    bussy_indicator "Loading image kube-apiserver-v1.18.3.tar..."
+    log "\n"
+
+    sudo docker load --input ../../build/offline_files/docker_images/kube-controller-manager-v1.18.3.tar &>>$err_log &
+    bussy_indicator "Loading image kube-controller-manager-v1.18.3.tar..."
+    log "\n"
+
+    sudo docker load --input ../../build/offline_files/docker_images/kube-proxy-v1.18.3.tar &>>$err_log &
+    bussy_indicator "Loading image kube-proxy-v1.18.3.tar..."
+    log "\n"
+
+    sudo docker load --input ../../build/offline_files/docker_images/kube-scheduler-v1.18.3.tar &>>$err_log &
+    bussy_indicator "Loading image kube-scheduler-v1.18.3.tar..."
+    log "\n"
+
+    sudo docker load --input ../../build/offline_files/docker_images/local-path-provisioner-v0.0.13.tar &>>$err_log &
+    bussy_indicator "Loading image local-path-provisioner-v0.0.13.tar..."
+    log "\n"
+
+    sudo docker load --input ../../build/offline_files/docker_images/nginx-ingress-1.7.0.tar &>>$err_log &
+    bussy_indicator "Loading image nginx-ingress-1.7.0.tar..."
+    log "\n"
+
+    sudo docker load --input ../../build/offline_files/docker_images/pause-3.2.tar &>>$err_log &
+    bussy_indicator "Loading image pause-3.2.tar..."
+    log "\n"
+
+    sudo docker load --input ../../build/offline_files/docker_images/node-12.16.2.tar &>>$err_log &
+    bussy_indicator "Loading docker image node-12.16.2.tar..."
+    log "\n"
+
+    # sudo docker load --input ../../build/offline_files/docker_images/cp-kafka-5.0.1.tar &>>$err_log &
+    # bussy_indicator "Loading image cp-kafka-5.0.1.tar..."
+    # log "\n"
+
+    # sudo docker load --input ../../build/offline_files/docker_images/zookeeper-3.5.5.tar &>>$err_log &
+    # bussy_indicator "Loading docker image zookeeper-3.5.5.tar..."
+    # log "\n"
+
+    # sudo docker load --input ../../build/offline_files/docker_images/eclipse-mosquitto-1.6.tar &>>$err_log &
+    # bussy_indicator "Loading image eclipse-mosquitto-1.6.tar..."
+    # log "\n"
+
+    # sudo docker load --input ../../build/offline_files/docker_images/mongodb-4.2.5-debian-10-r44.tar &>>$err_log &
+    # bussy_indicator "Loading image mongodb-4.2.5-debian-10-r44.tar..."
+    # log "\n"
+
+    # sudo docker load --input ../../build/offline_files/docker_images/busybox-1.29.3.tar &>>$err_log &
+    # bussy_indicator "Loading docker image busybox-1.29.3.tar..."
+    # log "\n"
+
+    # sudo docker load --input ../../build/offline_files/docker_images/mysql-5.7.28.tar &>>$err_log &
+    # bussy_indicator "Loading docker image mysql-5.7.28.tar..."
+    # log "\n"
+
+    # sudo docker load --input ../../build/offline_files/docker_images/node-red-1.0.1-12-minimal.tar &>>$err_log &
+    # bussy_indicator "Loading docker image node-red-1.0.1-12-minimal.tar..."
+    # log "\n"
+
+
+    # sudo docker load --input ../../build/offline_files/docker_images/postgres-12.2-alpine.tar &>>$err_log &
+    # bussy_indicator "Loading docker image postgres-12.2-alpine.tar..."
+    # log "\n"
+
+    # sudo docker load --input ../../build/offline_files/docker_images/redis-5.0.8-debian-10-r36.tar &>>$err_log &
+    # bussy_indicator "Loading docker image redis-5.0.8-debian-10-r36.tar..."
+    # log "\n"
 
     if [ "$IS_GLUSTER_PEER" == "true" ]; then
         GLUSTER_IMG_EXISTS=$(docker images gluster/gluster-centos:gluster4u0_centos7 | sed -n '1!p')
         if [ "$GLUSTER_IMG_EXISTS" == "" ]; then
-            if [ "$DISTRO" == "ubuntu" ]; then
-                if [ "$MAJ_V" == "18.04" ]; then
-                    sudo docker load --input ../../build/offline_files/docker_images/gluster-centos-gluster4u0_centos7.tar &>>$err_log &
-                    bussy_indicator "Loading docker image gluster-centos..."
-                    log "\n"
-                fi
-            fi
-
+            sudo docker load --input ../../build/offline_files/docker_images/gluster-centos-gluster4u0_centos7.tar &>>$err_log &
+            bussy_indicator "Loading image gluster-centos-gluster4u0_centos7.tar..."
+            log "\n"
         fi
     fi
 }
