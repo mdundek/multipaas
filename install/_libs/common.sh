@@ -49,6 +49,15 @@ escape_slashes() {
     sed 's/\//\\\//g' 
 }
 
+yes_no() {
+    local  __resultvar=$2
+    read_input "$1 (y/n)?" _R
+    while [ "$_R" != 'y' ] && [ "$_R" != 'n' ]; do
+        read_input "Invalide answer, try again (y/n):" _R
+    done
+    eval $__resultvar="'$_R'"
+}
+
 ########################################
 # 
 ########################################

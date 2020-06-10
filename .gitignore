@@ -12,3 +12,4 @@ vm_base
 **/_tmp
 NOTES.md
 multipaas-cp-keys.pem
+lab.sh

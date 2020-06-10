@@ -177,11 +177,10 @@ collect_informations() {
         exit 1
     fi
 
-
     log "\n"
-    read_input "Enter the MultiPaaS master user email address:" MPU
+    read_input "Enter the MultiPaaS master user email address:" MPUS
     log "\n"
-    read_input "Enter the MultiPaaS master user email address:" PW
+    read_input "Enter the MultiPaaS master user password:" MPPW
     log "\n"
 
     if [ "$IS_GLUSTER_PEER" == "true" ]; then   
@@ -265,7 +264,7 @@ install_core_components() {
     sed -i "s/<MP_MODE>/unipaas/g" ./env
     sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
     sed -i "s/<DB_PORT>/5432/g" ./env
-    sed -i "s/<DB_PASS>/$PW/g" ./env
+    sed -i "s/<DB_PASS>/$MPPW/g" ./env
     sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
     sed -i "s/<VM_BASE_HOME>/${VM_BASE//\//\\/}/g" ./env
     sed -i "s/<MULTIPAAS_CFG_DIR>/${MULTIPAAS_CFG_DIR//\//\\/}/g" ./env
@@ -337,7 +336,172 @@ EOT
     sudo $HOME/gentoken.sh
 }
 
+cp_api_auth() {
+    MP_TOKEN=$(curl -s http://$MASTER_IP:3030/authentication/ \
+        -H 'Content-Type: application/json' \
+        --data-binary '{ "strategy": "local", "email": "'"$MPUS"'", "password": "'"$MPPW"'" }' | jq -r '.accessToken')
+}
 
+cp_api_get() {
+    local  __resultvar=$1
+    local _R=$(curl -s -k \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $MP_TOKEN" \
+        -X GET \
+        http://$MASTER_IP:3030/$2)
+
+    eval $__resultvar="'$_R'"
+}
+
+cp_api_create() {
+    local  __resultvar=$1
+    local _R=$(curl -s -k \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $MP_TOKEN" \
+        -X POST \
+        -d $3 \
+        http://$MASTER_IP:3030/$2)
+
+    eval $__resultvar="'$_R'"
+}
+
+create_account_and_register() {
+    warn "Before you can start using your cluster, you need to register this node with the control-plane"
+    log "\n"
+
+    cp_api_auth
+
+    # Make sure hostname is not in use
+    HNAME=$(hostname)
+    cp_api_get EXISTING_HOST "k8s_hosts?hostname=$HNAME"
+    if [ "$(echo "$EXISTING_HOST" | jq -r '.total')" == "1" ]; then
+        error "This machine hostname $HNAME is already in use."
+        exit 1
+    fi
+
+    # Account
+    VALIDE='0'
+    while [[ "$VALIDE" == '0' ]]; do
+        read_input "Enter an account name:" ACC_NAME
+        while [[ "$ACC_NAME" == '' ]]; do
+            read_input "\nInvalide answer, try again:" ACC_NAME
+        done
+        cp_api_get EXISTING_ACC "accounts?name=$ACC_NAME"
+        if [ "$(echo "$EXISTING_ACC" | jq -r '.total')" == "1" ]; then
+            yes_no "Account exists. Do you want to use the existing account $ACC_NAME" _RESPONSE
+            if [ "$_RESPONSE" == "y" ]; then
+                ACC_ID=$(echo "$EXISTING_ACC" | jq -r '.data[0].id')
+                VALIDE="1"
+            fi
+        else
+            # User email & password
+            VALIDE='0'
+            while [[ "$VALIDE" == '0' ]]; do
+                read_input "Enter the cluster account user email address:" UPUS
+                while [[ "$UPUS" == '' ]]; do
+                    read_input "\nInvalide answer, try again:" UPUS
+                done
+                cp_api_get EXISTING_USER "users?email=$UPUS"
+
+                if [ "$(echo "$EXISTING_USER" | jq -r '.total')" == "1" ]; then
+                    error "User name already in use.\n"
+                else
+                    VALIDE="1"
+                fi
+            done
+
+            log "\n"
+            read_input "Enter the cluster account user password:" UPPW
+            while [[ "$UPPW" == '' ]]; do
+                read_input "\nInvalide answer, try again:" UPPW
+            done
+
+            # super...
+            J_PAYLOAD='{"action":"account","params":{"accountName":"'"$ACC_NAME"'","email":"'"$UPUS"'","password":"'"$UPUS"'"}}'
+            cp_api_create ACC_CR_RESP "cli" $J_PAYLOAD
+            if [ "$(echo "$ACC_CR_RESP" | jq -r '.code')" != "200" ]; then
+                error "An error occured, could not create account"
+                exit 1
+            else
+                cp_api_get EXISTING_ACC "accounts?name=$ACC_NAME"
+                ACC_ID=$(echo "$EXISTING_ACC" | jq -r '.data[0].id')
+                VALIDE="1"
+            fi
+        fi
+    done
+
+    # Organization
+    VALIDE='0'
+    while [[ "$VALIDE" == '0' ]]; do
+        read_input "Enter an organization name:" ORG_NAME
+        while [[ "$ORG_NAME" == '' ]]; do
+            read_input "\nInvalide answer, try again:" ORG_NAME
+        done
+        cp_api_get EXISTING_ORG "organizations?name=$ORG_NAME&accountId=$ACC_ID"
+        if [ "$(echo "$EXISTING_ORG" | jq -r '.total')" == "1" ]; then
+            yes_no "Organization exists. Do you want to use the existing organization $ORG_NAME" _RESPONSE
+            if [ "$_RESPONSE" == "y" ]; then
+                ORG_ID=$(echo "$EXISTING_ORG" | jq -r '.data[0].id')
+                VALIDE="1"
+            fi
+        else
+            # Registry credentials
+            read_input "Enter the organization registry username:" RU
+            while [[ "$RU" == '' ]]; do
+                read_input "\nInvalide answer, try again:" RU
+            done
+            read_input "Enter the organization registry password:" RP
+            while [[ "$RP" == '' ]]; do
+                read_input "\nInvalide answer, try again:" RP
+            done
+
+            # super...
+            J_PAYLOAD='{"accountId":'"$ACC_ID"',"name":"'"$ORG_NAME"'","registryUser":"'"$RU"'","registryPass":"'"$RP"'"}'
+            cp_api_create ORG_CR_RESP "organizations" $J_PAYLOAD
+            if [ "$(echo "$ORG_CR_RESP" | jq -r '.code')" != "200" ]; then
+                error "An error occured, could not create organization"
+                exit 1
+            else
+                ORG_ID=$(echo "$ORG_CR_RESP" | jq -r '.data.organization.id')
+                VALIDE="1"
+            fi
+        fi
+    done
+
+    # Workspace
+    VALIDE='0'
+    while [[ "$VALIDE" == '0' ]]; do
+        read_input "Enter a cluster name:" WS_NAME
+        while [[ "$WS_NAME" == '' ]]; do
+            read_input "\nInvalide answer, try again:" WS_NAME
+        done
+        cp_api_get EXISTING_WS "workspaces?name=$WS_NAME&organizationId=$ORG_ID"
+        if [ "$(echo "$EXISTING_WS" | jq -r '.total')" == "1" ]; then
+            error "The workspace name $WS_NAME is already taken."
+        else
+            J_PAYLOAD='{"organizationId":'"$ORG_ID"',"name":"'"$WS_NAME"'"}'
+            cp_api_create WS_CR_RESP "workspaces" $J_PAYLOAD
+            if [ "$(echo "$WS_CR_RESP" | jq -r '.code')" != "200" ]; then
+                error "An error occured, could not create workspace"
+                exit 1
+            else
+                WS_ID=$(echo "$WS_CR_RESP" | jq -r '.data.id')
+                VALIDE="1"
+            fi
+        fi
+    done
+
+    # Host
+    J_PAYLOAD='{"workspaceId":'"$WS_ID"',"ip":"'"$LOCAL_IP"'","hostname":"'"$HNAME"'","status":"ready"}'
+    cp_api_create HOST_CR_RESP "k8s_hosts" $J_PAYLOAD
+    HOST_ID=$(echo "$HOST_CR_RESP" | jq -r '.id')
+ 
+    # Node
+    NEW_UUID=$(openssl rand -hex 12 | head -c 8 ; echo)
+
+    J_PAYLOAD='{"workspaceId":'"$WS_ID"',"k8sHostId":'"$HOST_ID"',"ip":"'"$LOCAL_IP"'","hostname":"'"$HNAME"'","hash":"'"$NEW_UUID"'","nodeType":"MASTER"}'
+    cp_api_create NODE_CR_RESP "k8s_nodes" $J_PAYLOAD
+}
 
 
 ########################################
@@ -396,42 +560,13 @@ if [ "$DEP_TARGET" == "Kubernetes master" ]; then
     log "\n"
     log "\n"
 
+    success "MultiPaaS host controller & K8S master deployed successfully!\n"
+    log "\n"
+    log "\n"
 
-
-    HNAME=$(hostname)
-
-    MP_TOKEN=$(curl -s http://$MASTER_IP:3030/authentication/ \
-        -H 'Content-Type: application/json' \
-        --data-binary '{ "strategy": "local", "email": "'"$MPU"'", "password": "'"$PW"'" }' | jq -r '.accessToken')
-
-    H_ID=$(curl -s -k \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $MP_TOKEN" \
-        -X POST \
-        -d '{ "ip": "'"$LOCAL_IP"'", "hostname": "'"$HNAME"'", "status": "ready" }' \
-        http://$LOCAL_IP:3030/k8s_hosts | jq -r '.id')
-    RHASH=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 8 | head -n 1)
-    curl -s -k \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $MP_TOKEN" \
-        -X POST \
-        -d '{ "ip": "'"$LOCAL_IP"'", "hostname": "'"$HNAME"'", "status": "ready" }' \
-        http://$LOCAL_IP:3030/k8s_nodes 2>&1 | log_error_sanitizer
-
-
-{
-    "hash": "$RHASH",
-    "nodeType": "MASTER",
-    "ip": "'"$LOCAL_IP"'",
-    "hostname": "master.'"$RHASH"'",
-    "workspaceId": "",
-    "k8sHostId": '"$H_ID"'
-    
-}
-
-
-
-    success "[DONE] MultiPaaS host controller & K8S master deployed successfully!\n"
+    # Register node
+    create_account_and_register
+    log "\n"
 
     if [ "$IS_GLUSTER_PEER" == "true" ]; then
         # Start the gluster controller

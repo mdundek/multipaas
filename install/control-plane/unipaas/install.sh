@@ -695,48 +695,6 @@ setup_keycloak
 # # Install gitlab
 install_gitlab
 
-
-
-# Create default account, org and workspace
-U_ID=$(curl -s http://$LOCAL_IP:3030/authentication/ \
-    -H 'Content-Type: application/json' \
-    --data-binary '{ "strategy": "local", "email": "'"$MP_U"'", "password": "'"$MP_P"'" }' | jq -r '.user.id')
-
-MP_TOKEN=$(curl -s http://$LOCAL_IP:3030/authentication/ \
-    -H 'Content-Type: application/json' \
-    --data-binary '{ "strategy": "local", "email": "'"$MP_U"'", "password": "'"$MP_P"'" }' | jq -r '.accessToken')
-
-curl -s -k \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $MP_TOKEN" \
-    -X POST \
-    -d '{ "action": "account", "params": {"accountName":"unipaas", "email": "'"$MP_U"'", "password": "'"$MP_P"'"} }' \
-    http://$LOCAL_IP:3030/cli
-
-ACC_ID=$(curl -s -k \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $MP_TOKEN" \
-    -X GET \
-    http://$LOCAL_IP:3030/accounts/1 | jq -r '.id')
-
-ORG_ID=$(curl -s -k \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $MP_TOKEN" \
-    -X POST \
-    -d '{"accountId": '"$ACC_ID"', "name": "local", "registryUser": "'"$MP_U"'", "registryPass": "'"$MP_P"'"}' \
-    http://$LOCAL_IP:3030/organizations | jq -r '.id')
-
-
-
-
-
-
-
-
-
-
-
-
 CRT="$(cat $NGINX_CRT_FOLDER/docker-registry.crt)"
 CRT_NGINX="$(cat $NGINX_CRT_FOLDER/nginx-registry.crt)"
 
