@@ -205,6 +205,7 @@ openssl x509 -req \
 # Update hosts file
 ########################################
 echo "[TASK 12] Update hosts file"
+sed '/multipaas.com/d' /etc/hosts
 echo "$API_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com" >> /etc/hosts
 
 ########################################

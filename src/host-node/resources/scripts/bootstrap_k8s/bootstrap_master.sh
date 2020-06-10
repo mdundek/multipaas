@@ -69,6 +69,7 @@ sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-ca-file=/etc/kubernetes/pki/rootCA.c
 
 /home/vagrant/gentoken.sh
 
+sed '/multipaas.com/d' /etc/hosts
 echo "$C_IP multipaas.com multipaas.keycloak.com multipaas.registry.com docker-registry registry.multipaas.org multipaas.static.com" >> /etc/hosts
 
 # Enable k8s deployment logger

@@ -23,6 +23,7 @@ sed -i "s/--network-plugin=cni/--network-plugin=cni --node-ip=$WIP/g" /var/lib/k
 EOT
 chmod +x /config_kublet_ip.sh
 
+sed '/multipaas.com/d' /etc/hosts
 echo "$C_IP multipaas.com multipaas.keycloak.com multipaas.registry.com docker-registry registry.multipaas.org multipaas.static.com" >> /etc/hosts
 
 # # Set up IP updater on boot

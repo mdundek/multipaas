@@ -698,6 +698,8 @@ install_gitlab
 CRT="$(cat $NGINX_CRT_FOLDER/docker-registry.crt)"
 CRT_NGINX="$(cat $NGINX_CRT_FOLDER/nginx-registry.crt)"
 
+rm -rf $HOME/configPrivateRegistry.sh
+
 echo "#!/bin/bash"  >> $HOME/configPrivateRegistry.sh
 echo "mkdir -p /etc/docker/certs.d/multipaas.registry.com:5000" >> $HOME/configPrivateRegistry.sh
 echo "cat <<EOT >> /etc/docker/certs.d/multipaas.registry.com:5000/ca.crt" >> $HOME/configPrivateRegistry.sh
