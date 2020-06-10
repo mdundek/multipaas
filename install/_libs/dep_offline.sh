@@ -164,6 +164,7 @@ dep_jq() {
     if [ "$JQ_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
+                deb_offline_install "libonig4"
                 deb_offline_install "jq"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
