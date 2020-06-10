@@ -17,20 +17,37 @@ _BASEDIR="$(dirname "$_BASEDIR")"
 ########################################
 # 
 ########################################
-dependencies_master () {
+
+dependency_docker () {
     DK_EXISTS=$(command -v docker)
+
+    dep_docker &>>$err_log &
+    bussy_indicator "Dependency on \"Docker CE\"..."
+    sudo usermod -aG docker $USER
+    log "\n"
+    if [ "$DK_EXISTS" == "" ]; then
+        log "\n"
+        warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
+        warn "    You will also have to add the registry certificates to the docker engine trusted certificates base\n" 
+        warn "    before you can execute this script again (See documentation).\n"
+        warn "    Once done, please log out, and log back in, then execute this script again.\n"
+        exit 1
+    fi
+}
+
+dependencies_master () {
     NODE_EXISTS=$(command -v node)
     PM2_EXISTS=$(command -v pm2)
 
     if [ "$IS_K8S_NODE" == "true" ]; then
-        if [ "$DK_EXISTS" == "" ] || [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
+        if [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
             log "==> This script will install the following components:\n"
             log "\n"
         else
             log "==> This script will install and configure the host-node services.\n"
         fi
     else
-        if [ "$DK_EXISTS" == "" ] || [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
+        if [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
             log "==> This script will install the following components:\n"
             log "\n"
         else
@@ -38,9 +55,6 @@ dependencies_master () {
         fi
     fi
 
-    if [ "$DK_EXISTS" == "" ]; then
-        log "- Docker CE\n"
-    fi
     if [ "$NODE_EXISTS" == "" ]; then
         log "- NodeJS\n"
     fi
@@ -58,16 +72,7 @@ dependencies_master () {
 
     sudo echo "" # Ask user for sudo password now
 
-    dep_docker &>>$err_log &
-    bussy_indicator "Dependency on \"Docker CE\"..."
-    sudo usermod -aG docker $USER
-    log "\n"
-    if [ "$DK_EXISTS" == "" ]; then
-        log "\n"
-        warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
-        warn "    Please log out, and log back in, then execute this script again.\n"
-        exit 1
-    fi
+    
 
     if [ "$IS_K8S_NODE" == "true" ]; then
         dep_tar &>>$err_log &
@@ -287,6 +292,25 @@ install_core_components() {
     fi
 }
 
+registry_auth() {
+    _RCOUNTER=0
+    while :
+    do
+        printf "$RP" | docker login registry.multipaas.org --username $RU --password-stdin
+        if [ "$?" == "0" ]; then
+            break
+        else
+            _RCOUNTER=$((_RCOUNTER+1))
+            if [ "$_RCOUNTER" -eq "5" ];then
+                error "Could not connect to the docker registry"
+                exit 1
+            fi
+        fi
+    done
+
+    kubectl create secret docker-registry regcred --docker-server=registry.multipaas.org --docker-username=$RU --docker-password=$RP --docker-email=multipaas@multipaas.com
+}
+
 ########################################
 # 
 ########################################
@@ -319,21 +343,93 @@ EOT
     echo "export KUBECONFIG=$HOME/.kube/admin.conf" | tee -a ~/.bashrc
     source ~/.bashrc
 
+    # Untaint master
+    kubectl taint nodes --all node-role.kubernetes.io/master-
+
     # Deploy flannel network
-    kubectl apply -f ./src/host-node/resources/k8s_templates//kube-flannel.yml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/kube-flannel.yml
 
     # Enable PodPresets
     sudo sed -i "s/enable-admission-plugins=NodeRestriction/enable-admission-plugins=NodeRestriction,PodPreset/g" /etc/kubernetes/manifests/kube-apiserver.yaml
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --runtime-config=settings.k8s.io/v1alpha1=true' /etc/kubernetes/manifests/kube-apiserver.yaml
 
+    # Install ingress & local provisioner
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/ns-and-sa.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/rbac/rbac.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/default-server-secret.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/nginx-config.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/vs-definition.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/vsr-definition.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/ts-definition.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/gc-definition.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/global-configuration.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/daemon-set/nginx-ingress.yaml
+
+    kubectl apply -f ./src/host-node/resources/k8s_templates/local-path-provisioner/local-path-storage.yaml
+
     # Configure OpenID Connect for Keycloak
-    # sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-issuer-url=https://multipaas.keycloak.com/auth/realms/master' /etc/kubernetes/manifests/kube-apiserver.yaml
-    # sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-groups-claim=groups' /etc/kubernetes/manifests/kube-apiserver.yaml
-    # sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-username-claim=email' /etc/kubernetes/manifests/kube-apiserver.yaml
-    # sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-client-id=kubernetes-cluster' /etc/kubernetes/manifests/kube-apiserver.yaml
-    # sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-ca-file=/etc/kubernetes/pki/rootCA.crt' /etc/kubernetes/manifests/kube-apiserver.yaml
+    sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-issuer-url=https://multipaas.keycloak.com/auth/realms/master' /etc/kubernetes/manifests/kube-apiserver.yaml
+    sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-groups-claim=groups' /etc/kubernetes/manifests/kube-apiserver.yaml
+    sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-username-claim=email' /etc/kubernetes/manifests/kube-apiserver.yaml
+    sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-client-id=kubernetes-cluster' /etc/kubernetes/manifests/kube-apiserver.yaml
+    sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-ca-file=/etc/kubernetes/pki/rootCA.crt' /etc/kubernetes/manifests/kube-apiserver.yaml
 
     sudo $HOME/gentoken.sh
+
+    # Enable k8s deployment logger
+#     cat > /k8s_event_logger.sh <<'EOF'
+# #!/bin/bash
+
+# m_dep() {
+#     kubectl get deployments --all-namespaces --watch -o wide 2>&1 | cluster_deployment_event_logger
+# }
+# m_rep() {
+#     kubectl get statefulsets --all-namespaces --watch -o wide 2>&1 | cluster_statefullset_event_logger
+# }
+# cluster_deployment_event_logger() {
+#     while read IN
+#     do
+#         LWC=$(echo "$IN" | awk '{print tolower($0)}')
+#         mosquitto_pub -h <MQTT_IP> -t /multipaas/cluster/event/$HOSTNAME -m "D:$LWC"
+#     done
+#     m_dep
+# }
+# cluster_statefullset_event_logger() {
+#     while read IN
+#     do
+#         LWC=$(echo "$IN" | awk '{print tolower($0)}')
+#         mosquitto_pub -h <MQTT_IP> -t /multipaas/cluster/event/$HOSTNAME -m "S:$LWC"
+#     done
+#     m_rep
+# }
+# sleep 20
+# m_dep
+# m_rep
+# EOF
+
+#     chmod a+wx /k8s_event_logger.sh
+#     sed -i "s/<MQTT_IP>/$C_IP/g" /k8s_event_logger.sh
+
+#     cat > /etc/systemd/system/multipaasevents.service <<'EOF'
+# [Unit]
+# Description=Multipaas Cluster Event Monitor
+# After=syslog.target network.target
+
+# [Service]
+# Type=simple
+# ExecStart=/k8s_event_logger.sh
+# TimeoutStartSec=0
+# Restart=always
+# RestartSec=120
+# User=vagrant
+
+# [Install]
+# WantedBy=default.target
+# EOF
+
+#     systemctl daemon-reload
+#     systemctl enable multipaasevents.service
+#     systemctl start multipaasevents.service
 }
 
 cp_api_auth() {
@@ -442,6 +538,16 @@ create_account_and_register() {
             yes_no "Organization exists. Do you want to use the existing organization $ORG_NAME" _RESPONSE
             if [ "$_RESPONSE" == "y" ]; then
                 ORG_ID=$(echo "$EXISTING_ORG" | jq -r '.data[0].id')
+
+                read_input "Enter the organization registry username:" RU
+                while [[ "$RU" == '' ]]; do
+                    read_input "\nInvalide answer, try again:" RU
+                done
+                read_input "Enter the organization registry password:" RP
+                while [[ "$RP" == '' ]]; do
+                    read_input "\nInvalide answer, try again:" RP
+                done
+
                 VALIDE="1"
             fi
         else
@@ -515,6 +621,17 @@ log "\n\n"
 # Figure out what distro we are running
 distro
 
+sudo sed '/multipaas.com/d' /etc/hosts &>>$err_log
+sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
+
+# Install docker first
+dependency_docker
+
+# Make sure the registry certificates are installed
+if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ]; then
+    error "Please add the registry certificates to the docker engine trusted certificates base before you can execute this script again (See documentation)."
+fi
+
 DEP_TARGET_LIST=("Kubernetes master" "Kubernetes worker")
 combo_value DEP_TARGET "What do you wish to install" "Your choice #:" "${DEP_TARGET_LIST[@]}"
 if [ "$DEP_TARGET" == "Kubernetes master" ]; then
@@ -547,9 +664,6 @@ if [ "$DEP_TARGET" == "Kubernetes master" ]; then
     # Collect info from user
     collect_informations
 
-    sudo sed '/multipaas.com/d' /etc/hosts &>>$err_log
-    sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
-
     # Install the core components
     install_core_components &>>$err_log &
     bussy_indicator "Installing host controller components..."
@@ -566,6 +680,10 @@ if [ "$DEP_TARGET" == "Kubernetes master" ]; then
 
     # Register node
     create_account_and_register
+    
+    # Authenticate to registry
+    registry_auth
+    
     log "\n"
 
     if [ "$IS_GLUSTER_PEER" == "true" ]; then
