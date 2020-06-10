@@ -15,6 +15,7 @@ exports.Accounts = class Accounts extends Service {
      * @param {*} params 
      */
     async create (data, params) {
+        console.log(data);
         const { name, email, password } = data;
         // If user exists, make sure he has not his own account
         let potentialUsers = await this.app.service('users').find({
