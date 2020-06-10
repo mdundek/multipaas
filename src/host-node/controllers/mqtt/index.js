@@ -92,6 +92,7 @@ class MqttController {
                     }));
                 }
                 else if(topic.startsWith(`${queryBase}/trigger_deployment_status_events`)){
+                    console.log("HERE");
                     await TaskRuntimeController.requestTriggerDeploymentStaustEvents(topicSplit, this.ip, JSON.parse(message.toString()));
                 }
                 else if(topic.startsWith(`${queryBase}/deploy_k8s_cluster`)){
