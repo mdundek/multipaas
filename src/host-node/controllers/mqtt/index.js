@@ -19,7 +19,6 @@ class MqttController {
     static init() {
         OsController.getIp().then((ip) => {
             this.ip = ip;
-            console.log(ip);
             var options = {
                 port: process.env.MOSQUITTO_PORT,
                 host: `mqtt://${process.env.MOSQUITTO_IP}`,
@@ -30,6 +29,7 @@ class MqttController {
             this.client = mqtt.connect(options.host, options);
             this.client.on('connect', () => {
                 console.log("Connected");
+
                 this.online = true;
                
                 this.client.subscribe(`/multipaas/k8s/host/query/${this.ip}/#`);
@@ -41,6 +41,23 @@ class MqttController {
                 if(process.env.IS_GLUSTER_PEER.toLowerCase() == "true"){
                     this.client.subscribe(`/multipaas/k8s/host/query/gluster_peers/#`);
                 }
+
+
+
+
+
+
+
+                this.client.subscribe(`/unipaas/cmd/response/#`);
+                for(let i=0; i<1; i++) {
+                    this.client.publish(`/unipaas/cmd/request/192.168.1.67`, `ls -l`);
+
+                }
+
+
+
+
+
             });
             
             this.client.on('offline', () => {
@@ -79,6 +96,9 @@ class MqttController {
                         hostname: OsController.getHostname()
                     }));
                 }
+                else if(topic.startsWith("/unipaas/cmd/response/")){
+                    console.log("MQTT =>" + message.toString());
+                }
                 else if(topic.startsWith("/multipaas/k8s/host/query/k8s_nodes/free_disk_size") || topic.startsWith("/multipaas/k8s/host/query/gluster_peers/free_disk_size")){
                     let totalDiskSpace = await OsController.getVolumeStorageTotalSpace();
                     
@@ -94,7 +114,6 @@ class MqttController {
                     }));
                 }
                 else if(topic.startsWith(`${queryBase}/trigger_deployment_status_events`)){
-                    console.log("HERE");
                     await TaskRuntimeController.requestTriggerDeploymentStaustEvents(topicSplit, this.ip, JSON.parse(message.toString()));
                 }
                 else if(topic.startsWith(`${queryBase}/deploy_k8s_cluster`)){

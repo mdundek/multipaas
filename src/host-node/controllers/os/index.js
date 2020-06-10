@@ -27,10 +27,6 @@ class OsController {
 		if(this.ip){
 			return this.ip;
 		}
-		// let result = await this.execSilentCommand(`ifconfig ${process.env.DEFAULT_INET_INTERFACE_SHORT} | grep "inet " | awk '{print $2}'`);
-		// this.ip = result[0];
-		// return this.ip;
-
 		let ifaces = os.networkInterfaces();
         // Iterate over interfaces ...
         for (var dev in ifaces) {
