@@ -36,16 +36,6 @@ dependency_docker () {
 }
 
 dependencies_master () {
-    log "==> This script will install and configure the host-node services.\n"
-    log "\n"
-    read_input "Do you wish to continue (y/n)?" CONTINUE_INSTALL
-    while [[ "$CONTINUE_INSTALL" != 'y' ]] && [[ "$CONTINUE_INSTALL" != 'n' ]]; do
-        read_input "Invalide answer, try again (y/n)?" CONTINUE_INSTALL
-    done
-    if [ "$CONTINUE_INSTALL" == "n" ]; then
-        exit 0
-    fi
-
     sudo echo "" # Ask user for sudo password now
 
     if [ "$IS_K8S_NODE" == "true" ]; then
@@ -573,6 +563,7 @@ create_account_and_register() {
                 exit 1
             else
                 cp_api_get EXISTING_ACC "accounts?name=$ACC_NAME"
+                echo "EXISTING_ACC => $EXISTING_ACC"
                 ACC_ID=$(echo "$EXISTING_ACC" | jq -r '.data[0].id')
                 VALIDE="1"
             fi
@@ -616,7 +607,9 @@ create_account_and_register() {
 
             # super...
             J_PAYLOAD='{"accountId":'"$ACC_ID"',"name":"'"$ORG_NAME"'","registryUser":"'"$RU"'","registryPass":"'"$RP"'"}'
+            echo "J_PAYLOAD => $J_PAYLOAD"
             cp_api_create ORG_CR_RESP "organizations" $J_PAYLOAD
+            echo "ORG_CR_RESP => $ORG_CR_RESP"
             if [ "$(echo "$ORG_CR_RESP" | jq -r '.code')" != "200" ]; then
                 error "An error occured, could not create organization"
                 exit 1
