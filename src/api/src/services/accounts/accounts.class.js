@@ -28,40 +28,40 @@ exports.Accounts = class Accounts extends Service {
         let adminToken = null;
         let kcUser = null;
 
-        if(process.env.MP_MODE == "unipaas") {
-            if(potentialUsers.length != 1) {
-                let error = new Error('Unauthorized');
-                error.statusCode = 401;
-                error.code = 401;
-                return error;
-            }
+        // if(process.env.MP_MODE == "unipaas") {
+        //     if(potentialUsers.length != 1) {
+        //         let error = new Error('Unauthorized');
+        //         error.statusCode = 401;
+        //         error.code = 401;
+        //         return error;
+        //     }
 
-            adminToken = await Keycloak.adminAuthenticate(this.app);
-            kcUser = await Keycloak.getUserByEmail(adminToken, email);
+        //     adminToken = await Keycloak.adminAuthenticate(this.app);
+        //     kcUser = await Keycloak.getUserByEmail(adminToken, email);
            
-            if(kcUser && password && email == process.env.API_SYSADMIN_USER) {
-                await Keycloak.authenticate(email, password, true);
-                let accounts = await this.app.service('accounts').find({
-                    paginate: false,
-                    query: {},
-                    _internalRequest: true
-                });
+        //     if(kcUser && password && email == process.env.API_SYSADMIN_USER) {
+        //         await Keycloak.authenticate(email, password, true);
+        //         let accounts = await this.app.service('accounts').find({
+        //             paginate: false,
+        //             query: {},
+        //             _internalRequest: true
+        //         });
 
-                if(accounts.length != 0) {
-                    let error = new Error('Unicloud already has a default account');
-                    error.statusCode = 401;
-                    error.code = 401;
-                    return error;
-                }
-            }
-            else {
-                let error = new Error('Unauthorized');
-                error.statusCode = 401;
-                error.code = 401;
-                return error;
-            }
-        }
-        else {
+        //         if(accounts.length != 0) {
+        //             let error = new Error('Unicloud already has a default account');
+        //             error.statusCode = 401;
+        //             error.code = 401;
+        //             return error;
+        //         }
+        //     }
+        //     else {
+        //         let error = new Error('Unauthorized');
+        //         error.statusCode = 401;
+        //         error.code = 401;
+        //         return error;
+        //     }
+        // }
+        // else {
             if(potentialUsers.length == 1 && password) {
                 let error = new Error('This user already has an account');
                 error.statusCode = 412;
@@ -91,7 +91,7 @@ exports.Accounts = class Accounts extends Service {
                     return error;
                 }
             }
-        }
+        // }
         
         let accounts = await this.app.service('accounts').find({
             query: {

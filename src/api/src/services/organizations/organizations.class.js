@@ -138,8 +138,6 @@ exports.Organizations = class Organizations extends Service {
 
                 try {
                     // Create user/pass for NGinx & Registry
-                    
-
                     if(process.env.MP_MODE == "unipaas") {
                         await this._execSilentCommand(`docker run --entrypoint htpasswd registry:2.7.1 -Bbn ${registryUser} ${registryPass} >> /usr/src/app/auth-docker/htpasswd`);
                     } else {
@@ -150,11 +148,6 @@ exports.Organizations = class Organizations extends Service {
                         await this._sshExec(process.env.REGISTRY_IP, `docker run --entrypoint htpasswd registry:2.7.1 -Bbn ${registryUser} ${registryPass} >> /opt/docker/containers/docker-registry/auth/htpasswd`);
                     }
 
-
-
-                    
-                   
-                   
                     if(process.env.MP_MODE == "unipaas") {
                         await this._execSilentCommand(`docker run --entrypoint htpasswd registry:2.7.1 -bn ${registryUser} ${registryPass} >> /usr/src/app/auth-nginx/htpasswd`);
                     } else {
