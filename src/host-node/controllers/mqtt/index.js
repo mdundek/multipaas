@@ -19,7 +19,6 @@ class MqttController {
     static init() {
         OsController.getIp().then((ip) => {
             this.ip = ip;
-            console.log(this.ip);
             var options = {
                 port: process.env.MOSQUITTO_PORT,
                 host: `mqtt://${process.env.MOSQUITTO_IP}`,

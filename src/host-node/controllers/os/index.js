@@ -32,6 +32,8 @@ class OsController {
 		// return this.ip;
 
 		let ifaces = os.networkInterfaces();
+		console.log(process.env.DEFAULT_INET_INTERFACE_SHORT);
+		console.log(ifaces);
         // Iterate over interfaces ...
         for (var dev in ifaces) {
 			if(process.env.DEFAULT_INET_INTERFACE_SHORT == dev) {
