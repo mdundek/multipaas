@@ -429,6 +429,9 @@ EOT
     sudo $HOME/gentoken.sh
 
     # Enable k8s deployment logger
+    if [ -f "/k8s_event_logger.sh" ]; then
+        sudo rm -rf /k8s_event_logger.sh
+    fi
     sudo tee -a /k8s_event_logger.sh >/dev/null <<'EOF'
 #!/bin/bash
 
@@ -462,6 +465,12 @@ EOF
     sudo chmod a+wx /k8s_event_logger.sh
     sudo sed -i "s/<MQTT_IP>/$MASTER_IP/g" /k8s_event_logger.sh
 
+    if [ -f "/etc/systemd/system/multipaasevents.service" ]; then
+        sudo systemctl stop multipaasevents.service
+        sudo systemctl disable multipaasevents.service
+        sudo rm -rf /etc/systemd/system/multipaasevents.service
+        sudo systemctl daemon-reload
+    fi
     sudo tee -a /etc/systemd/system/multipaasevents.service >/dev/null <<'EOF'
 [Unit]
 Description=Multipaas Cluster Event Monitor
