@@ -42,19 +42,13 @@ class MqttController {
                     this.client.subscribe(`/multipaas/k8s/host/query/gluster_peers/#`);
                 }
 
+                this.client.subscribe(`/unipaas/node/cmd/response/${this.ip}/#`);
+                
 
-
-
-
-
-
-                this.client.subscribe(`/unipaas/cmd/response/#`);
-                for(let i=0; i<1; i++) {
-                    this.client.publish(`/unipaas/cmd/request/192.168.1.67`, `ls -l`);
-
-                }
-
-
+                let testLs = await this.unipaasQueryRequestResponse("192.168.1.96", "cmd", {
+                    cmd: "ls -l"
+                });
+                console.log(testLs);
 
 
 
@@ -344,6 +338,52 @@ class MqttController {
                 } else {
                     payload.queryTarget = thisIp;
                     this.client.publish(`/multipaas/k8s/host/query/${targetHost}/${task}/${requestId}`, JSON.stringify(payload));
+                }
+            }).catch(err => {
+                clearTimeout(this.pendingResponses[requestId].timeout);
+                delete this.pendingResponses[requestId];
+                reject(err);
+            })
+        });
+    }
+
+
+    /**
+     * unipaasQueryRequestResponse
+     * @param {*} targetHost 
+     * @param {*} task 
+     * @param {*} payload 
+     * @param {*} timeout 
+     */
+    static unipaasQueryRequestResponse(targetHost, task, payload, timeout) {
+        return new Promise((resolve, reject) => {
+            let requestId = null;
+            while(requestId == null){
+                requestId = shortid.generate();
+                if(requestId.indexOf("$") != -1 || requestId.indexOf("@") != -1){
+                    requestId = null;
+                }
+            }
+            this.pendingResponses[requestId] = {
+                "type": "respond", 
+                "resolve": resolve,
+                "reject": reject,
+                "timeout": setTimeout(function(requestId) {
+                    if(this.pendingResponses[requestId]){
+                        this.pendingResponses[requestId].reject(new Error("Request timed out"));
+                        delete this.pendingResponses[requestId];
+                    }
+                }.bind(this, requestId), timeout ? timeout : 6000)
+            };
+
+            OsController.getIp().then(thisIp => {
+                if(!payload){
+                    this.client.publish(`/unipaas/local/host/query/${targetHost}/${task}/${requestId}`, JSON.stringify({
+                        queryTarget: thisIp
+                    }));
+                } else {
+                    payload.queryTarget = thisIp;
+                    this.client.publish(`/unipaas/local/host/query/${targetHost}/${task}/${requestId}`, JSON.stringify(payload));
                 }
             }).catch(err => {
                 clearTimeout(this.pendingResponses[requestId].timeout);
