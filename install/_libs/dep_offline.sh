@@ -32,6 +32,14 @@ deb_offline_install() {
     fi
 }
 
+
+
+
+
+
+
+
+
 ########################################
 # 
 ########################################
@@ -54,19 +62,67 @@ dep_wget() {
 ########################################
 # 
 ########################################
-dep_curl() {
+dep_node() {
     cd $_DIR
-    CURL_EXISTS=$(command -v curl)
-    if [ "$CURL_EXISTS" == "" ]; then
+    NODE_EXISTS=$(command -v node)
+    INSTALL_NODE=0
+    if [ "$NODE_EXISTS" == "" ]; then
+        INSTALL_NODE=1
+    else
+        NV=$(node --version | cut -d'.' -f1)
+        if [ "${NV//v}" -lt "12" ]; then
+            INSTALL_NODE=1
+        fi 
+    fi
+    if [ $INSTALL_NODE = 1 ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                deb_offline_install "curl"
+                sudo mkdir -p /opt/nodejs
+                sudo chmod -R 755 /opt/nodejs
+                sudo cp ../../build/offline_files/debs/nodejs/node-v12.18.0-linux-x64.tar.xz /opt
+                cd /opt
+                sudo tar xf /opt/node-v12.18.0-linux-x64.tar.xz --directory /opt/nodejs
+                sudo rm -rf /opt/node-v12.18.0-linux-x64.tar.xz
+                sudo mv /opt/nodejs/node-v12.18.0-linux-x64/* /opt/nodejs
+                sudo rm -rf /opt/nodejs/node-v12.18.0-linux-x64
+                echo 'export NODEJS_HOME=/opt/nodejs/bin' >> ~/.profile
+                echo 'export PATH=$NODEJS_HOME:$PATH' >> ~/.profile
+                echo 'export NODEJS_HOME=/opt/nodejs/bin' >> ~/.bashrc
+                echo 'export PATH=$NODEJS_HOME:$PATH' >> ~/.bashrc
+                source ~/.profile
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
-                rpm_offline_install "curl"
+                if [ "$(command -v python2)" == "" ]; then
+                    rpm_offline_install "python2"
+                fi
+                rpm_offline_install "nodejs"
             fi
         fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_docker() {
+    cd $_DIR
+    DOCKER_EXISTS=$(command -v docker)
+    if [ "$DOCKER_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            if [ "$MAJ_V" == "18.04" ]; then
+                deb_offline_install "containerd"
+                deb_offline_install "docker-ce-cli"
+                deb_offline_install "docker-ce" && sudo usermod -aG docker $USER
+            fi
+        elif [ "$DISTRO" == "redhat" ]; then
+            if [ "$MAJ_V" == "8" ]; then
+                rpm_offline_install "container-selinux"
+                rpm_offline_install "containerd.io"
+                rpm_offline_install "docker-ce" && sudo usermod -aG docker $USER
+            fi
+        fi
+        NEW_DOCKER="true"
     fi
 }
 
@@ -108,27 +164,23 @@ dep_vbox() {
     fi
 }
 
+
 ########################################
 # 
 ########################################
-dep_docker() {
+dep_curl() {
     cd $_DIR
-    DOCKER_EXISTS=$(command -v docker)
-    if [ "$DOCKER_EXISTS" == "" ]; then
+    CURL_EXISTS=$(command -v curl)
+    if [ "$CURL_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                deb_offline_install "containerd"
-                deb_offline_install "docker-ce-cli"
-                deb_offline_install "docker-ce" && sudo usermod -aG docker $USER
+                deb_offline_install "curl"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
-                rpm_offline_install "container-selinux"
-                rpm_offline_install "containerd.io"
-                rpm_offline_install "docker-ce" && sudo usermod -aG docker $USER
+                rpm_offline_install "curl"
             fi
         fi
-        NEW_DOCKER="true"
     fi
 }
 
@@ -203,6 +255,7 @@ dep_gluster_server() {
     if [ "$C_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
+                deb_offline_install "glibc-doc-reference"
                 deb_offline_install "libc6-dev"
                 deb_offline_install "libnl-3-200"
                 deb_offline_install "glusterfs-server"
@@ -292,67 +345,6 @@ dep_sshpass() {
 }
 
 
-
-# set PATH so it includes user's private bin if it exists
-if [ -d "$HOME/bin" ] ; then
-    PATH="$HOME/bin:$PATH"
-fi
-
-# set PATH so it includes user's private bin if it exists
-if [ -d "$HOME/.local/bin" ] ; then
-    PATH="$HOME/.local/bin:$PATH"
-fi
-export NODEJS_HOME=/opt/nodejs/bin
-export PATH=$NODEJS_HOME:$PATH
-export NODEJS_HOME=/opt/nodejs/bin
-export PATH=$NODEJS_HOME:$PATH
-export NODEJS_HOME=/opt/nodejs/bin
-export PATH=$NODEJS_HOME:$PATH
-
-
-
-########################################
-# 
-########################################
-dep_nodejs() {
-    cd $_DIR
-    NODE_EXISTS=$(command -v node)
-    INSTALL_NODE=0
-    if [ "$NODE_EXISTS" == "" ]; then
-        INSTALL_NODE=1
-    else
-        NV=$(node --version | cut -d'.' -f1)
-        if [ "${NV//v}" -lt "12" ]; then
-            INSTALL_NODE=1
-        fi 
-    fi
-    if [ $INSTALL_NODE = 1 ]; then
-        if [ "$DISTRO" == "ubuntu" ]; then
-            if [ "$MAJ_V" == "18.04" ]; then
-                sudo mkdir -p /opt/nodejs
-                sudo chmod -R 755 /opt/nodejs
-                sudo cp ../../build/offline_files/debs/nodejs/node-v12.18.0-linux-x64.tar.xz /opt
-                cd /opt
-                sudo tar xf /opt/node-v12.18.0-linux-x64.tar.xz --directory /opt/nodejs
-                sudo rm -rf /opt/node-v12.18.0-linux-x64.tar.xz
-                sudo mv /opt/nodejs/node-v12.18.0-linux-x64/* /opt/nodejs
-                sudo rm -rf /opt/nodejs/node-v12.18.0-linux-x64
-                echo 'export NODEJS_HOME=/opt/nodejs/bin' >> ~/.profile
-                echo 'export PATH=$NODEJS_HOME:$PATH' >> ~/.profile
-                echo 'export NODEJS_HOME=/opt/nodejs/bin' >> ~/.bashrc
-                echo 'export PATH=$NODEJS_HOME:$PATH' >> ~/.bashrc
-                source ~/.profile
-            fi
-        elif [ "$DISTRO" == "redhat" ]; then
-            if [ "$MAJ_V" == "8" ]; then
-                if [ "$(command -v python2)" == "" ]; then
-                    rpm_offline_install "python2"
-                fi
-                rpm_offline_install "nodejs"
-            fi
-        fi
-    fi
-}
 
 ########################################
 # 

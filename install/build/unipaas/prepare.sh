@@ -266,6 +266,10 @@ build_for_ubuntu_bionic() {
     download_deb libonig4 &>>$err_log &
     bussy_indicator "Downloading repo libonig4..."
     log "\n"
+
+    download_deb glibc-doc-reference &>>$err_log &
+    bussy_indicator "Downloading repo glibc-doc-reference..."
+    log "\n"
     
     
 

@@ -102,7 +102,7 @@ dependencies () {
     bussy_indicator "Dependency on \"Docker CE\"..."
     log "\n"
 
-    dep_nodejs &>>$err_log &
+    dep_node &>>$err_log &
     bussy_indicator "Dependency on \"NodeJS\"..."
     log "\n"
 

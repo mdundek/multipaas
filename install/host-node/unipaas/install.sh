@@ -15,6 +15,64 @@ _BASEDIR="$(dirname "$_BASEDIR")"
 _BASEDIR="$(dirname "$_BASEDIR")"
 
 ########################################
+# Error management
+########################################
+on_error() {
+    if [ "$1" != "0" ]; then
+        error "An error occured. For more details, check the file ./std.log\n"
+        error "\n"
+        # remove_all &>>$err_log &
+        # bussy_indicator "Cleaning up..."
+        # log "\n"
+    fi
+}
+
+remove_all() {
+    local C_EXISTS=$(command -v docker)
+    if [ "$C_EXISTS" != "" ]; then
+        # Clean up first if necessary
+        K8S_INSTALLED=$(docker ps -a | grep "k8s_kube-apiserver")
+        if [ "$K8S_INSTALLED" != "" ]; then
+            sudo kubeadm reset -f &>>$err_log
+            sudo rm -rf /etc/cni/net.d
+            sudo rm -rf /etc/default/kubelet
+            sudo rm -rf $HOME/.kube
+        fi
+    fi
+    
+    local C_EXISTS=$(command -v docker)
+    HOST_NODE_INSTALLED=$(ps aux | grep "[m]ultipaas/src/host-node")
+    if [ "$HOST_NODE_INSTALLED" != "" ]; then
+        /opt/pm2/bin/pm2 stop multipaas-host-node &>>$err_log
+        /opt/pm2/bin/pm2 delete multipaas-host-node &>>$err_log
+        /opt/pm2/bin/pm2 save --force &>>$err_log
+    fi
+
+    if [ "$MASTER_IP" != "" ] && "$MPUS" != "" ] && [ "$MPPW" != "" ]; then
+        MP_TOKEN=$(curl -s http://$MASTER_IP:3030/authentication/ \
+            -H 'Content-Type: application/json' \
+            --data-binary '{ "strategy": "local", "email": "'"$MPUS"'", "password": "'"$MPPW"'" }' | jq -r '.accessToken')
+        if [ "$MP_TOKEN" != "null" ]; then
+            if [ "$ACC_ID" != "" ] && [ "$IS_NEW_ACC" == "1" ]; then
+                cp_api_delete "accounts/$ACC_ID"
+            fi
+
+            if [ "$ORG_ID" != "" ] && [ "$IS_NEW_ORG" == "0" ]; then
+                cp_api_delete "organizations/$ORG_ID"
+            fi
+
+            if [ "$HOST_ID" != "" ]; then
+                cp_api_delete "k8s_hosts/$HOST_ID"
+            fi
+
+            if [ "$U_ID" != "" ]; then
+                cp_api_delete "users/$U_ID"
+            fi
+        fi
+    fi
+}
+
+########################################
 # 
 ########################################
 
@@ -29,18 +87,25 @@ dependency_docker () {
         log "\n"
         warn "==> Docker was just installed, you will have to restart\n"
         warn "    your session before starting the cluster-ctl container.\n"
-        warn "    You will also have to add the registry certificates to\n"
-        warn "    the docker engine trusted certificates base:\n" 
+        warn "\n"
+        warn "==> Copy the Registry certificate setup script to your home folder:\n" 
         warn "\n"
         warn " 1. Grab the config script from the control-plane\n"
         warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
         warn " 2. Put the script somewhere locally, and execute the\n"
         warn "    script with sudo (sudo ./configPrivateRegistry.sh)\n"
         warn "\n"
-        warn "    Once done, please log out, and log back in, then execute\n"
+        warn "==> Copy the Nginx root certificate setup script to your home folder:\n"
+        warn "\n"
+        warn " 1. Grab the config script from the control-plane\n"
+        warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
+        warn " 2. Place the script in the local home folder,\n"
+        warn "    make sure the script is executable.\n"
+        warn "\n"
+        warn "==> Once done, please log out, and log back in, then execute\n"
         warn "    this script again.\n"
 
-        exit 1
+        exit 0
     fi
 }
 
@@ -65,9 +130,10 @@ dependencies_master () {
     bussy_indicator "Dependency on \"jq\"..."
     log "\n"
 
-    dep_nodejs &>>$err_log &
+    dep_node &>>$err_log &
     bussy_indicator "Dependency on \"NodeJS\"..."
     log "\n"
+    source ~/.profile
 
     dep_unzip &>>$err_log &
     bussy_indicator "Dependency on \"unzip\"..."
@@ -92,14 +158,19 @@ dependencies_master () {
     bussy_indicator "Dependency on \"gitlab-runner\"..."
     log "\n"
 
-    sudo systemctl disable mosquitto &>>$err_log
-    sudo systemctl stop mosquitto &>>$err_log
+    # sudo systemctl disable mosquitto &>>$err_log
+    # sudo systemctl stop mosquitto &>>$err_log
 
     PM2_EXISTS=$(command -v pm2)
     if [ "$PM2_EXISTS" == "" ]; then
         PM2_INSTALL_DIR=/opt
-        sudo tar xpf $_BASEDIR/install/build/offline_files/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
-           
+        if [ -d "$PM2_INSTALL_DIR/pm2" ]; then
+            sudo rm -rf $PM2_INSTALL_DIR/pm2
+        fi
+        if [ -d "$PM2_INSTALL_DIR/package" ]; then
+            sudo rm -rf $PM2_INSTALL_DIR/package
+        fi
+        sudo tar xpf $_BASEDIR/install/build/offline_files/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR 
         if [ -d "$PM2_INSTALL_DIR/package" ]; then
             sudo mv $PM2_INSTALL_DIR/package $PM2_INSTALL_DIR/pm2
         fi
@@ -224,19 +295,7 @@ collect_informations() {
     get_network_interface_ip IFACE LOCAL_IP
 
     log "\n"
-    read_input "Enter the control-plane VM IP:" MASTER_IP  
-    log "\n"
-
-    curl --output /dev/null --silent --head --fail http://$MASTER_IP:3030
-    if [ "$?" != "0" ]; then
-        error "Control-plane API server is not responding.\n"
-        error "Make sure the firewall is not blocking port 3030 on the control-plane.\n"
-        exit 1
-    fi
-
-    log "\n"
     read_input "Enter the MultiPaaS master user email address:" MPUS
-    log "\n"
     read_input "Enter the MultiPaaS master user password:" MPPW
     log "\n"
 
@@ -345,6 +404,8 @@ install_core_components() {
 }
 
 registry_auth() {
+    sudo /bin/bash $HOME/configPrivateRegistry.sh
+
     _RCOUNTER=0
     while :
     do
@@ -359,7 +420,7 @@ registry_auth() {
             fi
         fi
     done
-
+    export KUBECONFIG=$HOME/.kube/admin.conf
     kubectl create secret docker-registry regcred --docker-server=registry.multipaas.org --docker-username=$RU --docker-password=$RP --docker-email=multipaas@multipaas.com
 }
 
@@ -387,23 +448,27 @@ EOT
     sudo chmod +x $HOME/gentoken.sh
     
     mkdir -p $HOME/.kube
-    sudo cp /etc/kubernetes/admin.conf $HOME/.kube/config
-    sudo chown -R $USER:$(id -g -n) $HOME/.kube
 
-    sudo cp /etc/kubernetes/admin.conf $HOME/.kube/
-    sudo chown $USER:$(id -g -n) $HOME/.kube/admin.conf
+    rm -rf $HOME/.kube/admin.conf
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/admin.conf
+    sudo chown $(id -u):$(id -g) $HOME/.kube/admin.conf
     echo "export KUBECONFIG=$HOME/.kube/admin.conf" | tee -a ~/.bashrc
     source ~/.bashrc
+    export KUBECONFIG=$HOME/.kube/admin.conf
+
+    sleep 5
 
     # Untaint master
     kubectl taint nodes --all node-role.kubernetes.io/master-
 
-    # Deploy flannel network
-    kubectl apply -f ./src/host-node/resources/k8s_templates/kube-flannel.yml
-
     # Enable PodPresets
     sudo sed -i "s/enable-admission-plugins=NodeRestriction/enable-admission-plugins=NodeRestriction,PodPreset/g" /etc/kubernetes/manifests/kube-apiserver.yaml
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --runtime-config=settings.k8s.io/v1alpha1=true' /etc/kubernetes/manifests/kube-apiserver.yaml
+
+    sleep 10 # Give kubeadm the time to restart with new config
+
+    # Deploy flannel network
+    kubectl apply -f ./src/host-node/resources/k8s_templates/kube-flannel.yml
 
     # Install ingress & local provisioner
     kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/ns-and-sa.yaml
@@ -420,6 +485,9 @@ EOT
     kubectl apply -f ./src/host-node/resources/k8s_templates/local-path-provisioner/local-path-storage.yaml
 
     # Configure OpenID Connect for Keycloak
+    sudo rm -rf /etc/kubernetes/pki/rootCA.crt
+    sudo /bin/bash $HOME/configNginxRootCA.sh
+
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-issuer-url=https://multipaas.keycloak.com/auth/realms/master' /etc/kubernetes/manifests/kube-apiserver.yaml
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-groups-claim=groups' /etc/kubernetes/manifests/kube-apiserver.yaml
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-username-claim=email' /etc/kubernetes/manifests/kube-apiserver.yaml
@@ -497,6 +565,10 @@ cp_api_auth() {
     MP_TOKEN=$(curl -s http://$MASTER_IP:3030/authentication/ \
         -H 'Content-Type: application/json' \
         --data-binary '{ "strategy": "local", "email": "'"$MPUS"'", "password": "'"$MPPW"'" }' | jq -r '.accessToken')
+    if [ "$MP_TOKEN" == "null" ]; then
+        error "MultiPaaS authentication failed\n"
+        exit 1
+    fi
 }
 
 cp_api_get() {
@@ -522,6 +594,17 @@ cp_api_create() {
     eval $__resultvar="'$_R'"
 }
 
+cp_api_delete() {
+    local  __resultvar=$1
+    local _R=$(curl -s -k \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $MP_TOKEN" \
+        -X DELETE \
+        http://$MASTER_IP:3030/$1)
+
+    eval $__resultvar="'$_R'"
+}
+
 create_account_and_register() {
     warn "Before you can start using your cluster, you need to register this node with the control-plane"
     log "\n"
@@ -537,7 +620,8 @@ create_account_and_register() {
     fi
 
     # Account
-    VALIDE='0'
+    VALIDE="0"
+    IS_NEW_ACC="0"
     while [[ "$VALIDE" == '0' ]]; do
         read_input "Enter an account name:" ACC_NAME
         while [[ "$ACC_NAME" == '' ]]; do
@@ -551,6 +635,7 @@ create_account_and_register() {
                 VALIDE="1"
             fi
         else
+            IS_NEW_ACC="1"
             # User email & password
             VALIDE='0'
             while [[ "$VALIDE" == '0' ]]; do
@@ -577,18 +662,20 @@ create_account_and_register() {
             J_PAYLOAD='{"action":"account","params":{"accountName":"'"$ACC_NAME"'","email":"'"$UPUS"'","password":"'"$UPUS"'"}}'
             cp_api_create ACC_CR_RESP "cli" $J_PAYLOAD
             if [ "$(echo "$ACC_CR_RESP" | jq -r '.code')" != "200" ]; then
-                error "An error occured, could not create account"
+                error "An error occured, could not create account\n"
                 exit 1
             else
                 cp_api_get EXISTING_ACC "accounts?name=$ACC_NAME"
                 ACC_ID=$(echo "$EXISTING_ACC" | jq -r '.data[0].id')
                 VALIDE="1"
+                U_ID=$(echo "$EXISTING_USER" | jq -r '.data[0].id')
             fi
         fi
     done
 
     # Organization
     VALIDE='0'
+    IS_NEW_ORG="0"
     while [[ "$VALIDE" == '0' ]]; do
         read_input "Enter an organization name:" ORG_NAME
         while [[ "$ORG_NAME" == '' ]]; do
@@ -612,6 +699,7 @@ create_account_and_register() {
                 VALIDE="1"
             fi
         else
+            IS_NEW_ORG="1"
             # Registry credentials
             read_input "Enter the organization registry username:" RU
             while [[ "$RU" == '' ]]; do
@@ -626,7 +714,7 @@ create_account_and_register() {
             J_PAYLOAD='{"accountId":'"$ACC_ID"',"name":"'"$ORG_NAME"'","registryUser":"'"$RU"'","registryPass":"'"$RP"'"}'
             cp_api_create ORG_CR_RESP "organizations" $J_PAYLOAD
             if [ "$(echo "$ORG_CR_RESP" | jq -r '.code')" != "200" ]; then
-                error "An error occured, could not create organization"
+                error "An error occured, could not create organization\n"
                 exit 1
             else
                 ORG_ID=$(echo "$ORG_CR_RESP" | jq -r '.data.organization.id')
@@ -644,12 +732,12 @@ create_account_and_register() {
         done
         cp_api_get EXISTING_WS "workspaces?name=$WS_NAME&organizationId=$ORG_ID"
         if [ "$(echo "$EXISTING_WS" | jq -r '.total')" == "1" ]; then
-            error "The workspace name $WS_NAME is already taken."
+            error "The workspace name $WS_NAME is already taken.\n"
         else
             J_PAYLOAD='{"organizationId":'"$ORG_ID"',"name":"'"$WS_NAME"'"}'
             cp_api_create WS_CR_RESP "workspaces" $J_PAYLOAD
             if [ "$(echo "$WS_CR_RESP" | jq -r '.code')" != "200" ]; then
-                error "An error occured, could not create workspace"
+                error "An error occured, could not create workspace\n"
                 exit 1
             else
                 WS_ID=$(echo "$WS_CR_RESP" | jq -r '.data.id')
@@ -674,6 +762,8 @@ create_account_and_register() {
 ########################################
 # LOGIC...
 ########################################
+trap 'on_error $? $LINENO' EXIT
+
 /usr/bin/clear
 
 base64 -d <<<"ICAgXyAgICBfICAgICAgIF8gX19fX18gICAgICAgICAgICAgX19fX18gICBfX19fXyAgICAgICAgICAgXyAgICAgICAgXyBfICAgICAgICAgICAKICB8IHwgIHwgfCAgICAgKF8pICBfXyBcICAgICAgICAgICAvIF9fX198IHxfICAgX3wgICAgICAgICB8IHwgICAgICB8IHwgfCAgICAgICAgICAKICB8IHwgIHwgfF8gX18gIF98IHxfXykgfF8gXyAgX18gX3wgKF9fXyAgICAgfCB8ICBfIF9fICBfX198IHxfIF9fIF98IHwgfCBfX18gXyBfXyAKICB8IHwgIHwgfCAnXyBcfCB8ICBfX18vIF9gIHwvIF9gIHxcX19fIFwgICAgfCB8IHwgJ18gXC8gX198IF9fLyBfYCB8IHwgfC8gXyBcICdfX3wKICB8IHxfX3wgfCB8IHwgfCB8IHwgIHwgKF98IHwgKF98IHxfX19fKSB8ICBffCB8X3wgfCB8IFxfXyBcIHx8IChffCB8IHwgfCAgX18vIHwgICAKICAgXF9fX18vfF98IHxffF98X3wgICBcX18sX3xcX18sX3xfX19fXy8gIHxfX19fX3xffCB8X3xfX18vXF9fXF9fLF98X3xffFxfX198X3wgICAg"
@@ -682,141 +772,158 @@ log "\n\n"
 # Figure out what distro we are running
 distro
 
+# Install docker first
+dependency_docker
+
+# Make sure we have access to docher deamon
+DOCKER_USER_OK=$(groups | grep "docker")
+if [ "$DOCKER_USER_OK" == "" ]; then
+    error "The current user does not have access to the docker deamon.\n"
+    error "Did you restart your session afterhaving installed docker?\n"
+    exit 1
+fi
+
+log "\n"
+read_input "Enter the control-plane VM IP:" MASTER_IP  
+log "\n"
+
+curl --output /dev/null --silent --head --fail http://$MASTER_IP:3030
+if [ "$?" != "0" ]; then
+    error "Control-plane API server is not responding.\n"
+    error "Make sure the firewall is not blocking port 3030 on the control-plane.\n"
+    exit 1
+fi
+
 sudo sed '/multipaas.com/d' /etc/hosts &>>$err_log
 sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
-
-# Install docker first
-dependency_docker &>>$err_log &
-bussy_indicator "Dependency on \"Docker\"..."
-log "\n"
 
 # Clean up first if necessary
 K8S_INSTALLED=$(docker ps -a | grep "k8s_kube-apiserver")
 if [ "$K8S_INSTALLED" != "" ]; then
     yes_no "Kubernetes is already running on this machine. Do you wish to reset this instances" REMOVE_K8S_RESPONSE
     if [ "$REMOVE_K8S_RESPONSE" == "y" ]; then
-        sudo kubeadm reset -f &>>$err_log
-        sudo rm -rf /etc/cni/net.d
+        remove_all &>>$err_log &
+        bussy_indicator "Cleaning up..."
+        log "\n"
+        log "\n"
     else
         exit 1
     fi
 fi
 
-HOST_NODE_INSTALLED=$(ps aux | grep "[m]ultipaas/src/host-node")
-if [ "$HOST_NODE_INSTALLED" != "" ]; then
-   pm2 stop multipaas-host-node &>>$err_log
-   pm2 delete multipaas-host-node &>>$err_log
-   pm2 save --force &>>$err_log
-fi
-
 # Make sure the registry certificates are installed
-if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ]; then
-    error "Please add the registry certificates to the docker engine trusted certificates:\n"
+if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$HOME/configPrivateRegistry.sh" ]; then
+    error "Copy the Registry certificate setup script to your home folder:\n"
     warn " 1. Grab the config script from the control-plane\n"
     warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
-    warn " 2. Put the script somewhere locally, and execute the\n"
-    warn "    script with sudo (sudo ./configPrivateRegistry.sh)\n"
-    exit 1
+    warn " 2. Place the script in the local home folder,\n"
+    warn "    make sure the script is executable.\n"
+    CONDITION_FAIL="1"
+fi
+log "\n"
+if [ ! -f "$HOME/configNginxRootCA.sh" ]; then
+    error "Copy the Nginx root certificate setup script to your home folder:\n"
+    warn " 1. Grab the config script from the control-plane\n"
+    warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
+    warn " 2. Place the script in the local home folder,\n"
+    warn "    make sure the script is executable.\n"
+    CONDITION_FAIL="1"
 fi
 
-DEP_TARGET_LIST=("Kubernetes master" "Kubernetes worker")
-combo_value DEP_TARGET "What do you wish to install" "Your choice #:" "${DEP_TARGET_LIST[@]}"
-if [ "$DEP_TARGET" == "Kubernetes master" ]; then
-    # KUBECTL_EXISTS=$(command -v kubectl)
-    # if [ "$KUBECTL_EXISTS" != "" ]; then
-    #     KUBE_RUNNING=$(kubectl cluster-info | grep "Kubernetes master")
-    #     if [ "$KUBE_RUNNING" != "" ]; then
-    #         echo "Kubernetes master already running on this host"
-    #         exit 1
-    #     fi
-    # fi
-   
-    # Install dependencies
-    dependencies_master
+HN_TASK_LIST=("Kubernetes instances" "GlusterFS" "Both")
+combo_value NODE_ROLE "What tasks should this host-node handle" "Your choice #:" "${HN_TASK_LIST[@]}"
+if [ "$NODE_ROLE" == "Kubernetes instances" ]; then
+    IS_K8S_NODE="true"
+    IS_GLUSTER_PEER="false"
+elif [ "$NODE_ROLE" == "GlusterFS" ]; then
+    IS_K8S_NODE="false"
+    IS_GLUSTER_PEER="true"
+elif [ "$NODE_ROLE" == "Both" ]; then
+    IS_K8S_NODE="true"
+    IS_GLUSTER_PEER="true"
+fi
 
-    HN_TASK_LIST=("Kubernetes instances" "GlusterFS" "Both")
-    combo_value NODE_ROLE "What tasks should this host-node handle" "Your choice #:" "${HN_TASK_LIST[@]}"
-    if [ "$NODE_ROLE" == "Kubernetes instances" ]; then
-        IS_K8S_NODE="true"
-        IS_GLUSTER_PEER="false"
-    elif [ "$NODE_ROLE" == "GlusterFS" ]; then
-        IS_K8S_NODE="false"
-        IS_GLUSTER_PEER="true"
-    elif [ "$NODE_ROLE" == "Both" ]; then
-        IS_K8S_NODE="true"
-        IS_GLUSTER_PEER="true"
-    fi
-    log "\n"
+log "\n"
 
-    # Collect info from user
-    collect_informations
+if [ "$IS_K8S_NODE" == "true" ]; then
+    DEP_TARGET_LIST=("Kubernetes master" "Kubernetes worker")
+    combo_value DEP_TARGET "What do you wish to install" "Your choice #:" "${DEP_TARGET_LIST[@]}"
+    if [ "$DEP_TARGET" == "Kubernetes master" ]; then
+        # Install dependencies
+        dependencies_master
 
-    # Install the core components
-    install_core_components &>>$err_log &
-    bussy_indicator "Installing host controller components..."
-    log "\n"
+        # Collect info from user
+        collect_informations
 
-    init_k8s_master &>>$err_log &
-    bussy_indicator "Installing kubernetes cluster master..."
-    log "\n"
-    log "\n"
+        # Install the core components
+        install_core_components &>>$err_log &
+        bussy_indicator "Installing host controller components..."
+        log "\n"
 
-    success "MultiPaaS host controller & K8S master deployed successfully!\n"
-    log "\n"
-    log "\n"
+        init_k8s_master &>>$err_log &
+        bussy_indicator "Installing kubernetes cluster master..."
+        log "\n"
+        log "\n"
 
-    # Register node
-    create_account_and_register
-    
-    # Authenticate to registry
-    registry_auth
-    
-    log "\n"
+        success "MultiPaaS host controller & K8S master deployed successfully!\n"
+        log "\n"
+        log "\n"
 
-    if [ "$IS_GLUSTER_PEER" == "true" ]; then
-        # Start the gluster controller
-        if [ "$NEW_DOCKER" == "true" ]; then
-            log "\n"
-            warn "==> Since Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
-            warn "    Please log out, and log back in, then execute the following command:\n"
-            log "\n"
-            log "    docker run \n"
-            log "       -d --privileged=true \n"
-            log "       --restart unless-stopped \n"
-            log "       --net=host -v /dev/:/dev \n"
-            log "       -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \n"
-            log "       -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \n"
-            log "       -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \n"
-            log "       -v $BRICK_MOUNT_PATH:/bricks:z \n"
-            log "       -v /sys/fs/cgroup:/sys/fs/cgroup:ro \n"
-            log "       --name gluster-ctl \n"
-            log "       gluster/gluster-centos:gluster4u0_centos7\n"
-        else
-            docker rm -f gluster-ctl >/dev/null 2>&1
-            
-            docker run \
-                -d --privileged=true \
-                --restart unless-stopped \
-                --net=host -v /dev/:/dev \
-                -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \
-                -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \
-                -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \
-                -v $BRICK_MOUNT_PATH:/bricks:z \
-                -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
-                --name gluster-ctl \
-                gluster/gluster-centos:gluster4u0_centos7 &>/dev/null
-        fi
+        # Register node
+        create_account_and_register
         
-        # Join the gluster network
+        # Authenticate to registry
+        registry_auth &>>$err_log &
+        bussy_indicator "Configure k8s registry credentials..."
         log "\n"
-        warn "==> To add this Gluster peer to the Gluster network, execute the following command ON ANY OTHER GLUSTER peer host:\n"
-        warn "    PLEASE NOTE: This is only necessary if this is NOT the first Gluster node for this Gluster network\n"
+        
         log "\n"
-        log "    docker exec gluster-ctl gluster peer probe $LOCAL_IP\n"
+
+        if [ "$IS_GLUSTER_PEER" == "true" ]; then
+            # Start the gluster controller
+            if [ "$NEW_DOCKER" == "true" ]; then
+                log "\n"
+                warn "==> Since Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
+                warn "    Please log out, and log back in, then execute the following command:\n"
+                log "\n"
+                log "    docker run \n"
+                log "       -d --privileged=true \n"
+                log "       --restart unless-stopped \n"
+                log "       --net=host -v /dev/:/dev \n"
+                log "       -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \n"
+                log "       -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \n"
+                log "       -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \n"
+                log "       -v $BRICK_MOUNT_PATH:/bricks:z \n"
+                log "       -v /sys/fs/cgroup:/sys/fs/cgroup:ro \n"
+                log "       --name gluster-ctl \n"
+                log "       gluster/gluster-centos:gluster4u0_centos7\n"
+            else
+                docker rm -f gluster-ctl >/dev/null 2>&1
+                
+                docker run \
+                    -d --privileged=true \
+                    --restart unless-stopped \
+                    --net=host -v /dev/:/dev \
+                    -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \
+                    -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \
+                    -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \
+                    -v $BRICK_MOUNT_PATH:/bricks:z \
+                    -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+                    --name gluster-ctl \
+                    gluster/gluster-centos:gluster4u0_centos7 &>/dev/null
+            fi
+            
+            # Join the gluster network
+            log "\n"
+            warn "==> To add this Gluster peer to the Gluster network, execute the following command ON ANY OTHER GLUSTER peer host:\n"
+            warn "    PLEASE NOTE: This is only necessary if this is NOT the first Gluster node for this Gluster network\n"
+            log "\n"
+            log "    docker exec gluster-ctl gluster peer probe $LOCAL_IP\n"
+        fi
+        log "\n"
+    else
+        echo "Installing worker"
     fi
-    log "\n"
-else
-    echo "Installing worker"
 fi
 
 cd "$_PWD"

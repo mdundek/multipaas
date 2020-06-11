@@ -114,3 +114,216 @@ dep_vbox() {
         vagrant plugin install vagrant-vbguest
     fi
 }
+
+
+
+
+# ########################################
+# # 
+# ########################################
+# dep_curl() {
+#     cd $_DIR
+#     CURL_EXISTS=$(command -v curl)
+#     if [ "$CURL_EXISTS" == "" ]; then
+#         if [ "$DISTRO" == "ubuntu" ]; then
+#             if [ "$MAJ_V" == "18.04" ]; then
+#                 deb_offline_install "curl"
+#             fi
+#         elif [ "$DISTRO" == "redhat" ]; then
+#             if [ "$MAJ_V" == "8" ]; then
+#                 rpm_offline_install "curl"
+#             fi
+#         fi
+#     fi
+# }
+
+# ########################################
+# # 
+# ########################################
+# dep_kubernetes() {
+#     cd $_DIR
+#     K8S_EXISTS=$(command -v kubeadm)
+#     if [ "$K8S_EXISTS" == "" ]; then
+#         if [ "$DISTRO" == "ubuntu" ]; then
+#             if [ "$MAJ_V" == "18.04" ]; then
+#                 deb_offline_install "kubeadm"
+#                 deb_offline_install "kubectl"
+#                 deb_offline_install "kubelet"
+#             fi
+#         elif [ "$DISTRO" == "redhat" ]; then
+#             if [ "$MAJ_V" == "8" ]; then
+#                 rpm_offline_install "kubeadm"
+#                 rpm_offline_install "kubectl"
+#                 rpm_offline_install "kubelet"
+#             fi
+#         fi
+#     fi
+# }
+
+# ########################################
+# # 
+# ########################################
+# dep_jq() {
+#     cd $_DIR
+#     JQ_EXISTS=$(command -v jq)
+#     if [ "$JQ_EXISTS" == "" ]; then
+#         if [ "$DISTRO" == "ubuntu" ]; then
+#             if [ "$MAJ_V" == "18.04" ]; then
+#                 deb_offline_install "libonig4"
+#                 deb_offline_install "jq"
+#             fi
+#         elif [ "$DISTRO" == "redhat" ]; then
+#             if [ "$MAJ_V" == "8" ]; then
+#                 rpm_offline_install "jq"
+#             fi
+#         fi
+#     fi
+# }
+
+# ########################################
+# # 
+# ########################################
+# dep_gitlab_runner() {
+#     cd $_DIR
+#     local C_EXISTS=$(command -v gitlab-runner)
+#     if [ "$C_EXISTS" == "" ]; then
+#         if [ "$DISTRO" == "ubuntu" ]; then
+#             if [ "$MAJ_V" == "18.04" ]; then
+#                 deb_offline_install "gitlab-runner"
+#             fi
+#         elif [ "$DISTRO" == "redhat" ]; then
+#             if [ "$MAJ_V" == "8" ]; then
+#                 rpm_offline_install "gitlab-runner"
+#             fi
+#         fi
+#     fi
+# }
+
+# ########################################
+# # 
+# ########################################
+# dep_gluster_server() {
+#     cd $_DIR
+#     local C_EXISTS=$(command -v gluster)
+#     if [ "$C_EXISTS" == "" ]; then
+#         if [ "$DISTRO" == "ubuntu" ]; then
+#             if [ "$MAJ_V" == "18.04" ]; then
+#                 deb_offline_install "glibc-doc-reference"
+#                 deb_offline_install "libc6-dev"
+#                 deb_offline_install "libnl-3-200"
+#                 deb_offline_install "glusterfs-server"
+#             fi
+#         elif [ "$DISTRO" == "redhat" ]; then
+#             if [ "$MAJ_V" == "8" ]; then
+#                 rpm_offline_install "glusterfs-server"
+#             fi
+#         fi
+#     fi
+# }
+
+# ########################################
+# # 
+# ########################################
+# dep_mosquitto() {
+#     cd $_DIR
+#     local C_EXISTS=$(command -v mosquitto_pub)
+#     if [ "$C_EXISTS" == "" ]; then
+#         if [ "$DISTRO" == "ubuntu" ]; then
+#             if [ "$MAJ_V" == "18.04" ]; then
+#                 deb_offline_install "mosquitto-clients"
+#             fi
+#         elif [ "$DISTRO" == "redhat" ]; then
+#             if [ "$MAJ_V" == "8" ]; then
+#                 rpm_offline_install "mosquitto-clients"
+#             fi
+#         fi
+#     fi
+# }
+
+# ########################################
+# # 
+# ########################################
+# dep_tar() {
+#     cd $_DIR
+#     TAR_EXISTS=$(command -v tar)
+#     if [ "$TAR_EXISTS" == "" ]; then
+#         if [ "$DISTRO" == "ubuntu" ]; then
+#             if [ "$MAJ_V" == "18.04" ]; then
+#                 deb_offline_install "tar"
+#             fi
+#         elif [ "$DISTRO" == "redhat" ]; then
+#             if [ "$MAJ_V" == "8" ]; then
+#                 rpm_offline_install "tar"
+#             fi
+#         fi
+#     fi
+# }
+
+# ########################################
+# # 
+# ########################################
+# dep_unzip() {
+#     cd $_DIR
+#     UNZIP_EXISTS=$(command -v unzip)
+#     if [ "$UNZIP_EXISTS" == "" ]; then
+#         if [ "$DISTRO" == "ubuntu" ]; then
+#             if [ "$MAJ_V" == "18.04" ]; then
+#                 deb_offline_install "unzip"
+#             fi
+#         elif [ "$DISTRO" == "redhat" ]; then
+#             if [ "$MAJ_V" == "8" ]; then
+#                 rpm_offline_install "unzip"
+#             fi
+#         fi
+#     fi
+# }
+
+# ########################################
+# # 
+# ########################################
+# dep_sshpass() {
+#     cd $_DIR
+#     SSHPASS_EXISTS=$(command -v sshpass)
+#     if [ "$SSHPASS_EXISTS" == "" ]; then
+#         if [ "$DISTRO" == "ubuntu" ]; then
+#             if [ "$MAJ_V" == "18.04" ]; then
+#                 deb_offline_install "sshpass"
+#             fi
+#         elif [ "$DISTRO" == "redhat" ]; then
+#             if [ "$MAJ_V" == "8" ]; then
+#                 rpm_offline_install "sshpass"
+#             fi
+#         fi
+#     fi
+# }
+
+
+
+# ########################################
+# # 
+# ########################################
+# dep_pm2() {
+#     cd $_DIR
+#     PM2_EXISTS=$(command -v pm2)
+#     if [ "$PM2_EXISTS" == "" ]; then
+#         # PM2_INSTALL_DIR=/usr/lib/node_modules
+#         PM2_INSTALL_DIR=/opt
+#         if [ "$DISTRO" == "ubuntu" ]; then
+#             if [ "$MAJ_V" == "18.04" ]; then
+#                 sudo tar xpf ../build/ubuntu_bionic/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
+#             fi
+#         elif [ "$DISTRO" == "redhat" ]; then
+#             if [ "$MAJ_V" == "8" ]; then
+#                 sudo tar xpf ../build/centos8/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
+#             fi
+#         fi
+#         if [ -d "$PM2_INSTALL_DIR/package" ]; then
+#             sudo mv $PM2_INSTALL_DIR/package $PM2_INSTALL_DIR/pm2
+#         fi
+#         sudo bash -c 'cat <<EOF > "/etc/profile.d/node.sh"
+# #!/bin/sh
+# export PATH="'$PM2_INSTALL_DIR'/pm2/bin:\$PATH"
+# EOF'
+#         . /etc/profile.d/node.sh
+#     fi
+# }
