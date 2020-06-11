@@ -681,7 +681,12 @@ dependency_docker
 
 # Make sure the registry certificates are installed
 if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ]; then
-    error "Please add the registry certificates to the docker engine trusted certificates base before you can execute this script again (See documentation)."
+    error "Please add the registry certificates to the docker engine trusted certificates:\n"
+    warn " 1. Grab the config script from the control-plane\n"
+    warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
+    warn " 2. Put the script somewhere locally, and execute the\n"
+    warn "    script with sudo (sudo ./configPrivateRegistry.sh)\n"
+    exit 1
 fi
 
 DEP_TARGET_LIST=("Kubernetes master" "Kubernetes worker")
