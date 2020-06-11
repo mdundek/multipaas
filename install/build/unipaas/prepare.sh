@@ -234,6 +234,10 @@ build_for_ubuntu_bionic() {
     bussy_indicator "Downloading repo mosquitto..."
     log "\n"
 
+    download_deb mosquitto-clients &>>$err_log &
+    bussy_indicator "Downloading repo mosquitto-clients..."
+    log "\n"
+
     download_deb software-properties-common &>>$err_log &
     bussy_indicator "Downloading repo software-properties-common..."
     log "\n"
