@@ -56,6 +56,10 @@ dependencies_master () {
         bussy_indicator "Dependency on \"sshpass\"..."
         log "\n"
     fi
+
+    dep_kubernetes &>>$err_log &
+    bussy_indicator "Dependency on \"Kubernetes\"..."
+    log "\n"
     
     dep_jq &>>$err_log &
     bussy_indicator "Dependency on \"jq\"..."
@@ -63,10 +67,6 @@ dependencies_master () {
 
     dep_nodejs &>>$err_log &
     bussy_indicator "Dependency on \"NodeJS\"..."
-    log "\n"
-
-    dep_kubernetes &>>$err_log &
-    bussy_indicator "Dependency on \"Kubernetes\"..."
     log "\n"
 
     dep_unzip &>>$err_log &
@@ -677,7 +677,28 @@ sudo sed '/multipaas.com/d' /etc/hosts &>>$err_log
 sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
 
 # Install docker first
-dependency_docker
+dependency_docker &>>$err_log &
+bussy_indicator "Dependency on \"Docker\"..."
+log "\n"
+
+# Clean up first if necessary
+K8S_INSTALLED=$(docker ps -a | grep "k8s_kube-apiserver")
+if [ "$K8S_INSTALLED" != "" ]; then
+    yes_no "Kubernetes is already running on this machine. Do you wish to reset this instances" REMOVE_K8S_RESPONSE
+    if [ "$REMOVE_K8S_RESPONSE" == "y" ]; then
+        sudo kubeadm reset -f &>>$err_log
+        sudo rm -rf /etc/cni/net.d
+    else
+        exit 1
+    fi
+fi
+
+HOST_NODE_INSTALLED=$(ps aux | grep "[m]ultipaas/src/host-node")
+if [ "$HOST_NODE_INSTALLED" != "" ]; then
+   pm2 stop multipaas-host-node &>>$err_log
+   pm2 delete multipaas-host-node &>>$err_log
+   pm2 save --force &>>$err_log
+fi
 
 # Make sure the registry certificates are installed
 if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ]; then
@@ -692,14 +713,14 @@ fi
 DEP_TARGET_LIST=("Kubernetes master" "Kubernetes worker")
 combo_value DEP_TARGET "What do you wish to install" "Your choice #:" "${DEP_TARGET_LIST[@]}"
 if [ "$DEP_TARGET" == "Kubernetes master" ]; then
-    KUBECTL_EXISTS=$(command -v kubectl)
-    if [ "$KUBECTL_EXISTS" != "" ]; then
-        KUBE_RUNNING=$(kubectl cluster-info | grep "Kubernetes master")
-        if [ "$KUBE_RUNNING" != "" ]; then
-            echo "Kubernetes master already running on this host"
-            exit 1
-        fi
-    fi
+    # KUBECTL_EXISTS=$(command -v kubectl)
+    # if [ "$KUBECTL_EXISTS" != "" ]; then
+    #     KUBE_RUNNING=$(kubectl cluster-info | grep "Kubernetes master")
+    #     if [ "$KUBE_RUNNING" != "" ]; then
+    #         echo "Kubernetes master already running on this host"
+    #         exit 1
+    #     fi
+    # fi
    
     # Install dependencies
     dependencies_master

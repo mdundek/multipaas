@@ -659,14 +659,6 @@ ENDOFFILE
 ########################################
 # LOGIC...
 ########################################
-
-
-if [ -d "$HOME/.multipaas/nginx" ]; then
-    echo "The control plane is already installed on this machine"
-    exit 1
-fi
-
-
 /usr/bin/clear
 
 base64 -d <<<"ICAgXyAgICBfICAgICAgIF8gX19fX18gICAgICAgICAgICAgX19fX18gICAgX19fX18gX19fX18gIAogIHwgfCAgfCB8ICAgICAoXykgIF9fIFwgICAgICAgICAgIC8gX19fX3wgIC8gX19fX3wgIF9fIFwgCiAgfCB8ICB8IHxfIF9fICBffCB8X18pIHxfIF8gIF9fIF98IChfX18gICB8IHwgICAgfCB8X18pIHwKICB8IHwgIHwgfCAnXyBcfCB8ICBfX18vIF9gIHwvIF9gIHxcX19fIFwgIHwgfCAgICB8ICBfX18vIAogIHwgfF9ffCB8IHwgfCB8IHwgfCAgfCAoX3wgfCAoX3wgfF9fX18pIHwgfCB8X19fX3wgfCAgICAgCiAgIFxfX19fL3xffCB8X3xffF98ICAgXF9fLF98XF9fLF98X19fX18vICAgXF9fX19ffF98ICAgICA="
@@ -677,6 +669,30 @@ distro
 
 # Install dependencies
 dependencies
+
+# Clean up first
+if [ -d "$HOME/.multipaas/nginx" ]; then
+    warn "The control plane is already installed on this machine\n"
+    yes_no "Do you wish to uninstall the control plane first" REMOVE_CP_RESPONSE
+    if [ "$REMOVE_CP_RESPONSE" == "y" ]; then
+        docker rm -f multipaas_api
+        docker rm -f multipaas_ctrl
+        docker rm -f multipaas_registry
+        docker rm -f multipaas_gitlab
+        docker rm -f multipaas_keycloak
+
+        sudo rm -rf $HOME/.multipaas
+        sudo rm -rf $HOME/configPrivateRegistry.sh
+        sudo rm -rf $HOME/gentoken.sh
+        sudo rm -rf /etc/docker/certs.d/registry.multipaas.org
+        sudo rm -rf /etc/docker/certs.d/multipaas.registry.com:5000
+
+        sudo systemctl stop docker
+        sudo systemctl start docker
+    else
+        exit 1
+    fi
+fi
 
 # Collect info from user
 collect_informations
