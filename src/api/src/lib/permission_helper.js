@@ -236,6 +236,7 @@ class PermissionHelper {
      * @param {*} jwt 
      */
     static getUserIdFromJwt(jwt) {
+        console.log(jwtDecode(jwt));
         return parseInt(jwtDecode(jwt).sub);
     }
 }

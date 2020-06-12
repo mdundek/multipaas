@@ -412,7 +412,7 @@ class OsController {
 				if(Array.isArray(command)){
 					let _cmdAsync = (_cmd) => {
 						return new Promise((_resolve, _reject) => {
-							this.this.mqttController.unipaasQueryRequestResponse(ip, "cmd", {cmd: _cmd}).then((result) => {
+							this.mqttController.unipaasQueryRequestResponse(ip, "cmd", {cmd: _cmd}).then((result) => {
 								if(result.data.status == 200) {
 									let returnObj = {
 										code: 0,
@@ -447,7 +447,7 @@ class OsController {
 						resolve(result);
 					})();
 				} else {
-					this.this.mqttController.unipaasQueryRequestResponse(ip, "cmd", {cmd: command}).then((result) => {
+					this.mqttController.unipaasQueryRequestResponse(ip, "cmd", {cmd: command}).then((result) => {
 						if(result.data.status == 200) {
 							let returnObj = {
 								code: 0,
