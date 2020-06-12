@@ -405,6 +405,7 @@ install_core_components() {
 
 registry_auth() {
     # sshpass -p 'vagrant' scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$MASTER_IP:/home/vagrant/configPrivateRegistry.sh $HOME/configPrivateRegistry.sh &>/dev/null
+    sudo chmod +x $HOME/configPrivateRegistry.sh
     sudo /bin/bash $HOME/configPrivateRegistry.sh
 
     _RCOUNTER=0
@@ -487,6 +488,7 @@ EOT
     sudo rm -rf /etc/kubernetes/pki/rootCA.crt
 
     # sshpass -p 'vagrant' scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$MASTER_IP:/home/vagrant/configNginxRootCA.sh $HOME/configNginxRootCA.sh &>/dev/null
+    sudo chmod +x $HOME/configNginxRootCA.sh
     sudo /bin/bash $HOME/configNginxRootCA.sh
 
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-issuer-url=https://multipaas.keycloak.com/auth/realms/master' /etc/kubernetes/manifests/kube-apiserver.yaml
