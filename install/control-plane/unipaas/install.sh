@@ -62,7 +62,7 @@ dependencies () {
         log "\n"
         warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
         warn "    Please log out, and log back in, then execute this script again.\n"
-        exit 1
+        exit 0
     fi
 
     dep_jq &>>$err_log &
