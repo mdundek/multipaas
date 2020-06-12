@@ -20,7 +20,7 @@ class TaskVolumeController {
      */
     static async processScheduledUnbindVolume(task) {
         task.payload = JSON.parse(task.payload);
-        let snapshotData = null;
+        // let snapshotData = null;
         if(task.payload[0].params.unbindFrom == "k8s") {
             try {
                 this.mqttController.logEvent(task.payload[0].socketId, "info", "Collecting environement details");
@@ -32,16 +32,16 @@ class TaskVolumeController {
                 });
 
                 if(task.payload[0].params.volume.type == "gluster") {
-                    snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
+                    // snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
                     await TaskGlusterController.unmountGlusterVolumeFromClusterVMs(task.payload[0].socketId, task.targetId, task.payload[0].params.volume);
                     await this.removeVolumeBindingFromDb(task.targetId, task.payload[0].params.volume.id, task.payload[0].params.unbindFrom == "k8s" ? "workspace" : "vm");
-                    await this.parent.cleanUpClusterSnapshot(snapshotData);
+                    // await this.parent.cleanUpClusterSnapshot(snapshotData);
                     this.mqttController.closeEventStream(task.payload[0].socketId);
                 } else if(task.payload[0].params.volume.type == "local") {
-                    snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
+                    // snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
                     await this.detatchAndUnmountLocalVolumeFromClusterVMs(task.payload[0].socketId, task.targetId, task.payload[0].params.volume.id);
                     await this.removeVolumeBindingFromDb(task.targetId, task.payload[0].params.volume.id, task.payload[0].params.unbindFrom == "k8s" ? "workspace" : "vm");
-                    await this.parent.cleanUpClusterSnapshot(snapshotData);
+                    // await this.parent.cleanUpClusterSnapshot(snapshotData);
                     this.mqttController.closeEventStream(task.payload[0].socketId);
                 } else {
                     await DBController.updateTaskStatus(task, "ERROR", {
@@ -61,9 +61,9 @@ class TaskVolumeController {
                     "ts":new Date().toISOString()
                 });   
             } catch (error) {
-                if(snapshotData){
-                    await this.parent.restoreClusterSnapshot(snapshotData);
-                }
+                // if(snapshotData){
+                //     await this.parent.restoreClusterSnapshot(snapshotData);
+                // }
                 await DBController.updateTaskStatus(task,"ERROR", {
                     "type":"ERROR",
                     "step":"VOLUME UNBINDING",
@@ -93,7 +93,7 @@ class TaskVolumeController {
      */
     static async processScheduledBindVolume(task) {
         task.payload = JSON.parse(task.payload);
-        let snapshotData = null;
+        // let snapshotData = null;
         if(task.payload[0].params.bindTo == "k8s") {
             try {
                 this.mqttController.logEvent(task.payload[0].socketId, "info", "Collecting environement details");
@@ -110,10 +110,10 @@ class TaskVolumeController {
                     // await this.parent.cleanUpClusterSnapshot(snapshotData);
                     this.mqttController.closeEventStream(task.payload[0].socketId);
                 } else if(task.payload[0].params.volume.type == "local") {
-                    snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
+                    // snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
                     await this.attachAndMountLocalVolumeToClusterVMs(task.payload[0].socketId, task.targetId, task.payload[0].params.volume);
                     await this.addVolumeBindingToDb(task.targetId, task.payload[0].params.volume.id, task.payload[0].params.bindTo == "k8s" ? "workspace" : "vm");
-                    await this.parent.cleanUpClusterSnapshot(snapshotData);
+                    // await this.parent.cleanUpClusterSnapshot(snapshotData);
                     this.mqttController.closeEventStream(task.payload[0].socketId);
                 } else {
                     await DBController.updateTaskStatus(task, "ERROR", {
@@ -136,9 +136,9 @@ class TaskVolumeController {
             } catch (error) {
                 console.error(error);
                 this.mqttController.logEvent(task.payload[0].socketId, "error", "An error occured while binding volume to cluster");
-                if(snapshotData){
-                    await this.parent.restoreClusterSnapshot(snapshotData);
-                }
+                // if(snapshotData){
+                //     await this.parent.restoreClusterSnapshot(snapshotData);
+                // }
                 await DBController.updateTaskStatus(task, "ERROR", {
                     "type":"ERROR",
                     "step":"BIND_VOLUME",
@@ -168,7 +168,7 @@ class TaskVolumeController {
      */
     static async processScheduledDeprovisionVolume(task) {
         task.payload = JSON.parse(task.payload);
-        let snapshotData = null;
+        // let snapshotData = null;
         try {
             this.mqttController.logEvent(task.payload[0].socketId, "info", "Collecting environement details");
 
@@ -180,16 +180,16 @@ class TaskVolumeController {
             });
 
             if(task.payload[0].params.type == "gluster"){
-                snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
+                // snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
                 await TaskGlusterController.deprovisionVolume(task.payload[0].socketId, task.payload[0].params.volumeId, task.payload[0].params.volumeName, task.payload[0].params.volumeSecret);
-                await this.parent.cleanUpClusterSnapshot(snapshotData);
+                // await this.parent.cleanUpClusterSnapshot(snapshotData);
                 this.mqttController.closeEventStream(task.payload[0].socketId);
             } else if(task.payload[0].params.type == "local"){
-                snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
+                // snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
                 await this.detatchAndUnmountLocalVolumeFromClusterVMs(task.payload[0].socketId, task.payload[0].params.workspaceId, task.payload[0].params.volumeId);
                 await this.deleteLocalVolumeFromClusterVMs(task.payload[0].socketId, task.payload[0].params.workspaceId, task.payload[0].params.volumeId);
                 await DBController.removeVolume(task.payload[0].params.volumeId);
-                await this.parent.cleanUpClusterSnapshot(snapshotData);
+                // await this.parent.cleanUpClusterSnapshot(snapshotData);
                 this.mqttController.closeEventStream(task.payload[0].socketId);
             } else {
                 this.mqttController.logEvent(task.payload[0].socketId, "error", "Only gluster and local volumes can be deprovisioned");
@@ -211,9 +211,9 @@ class TaskVolumeController {
             });   
         } catch (error) {
             console.error(error);
-            if(snapshotData){
-                await this.parent.restoreClusterSnapshot(snapshotData);
-            }
+            // if(snapshotData){
+            //     await this.parent.restoreClusterSnapshot(snapshotData);
+            // }
             await DBController.updateTaskStatus(task, "ERROR", {
                 "type":"ERROR",
                 "step":"DEPROVISIONNING_VOLUME",
