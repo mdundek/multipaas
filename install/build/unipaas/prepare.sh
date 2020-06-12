@@ -234,6 +234,10 @@ build_for_ubuntu_bionic() {
     bussy_indicator "Downloading repo mosquitto..."
     log "\n"
 
+    download_deb libc-ares2 &>>$err_log &
+    bussy_indicator "Downloading repo libc-ares2..."
+    log "\n"
+
     download_deb mosquitto-clients &>>$err_log &
     bussy_indicator "Downloading repo mosquitto-clients..."
     log "\n"

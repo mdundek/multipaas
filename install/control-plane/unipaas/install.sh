@@ -59,10 +59,19 @@ dependencies () {
     bussy_indicator "Dependency on \"Docker CE\"..."
     log "\n"
     if [ "$DK_EXISTS" == "" ]; then
+        sudo usermod -aG docker $USER
         log "\n"
         warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
         warn "    Please log out, and log back in, then execute this script again.\n"
         exit 0
+    fi
+
+    # Make sure we have access to docher deamon
+    DOCKER_USER_OK=$(groups | grep "docker")
+    if [ "$DOCKER_USER_OK" == "" ]; then
+        error "The current user does not have access to the docker deamon.\n"
+        error "Did you restart your session afterhaving installed docker?\n"
+        exit 1
     fi
 
     dep_jq &>>$err_log &
@@ -656,12 +665,17 @@ ENDOFFILE
     ./_drun.sh > /dev/null 2>&1
     rm -rf ./_drun.sh
 
-    ########################################
-    # Reconfigure GitLab & restart it
-    ########################################
-    echo "Waiting for GitLab to be up and running (this can take up to 4 minutes)"
+    configure_gitlab &>>$err_log &
+    bussy_indicator "Configuring Gitlab and registry..."
+    log "\n"
+    return 0
+}
+
+########################################
+# Reconfigure GitLab & restart it
+########################################
+configure_gitlab() {
     until $(curl --output /dev/null --silent --head --fail http://$GITLAB_IP:8929/users/sign_in); do
-        printf '.'
         sleep 5
     done
 
@@ -677,18 +691,10 @@ ENDOFFILE
 
     docker stop multipaas-gitlab
     docker start multipaas-gitlab
-    echo "Waiting for GitLab to be up and running (this can take up to 4 minutes)"
     until $(curl --output /dev/null --silent --head --fail http://$GITLAB_IP:8929/users/sign_in); do
-        printf '.'
         sleep 5
     done
-
-    log "\n"
-    return 0
 }
-
-
-
 
                                                           
                                                           

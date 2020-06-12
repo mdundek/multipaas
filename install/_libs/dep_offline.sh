@@ -277,6 +277,7 @@ dep_mosquitto() {
     if [ "$C_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
+                deb_offline_install "libc-ares2"
                 deb_offline_install "mosquitto-clients"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
