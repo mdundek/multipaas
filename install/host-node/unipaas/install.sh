@@ -404,6 +404,7 @@ install_core_components() {
 }
 
 registry_auth() {
+    sshpass -p 'vagrant' scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$MASTER_IP:/home/vagrant/configPrivateRegistry.sh $HOME/configPrivateRegistry.sh &>/dev/null
     sudo /bin/bash $HOME/configPrivateRegistry.sh
 
     _RCOUNTER=0
@@ -420,8 +421,6 @@ registry_auth() {
             fi
         fi
     done
-    # export KUBECONFIG=$HOME/.kube/admin.conf
-    kubectl --kubeconfig $HOME/.kube/admin.conf create secret docker-registry regcred --docker-server=registry.multipaas.org --docker-username=$RU --docker-password=$RP --docker-email=multipaas@multipaas.com
 }
 
 ########################################
@@ -486,6 +485,8 @@ EOT
 
     # Configure OpenID Connect for Keycloak
     sudo rm -rf /etc/kubernetes/pki/rootCA.crt
+
+    sshpass -p 'vagrant' scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$MASTER_IP:/home/vagrant/configNginxRootCA.sh $HOME/configNginxRootCA.sh &>/dev/null
     sudo /bin/bash $HOME/configNginxRootCA.sh
 
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-issuer-url=https://multipaas.keycloak.com/auth/realms/master' /etc/kubernetes/manifests/kube-apiserver.yaml
@@ -800,6 +801,19 @@ if [ "$?" != "0" ]; then
     exit 1
 fi
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 sudo sed -i.bak '/multipaas.com/d' /etc/hosts &>>$err_log
 sudo rm -rf /etc/hosts.bak &>>$err_log
 sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
@@ -880,9 +894,15 @@ if [ "$IS_K8S_NODE" == "true" ]; then
         create_account_and_register
         
         # Authenticate to registry
-        registry_auth &>>$err_log &
-        bussy_indicator "Configure k8s registry credentials..."
-        log "\n"
+        registry_auth #&>>$err_log &
+        # bussy_indicator "Configure k8s registry credentials..."
+        # log "\n"
+
+        # export KUBECONFIG=$HOME/.kube/admin.conf
+        sleep 5
+        echo "A"
+        kubectl --kubeconfig $HOME/.kube/admin.conf create secret docker-registry regcred --docker-server=registry.multipaas.org --docker-username=$RU --docker-password=$RP --docker-email=multipaas@multipaas.com
+        echo "B"
         
         log "\n"
 
