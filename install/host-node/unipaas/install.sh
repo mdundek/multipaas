@@ -504,10 +504,16 @@ EOT
 #!/bin/bash
 
 m_dep() {
-    kubectl get deployments --all-namespaces --watch -o wide 2>&1 | cluster_deployment_event_logger
+    kubectl --kubeconfig <HOME>/.kube/admin.conf get deployments --all-namespaces --watch -o wide 2>&1 | cluster_deployment_event_logger
+    if [ "$?" != "0" ]; then
+        sleep 5
+    fi
 }
 m_rep() {
-    kubectl get statefulsets --all-namespaces --watch -o wide 2>&1 | cluster_statefullset_event_logger
+    kubectl --kubeconfig <HOME>/.kube/admin.conf get statefulsets --all-namespaces --watch -o wide 2>&1 | cluster_statefullset_event_logger
+    if [ "$?" != "0" ]; then
+        sleep 5
+    fi
 }
 cluster_deployment_event_logger() {
     while read IN
@@ -532,13 +538,14 @@ EOF
    
     sudo chmod a+wx /k8s_event_logger.sh
     sudo sed -i "s/<MQTT_IP>/$MASTER_IP/g" /k8s_event_logger.sh
+    sudo sed -i "s/<HOME>/$HOME/g" /k8s_event_logger.sh
 
-    if [ -f "/etc/systemd/system/multipaasevents.service" ]; then
-        sudo systemctl stop multipaasevents.service
-        sudo systemctl disable multipaasevents.service
-        sudo rm -rf /etc/systemd/system/multipaasevents.service
-        sudo systemctl daemon-reload
-    fi
+    # if [ -f "/etc/systemd/system/multipaasevents.service" ]; then
+    #     sudo systemctl stop multipaasevents.service
+    #     sudo systemctl disable multipaasevents.service
+    #     sudo rm -rf /etc/systemd/system/multipaasevents.service
+    #     sudo systemctl daemon-reload
+    # fi
     sudo tee -a /etc/systemd/system/multipaasevents.service >/dev/null <<'EOF'
 [Unit]
 Description=Multipaas Cluster Event Monitor
@@ -556,9 +563,9 @@ User=vagrant
 WantedBy=default.target
 EOF
 
-    sudo systemctl daemon-reload
-    sudo systemctl enable multipaasevents.service
-    sudo systemctl start multipaasevents.service
+    # sudo systemctl daemon-reload
+    # sudo systemctl enable multipaasevents.service
+    # sudo systemctl start multipaasevents.service
 }
 
 cp_api_auth() {
