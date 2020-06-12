@@ -15,15 +15,15 @@ docker run -d \
     --name multipaas-ctrl \
     --restart unless-stopped \
     --network host \
-    -e DB_HOST=192.168.1.12 \
+    -e DB_HOST=192.168.68.149 \
     -e DB_USER=postgres \
     -e DB_PASS=li14ebe14 \
-    -e MOSQUITTO_IP=192.168.1.12 \
+    -e MOSQUITTO_IP=192.168.68.149 \
     -e DHCP_OVERWRITE=true \
-    -e DHCP_MASK=192.168.1 \
+    -e DHCP_MASK=192.168.68 \
     -e DHCP_RESERVED=[250,251,252,253,254,12] \
     -e DHCT_USE_PING=true \
-    -e NGINX_HOST_IP=192.168.1.12 \
+    -e NGINX_HOST_IP=192.168.68.149 \
     -e ENABLE_NGINX_STREAM_DOMAIN_NAME=true \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v $HOME/.multipaas/nginx:/usr/src/app/nginx \
