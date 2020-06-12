@@ -49,6 +49,7 @@ class TaskRuntimeController {
             await this.kubectl(`kubectl create ${data.type} ${data.name}${data.ns ? " --namespace=" + data.ns : ""}`, data.node);
 
             if(data.type == "namespace") {
+                console.log("PWD => ", process.cwd());
                 let adminRoleBindingYamlPath = path.join(process.cwd(), "resources", "k8s_templates", "rbac_role_bindings.yaml");
                 let wsTmpYamlPath = path.join(process.env.VM_BASE_DIR, "workplaces", data.node.workspaceId.toString(), data.node.hostname, `rbac_role_bindings.yaml`);
                 await OSController.copyFile(adminRoleBindingYamlPath, path.dirname(wsTmpYamlPath));

@@ -759,6 +759,9 @@ create_account_and_register() {
         fi
     done
 
+    # Create workspace base folder
+    mkdir -p $HOME/.multipaas/vm_base/workplaces/$WS_ID/$HNAME
+
     # Host
     J_PAYLOAD='{"workspaceId":'"$WS_ID"',"ip":"'"$LOCAL_IP"'","hostname":"'"$HNAME"'","status":"ready"}'
     cp_api_create HOST_CR_RESP "k8s_hosts" $J_PAYLOAD

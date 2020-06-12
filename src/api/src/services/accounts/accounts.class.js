@@ -115,7 +115,6 @@ exports.Accounts = class Accounts extends Service {
 
                 let user = null;
                 if(potentialUsers.length == 1){
-                    console.log("Has potential user 2 !!! =>", potentialUsers);
                     user = potentialUsers[0];
                 } else {
                     user = await this.app.service('users').create({
