@@ -21,6 +21,13 @@ let _sleep = (duration) => {
 class OsController {
 
 	/**
+     * init
+     */
+    static init(mqttController) {
+		this.mqttController = mqttController;	
+	}
+
+	/**
 	 * getIp
 	 */
     static async getIp() {
@@ -348,58 +355,117 @@ class OsController {
      * @param {*} command 
      */
     static sshExec(ip, command, inline, ignoreStderr) {
-        console.log(`SSH Command (${ip}): ", ${command}`);
+		console.log(`SSH Command (${ip}): ", ${command}`);
         return new Promise((resolve, reject) => {
-            let ssh = new node_ssh();
-        
-            ssh.connect({
-                host: ip,
-                username: 'root',
-                password: 'vagrant'
-            }).then(function() {
-                try {
-                    if(Array.isArray(command)){
-                        let _cmdAsync = (_cmd) => {
-                            return new Promise((_resolve, _reject) => {
-                                ssh.execCommand(_cmd, {}).then(function(result) {
-                                    _resolve(result);
-                                })
-                            });
-                        }
-                        (async() => {
-                            let result = [];
-                            for(let i=0; i<command.length; i++){
-                                let _r = await _cmdAsync(command[i]);
-                                result.push(_r);
-                                if(!ignoreStderr && _r.stderr && _r.stderr.length > 0){
-                                    i = command.length; // Jump out
-                                }
-                            }
-                            ssh.dispose();
-                            resolve(result);
-                        })();
-                    } else {
-                        if(!inline){
-                            let sploit = command.split(' ');
-                            let cmd = sploit.shift();
-                            ssh.exec(cmd, sploit, { stream: 'stdout', options: { pty: true } }).then((result) => {
-                                ssh.dispose();
-                                resolve(result);
-                            });
-                        } else {
-                            ssh.execCommand(command, {}).then(function(result) {
-                                ssh.dispose();
-                                resolve(result);
-                            })
-                        }
-                    }
-                } catch (error) {
-                    ssh.dispose();
-                    reject(error);
-                }
-            }).catch((error) => {
-                reject(error);
-            });
+			if(process.env.MP_MODE != "unipaas") {
+				let ssh = new node_ssh();
+			
+				ssh.connect({
+					host: ip,
+					username: 'root',
+					password: 'vagrant'
+				}).then(() => {
+					try {
+						if(Array.isArray(command)){
+							let _cmdAsync = (_cmd) => {
+								return new Promise((_resolve, _reject) => {
+									ssh.execCommand(_cmd, {}).then(function(result) {
+										_resolve(result);
+									})
+								});
+							}
+							(async() => {
+								let result = [];
+								for(let i=0; i<command.length; i++){
+									let _r = await _cmdAsync(command[i]);
+									result.push(_r);
+									if(!ignoreStderr && _r.stderr && _r.stderr.length > 0){
+										i = command.length; // Jump out
+									}
+								}
+								ssh.dispose();
+								resolve(result);
+							})();
+						} else {
+							if(!inline){
+								let sploit = command.split(' ');
+								let cmd = sploit.shift();
+								ssh.exec(cmd, sploit, { stream: 'stdout', options: { pty: true } }).then((result) => {
+									ssh.dispose();
+									resolve(result);
+								});
+							} else {
+								ssh.execCommand(command, {}).then(function(result) {
+									ssh.dispose();
+									resolve(result);
+								})
+							}
+						}
+					} catch (error) {
+						ssh.dispose();
+						reject(error);
+					}
+				}).catch((error) => {
+					reject(error);
+				});
+			} else {
+				if(Array.isArray(command)){
+					let _cmdAsync = (_cmd) => {
+						return new Promise((_resolve, _reject) => {
+							this.this.mqttController.unipaasQueryRequestResponse(ip, "cmd", {cmd: _cmd}).then((result) => {
+								if(result.data.status == 200) {
+									let returnObj = {
+										code: 0,
+										stdout: result.data.data.join("\n")
+									}
+									_resolve(returnObj);
+								} else {
+									let returnObj = {
+										code: 1,
+										stdout: result.data.message
+									}
+									_resolve(returnObj);
+								}
+							}).catch((_e) => {
+								let returnObj = {
+									code: 1,
+									stdout: _e.message
+								}
+								_resolve(returnObj);
+							});
+						});
+					}
+					(async() => {
+						let result = [];
+						for(let i=0; i<command.length; i++){
+							let _r = await _cmdAsync(command[i]);
+							result.push(_r);
+							if(!ignoreStderr && _r.code != 0){
+								i = command.length; // Jump out
+							}
+						}
+						resolve(result);
+					})();
+				} else {
+					this.this.mqttController.unipaasQueryRequestResponse(ip, "cmd", {cmd: command}).then((result) => {
+						if(result.data.status == 200) {
+							let returnObj = {
+								code: 0,
+								stdout: result.data.data.join("\n")
+							}
+							resolve(returnObj);
+						} else {
+							let returnObj = {
+								code: 1,
+								stdout: result.data.message
+							}
+							resolve(returnObj);
+						}
+					}).catch((_e) => {
+						reject(_e);
+					});
+				}
+			}
         });
     }
 

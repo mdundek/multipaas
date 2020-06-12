@@ -44,21 +44,13 @@ class MqttController {
                 
                 this.client.subscribe(`/unipaas/local/host/respond/${this.ip}/#`);
                 
-
-
-
-
-                (async() => {
-                    console.log("Testing command...");
-                    let testLs = await this.unipaasQueryRequestResponse("192.168.68.123", "cmd", {
-                        cmd: "ls -l"
-                    });
-                    console.log(testLs);
-                })();
-                
-
-
-
+                // (async() => {
+                //     console.log("Testing command...");
+                //     let testLs = await this.unipaasQueryRequestResponse("192.168.68.123", "cmd", {
+                //         cmd: "ls -l"
+                //     });
+                //     console.log(testLs);
+                // })();
             });
             
             this.client.on('offline', () => {
