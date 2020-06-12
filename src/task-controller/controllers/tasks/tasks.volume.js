@@ -231,7 +231,7 @@ class TaskVolumeController {
      */
     static async processScheduledProvisionVolume(task) {
         task.payload = JSON.parse(task.payload);
-        let snapshotData = null;
+        // let snapshotData = null;
         if(task.payload[0].params.type == "gluster"){
             try {
                 this.mqttController.logEvent(task.payload[0].socketId, "info", "Collecting environement details");
@@ -243,12 +243,12 @@ class TaskVolumeController {
                     "ts": new Date().toISOString()
                 });
 
-                snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
+                // snapshotData = await this.parent.takeClusterSnapshot(task.targetId);
 
                 this.mqttController.logEvent(task.payload[0].socketId, "info", "Provisioning Gluster volume");
                 await TaskGlusterController.provisionVolume(task.targetId, task.id, task.payload[0].params.size, task.payload[0].params.replicas, task.payload[0].params.name, task.payload[0].params.type);
     
-                await this.parent.cleanUpClusterSnapshot(snapshotData);
+                // await this.parent.cleanUpClusterSnapshot(snapshotData);
                 
                 await DBController.updateTaskStatus(task, "DONE", {
                     "type": "INFO",
@@ -258,9 +258,9 @@ class TaskVolumeController {
                 });
             } catch (err) {
                 this.mqttController.logEvent(task.payload[0].socketId, "error", "An error occured while provisionning Gluster volume, rollback");
-                if(snapshotData){
-                    await this.parent.restoreClusterSnapshot(snapshotData);
-                }
+                // if(snapshotData){
+                //     await this.parent.restoreClusterSnapshot(snapshotData);
+                // }
 
                 await DBController.updateTaskStatus(task, "ERROR", {
                     "type": "ERROR",

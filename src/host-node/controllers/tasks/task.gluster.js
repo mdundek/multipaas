@@ -44,7 +44,6 @@ class TaskGlusterController {
 
         // Create gluster volume on all peers
         try {
-
             let result = await OSController.execSilentCommand(`sudo docker exec gluster-ctl gluster volume create ${volumeName} replica ${gluster_targets.length} ${gluster_targets.map(o => `${o}:/bricks/${volumeName}`).join(' ')} force`);
             if(!(result.find(l => l.indexOf("success") != -1))) {
                 throw new Error(result.join(" ; "));

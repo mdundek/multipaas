@@ -59,22 +59,29 @@ class TaskVolumeController {
     static async requestAttachLocalVolumeToVM(topicSplit, ip, data) {
         let volumeName = data.volume.name + "-" + data.volume.secret
         try {
-            let nextPortIndex = await EngineController.getNextSATAPortIndex(data.nodeProfile.node.hostname);
-            if(nextPortIndex == null){
+            if(process.env.MP_MODE == "unipaas") {
                 this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
-                    status: 500,
-                    message: "No more port indexes available",
+                    status: 200,
                     task: "bind volume"
                 }));
-                return;
-            }
+            } else {
+                let nextPortIndex = await EngineController.getNextSATAPortIndex(data.nodeProfile.node.hostname);
+                if(nextPortIndex == null){
+                    this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
+                        status: 500,
+                        message: "No more port indexes available",
+                        task: "bind volume"
+                    }));
+                    return;
+                }
 
-            await DBController.setVolumePortIndex(data.volume.id, nextPortIndex);
-            await EngineController.attachLocalVolumeToVM(data.workspaceId, data.nodeProfile.node, volumeName, data.volume.size, nextPortIndex);
-            this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
-                status: 200,
-                task: "bind volume"
-            }));
+                await DBController.setVolumePortIndex(data.volume.id, nextPortIndex);
+                await EngineController.attachLocalVolumeToVM(data.workspaceId, data.nodeProfile.node, volumeName, data.volume.size, nextPortIndex);
+                this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
+                    status: 200,
+                    task: "bind volume"
+                }));
+            }
         } catch (error) {
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: error.code ? error.code : 500,
@@ -202,60 +209,76 @@ class TaskVolumeController {
      * @param {*} formatDisk 
      */
     static async mountLocalVolume(node, volumeName, portIndex) {
-        let r = await OSController.sshExec(node.ip, `test -d "/mnt/${volumeName}" && echo "y" || echo "n"`, true);
-        if(r.code == 0 && r.stdout == "y") {
-            r = await OSController.sshExec(node.ip, `mount | grep "${volumeName}"`, true);
-            if(r.code == 0 && r.stdout.trim() != "") {
-                // throw new Error("Folder already mounted");
+        if(process.env.MP_MODE == "unipaas") {
+            let r = await OSController.sshExec(node.ip, `[ -d "/mnt/${volumeName}" ] && echo "y" || echo "n"`, true);
+            if(r.code == 0 && r.stdout == "y") {
                 return;
-            } 
-        }
-        else if(r.code != 0){
-            throw new Error("An error occured trying to mount volume");
-        }
-        
-        r = await OSController.sshExec(node.ip, `lsblk -f | grep 'sd${portLetterMap[portIndex]}' | grep 'xfs'`, true);
-        if(r.stderr.trim().length == 0 && r.stdout.trim() == "") {
-            // Format the disk
-            let formatDiskCommand = `mkfs.xfs /dev/sd${portLetterMap[portIndex]}`;
-            r = await OSController.sshExec(node.ip, formatDiskCommand, true);
-            if(r.code != 0) {
-                throw new Error(r.stderr);
             }
-        } else if(r.code != 0) {
-            throw new Error(r.stderr);
-        }
+            else if(r.code != 0){
+                throw new Error("An error occured trying to mount volume");
+            }
 
-        // Mkdir
-        r = await OSController.sshExec(node.ip, `mkdir -p /mnt/${volumeName}`, true);
-        if(r.code != 0) {
-            throw new Error(r.stderr);
-        }
-       
-        // Update FSTab
-        try {
-            r = await OSController.sshExec(node.ip, `echo '/dev/sd${portLetterMap[portIndex]} /mnt/${volumeName} xfs defaults 1 2' >> /etc/fstab`, true);
+            // Mkdir
+            r = await OSController.sshExec(node.ip, `mkdir -p /mnt/${volumeName}`, true);
             if(r.code != 0) {
-                await this.unmountVolume(node, volumeName);
                 throw new Error(r.stderr);
             }
-        } catch (error) {
-            await this.unmountVolume(node, volumeName);
-            throw error;
-        }
-        
-        await _sleep(5000);
+        } else {
+            let r = await OSController.sshExec(node.ip, `test -d "/mnt/${volumeName}" && echo "y" || echo "n"`, true);
+            if(r.code == 0 && r.stdout == "y") {
+                r = await OSController.sshExec(node.ip, `mount | grep "${volumeName}"`, true);
+                if(r.code == 0 && r.stdout.trim() != "") {
+                    // throw new Error("Folder already mounted");
+                    return;
+                } 
+            }
+            else if(r.code != 0){
+                throw new Error("An error occured trying to mount volume");
+            }
+            
+            r = await OSController.sshExec(node.ip, `lsblk -f | grep 'sd${portLetterMap[portIndex]}' | grep 'xfs'`, true);
+            if(r.stderr.trim().length == 0 && r.stdout.trim() == "") {
+                // Format the disk
+                let formatDiskCommand = `mkfs.xfs /dev/sd${portLetterMap[portIndex]}`;
+                r = await OSController.sshExec(node.ip, formatDiskCommand, true);
+                if(r.code != 0) {
+                    throw new Error(r.stderr);
+                }
+            } else if(r.code != 0) {
+                throw new Error(r.stderr);
+            }
 
-        // Mount disk
-        try {
-            r = await OSController.sshExec(node.ip, `mount -a`, true);
+            // Mkdir
+            r = await OSController.sshExec(node.ip, `mkdir -p /mnt/${volumeName}`, true);
             if(r.code != 0) {
-                await this.unmountVolume(node, volumeName);
                 throw new Error(r.stderr);
             }
-        } catch (error) {
-            await this.unmountVolume(node, volumeName);
-            throw error;
+        
+            // Update FSTab
+            try {
+                r = await OSController.sshExec(node.ip, `echo '/dev/sd${portLetterMap[portIndex]} /mnt/${volumeName} xfs defaults 1 2' >> /etc/fstab`, true);
+                if(r.code != 0) {
+                    await this.unmountVolume(node, volumeName);
+                    throw new Error(r.stderr);
+                }
+            } catch (error) {
+                await this.unmountVolume(node, volumeName);
+                throw error;
+            }
+            
+            await _sleep(5000);
+
+            // Mount disk
+            try {
+                r = await OSController.sshExec(node.ip, `mount -a`, true);
+                if(r.code != 0) {
+                    await this.unmountVolume(node, volumeName);
+                    throw new Error(r.stderr);
+                }
+            } catch (error) {
+                await this.unmountVolume(node, volumeName);
+                throw error;
+            }
         }
     }
 
