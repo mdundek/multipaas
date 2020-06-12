@@ -420,8 +420,8 @@ registry_auth() {
             fi
         fi
     done
-    export KUBECONFIG=$HOME/.kube/admin.conf
-    kubectl create secret docker-registry regcred --docker-server=registry.multipaas.org --docker-username=$RU --docker-password=$RP --docker-email=multipaas@multipaas.com
+    # export KUBECONFIG=$HOME/.kube/admin.conf
+    kubectl --kubeconfig $HOME/.kube/admin.conf create secret docker-registry regcred --docker-server=registry.multipaas.org --docker-username=$RU --docker-password=$RP --docker-email=multipaas@multipaas.com
 }
 
 ########################################
