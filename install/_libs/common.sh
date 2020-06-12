@@ -293,3 +293,44 @@ print_color_pallet() {
 far() {
     find $1 -name "$2" -exec sed -i "s/$3/$4/g" {} +
 }
+
+########################################
+# 
+########################################
+create_system_service() {
+    if [ -f "/$1.sh" ]; then
+        sudo rm -rf /$1.sh
+    fi
+    sudo tee -a /$1.sh >/dev/null <<EOF
+$2
+EOF
+    sudo chmod a+wx /$1.sh
+   
+
+    if [ -f "/etc/systemd/system/$1.service" ]; then
+        sudo systemctl stop $1.service
+        sudo systemctl disable $1.service
+        sudo rm -rf /etc/systemd/system/$1.service
+        sudo systemctl daemon-reload
+    fi
+    sudo tee -a /etc/systemd/system/$1.service >/dev/null <<EOF
+[Unit]
+Description=Multipaas Cluster Event Monitor $1
+After=syslog.target network.target
+
+[Service]
+Type=$3
+ExecStart=/$1.sh
+TimeoutStartSec=0
+Restart=always
+RestartSec=120
+User=$4
+
+[Install]
+WantedBy=default.target
+EOF
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable $1.service
+    sudo systemctl start $1.service
+}

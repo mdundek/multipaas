@@ -153,8 +153,6 @@ collect_informations() {
 
     log "\n"
     read_input "Specify a MultiPaaS master user email address:" MP_U
-   
-    log "\n"
     read_input "Specify a MultiPaaS master password:" MP_P
 }
 

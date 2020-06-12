@@ -92,15 +92,13 @@ dependency_docker () {
         warn "\n"
         warn " 1. Grab the config script from the control-plane\n"
         warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
-        warn " 2. Put the script somewhere locally, and execute the\n"
-        warn "    script with sudo (sudo ./configPrivateRegistry.sh)\n"
+        warn " 2. Place the script in the local home folder\n"
         warn "\n"
         warn "==> Copy the Nginx root certificate setup script to your home folder:\n"
         warn "\n"
         warn " 1. Grab the config script from the control-plane\n"
         warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
-        warn " 2. Place the script in the local home folder,\n"
-        warn "    make sure the script is executable.\n"
+        warn " 2. Place the script in the local home folder\n"
         warn "\n"
         warn "==> Once done, please log out, and log back in, then execute\n"
         warn "    this script again.\n"
@@ -424,6 +422,60 @@ registry_auth() {
     done
 }
 
+create_services() {
+    # ==> Enable k8s deployment logger
+    sudo tee -a /multipaas-tail-deployment-events.sh >/dev/null <<'EOF'
+#!/bin/bash
+cluster_event_logger() {
+    while read IN
+    do
+        LWC=$(echo "$IN" | awk '{print tolower($0)}')
+        mosquitto_pub -h <MQTT_IP> -t /multipaas/cluster/event/$HOSTNAME -m "D:$LWC"
+    done
+}
+while :
+do
+	kubectl --kubeconfig <HOME>/.kube/admin.conf get deployments --all-namespaces --watch -o wide 2>&1 | cluster_event_logger
+	sleep 1
+done
+EOF
+    sudo chmod a+wx /multipaas-tail-deployment-events.sh
+    sudo sed -i "s/<MQTT_IP>/$MASTER_IP/g" /multipaas-tail-deployment-events.sh
+    sudo sed -i "s/<HOME>/${HOME//\//\\/}/g" /multipaas-tail-deployment-events.sh
+    # Build & Start service
+    read -d '' DEP_SRV_SCRIPT << EOF
+#!/bin/bash
+. /multipaas-tail-deployment-events.sh
+EOF
+    create_system_service "multipaas-events-dep" "$DEP_SRV_SCRIPT" "simple" "$USER"
+
+    # ==> Enable k8s statefulset logger
+    sudo tee -a /multipaas-tail-statefulset-events.sh >/dev/null <<'EOF'
+#!/bin/bash
+cluster_event_logger() {
+    while read IN
+    do
+        LWC=$(echo "$IN" | awk '{print tolower($0)}')
+        mosquitto_pub -h <MQTT_IP> -t /multipaas/cluster/event/$HOSTNAME -m "S:$LWC"
+    done
+}
+while :
+do
+	kubectl --kubeconfig <HOME>/.kube/admin.conf get statefulsets --all-namespaces --watch -o wide 2>&1 | cluster_event_logger
+	sleep 1
+done
+EOF
+    sudo chmod a+wx /multipaas-tail-statefulset-events.sh
+    sudo sed -i "s/<MQTT_IP>/$MASTER_IP/g" /multipaas-tail-statefulset-events.sh
+    sudo sed -i "s/<HOME>/${HOME//\//\\/}/g" /multipaas-tail-statefulset-events.sh
+    # Build & Start service
+    read -d '' STS_SRV_SCRIPT << EOF
+#!/bin/bash
+. /multipaas-tail-statefulset-events.sh
+EOF
+    create_system_service "multipaas-events-stfset" "$STS_SRV_SCRIPT" "simple" "$USER"
+}
+
 ########################################
 # 
 ########################################
@@ -449,9 +501,14 @@ EOT
     
     mkdir -p $HOME/.kube
 
+    rm -rf $HOME/.kube/config
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
     rm -rf $HOME/.kube/admin.conf
     sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/admin.conf
     sudo chown $(id -u):$(id -g) $HOME/.kube/admin.conf
+
     echo "export KUBECONFIG=$HOME/.kube/admin.conf" | tee -a ~/.bashrc
     source ~/.bashrc
     export KUBECONFIG=$HOME/.kube/admin.conf
@@ -498,77 +555,6 @@ EOT
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-ca-file=/etc/kubernetes/pki/rootCA.crt' /etc/kubernetes/manifests/kube-apiserver.yaml
 
     sudo $HOME/gentoken.sh
-
-    # Enable k8s deployment logger
-    if [ -f "/k8s_event_logger.sh" ]; then
-        sudo rm -rf /k8s_event_logger.sh
-    fi
-    sudo tee -a /k8s_event_logger.sh >/dev/null <<'EOF'
-#!/bin/bash
-
-m_dep() {
-    kubectl --kubeconfig <HOME>/.kube/admin.conf get deployments --all-namespaces --watch -o wide 2>&1 | cluster_deployment_event_logger
-    if [ "$?" != "0" ]; then
-        sleep 5
-    fi
-}
-m_rep() {
-    kubectl --kubeconfig <HOME>/.kube/admin.conf get statefulsets --all-namespaces --watch -o wide 2>&1 | cluster_statefullset_event_logger
-    if [ "$?" != "0" ]; then
-        sleep 5
-    fi
-}
-cluster_deployment_event_logger() {
-    while read IN
-    do
-        LWC=$(echo "$IN" | awk '{print tolower($0)}')
-        mosquitto_pub -h <MQTT_IP> -t /multipaas/cluster/event/$HOSTNAME -m "D:$LWC"
-    done
-    m_dep
-}
-cluster_statefullset_event_logger() {
-    while read IN
-    do
-        LWC=$(echo "$IN" | awk '{print tolower($0)}')
-        mosquitto_pub -h <MQTT_IP> -t /multipaas/cluster/event/$HOSTNAME -m "S:$LWC"
-    done
-    m_rep
-}
-sleep 20
-m_dep
-m_rep
-EOF
-   
-    sudo chmod a+wx /k8s_event_logger.sh
-    sudo sed -i "s/<MQTT_IP>/$MASTER_IP/g" /k8s_event_logger.sh
-    sudo sed -i "s/<HOME>/$HOME/g" /k8s_event_logger.sh
-
-    # if [ -f "/etc/systemd/system/multipaasevents.service" ]; then
-    #     sudo systemctl stop multipaasevents.service
-    #     sudo systemctl disable multipaasevents.service
-    #     sudo rm -rf /etc/systemd/system/multipaasevents.service
-    #     sudo systemctl daemon-reload
-    # fi
-    sudo tee -a /etc/systemd/system/multipaasevents.service >/dev/null <<'EOF'
-[Unit]
-Description=Multipaas Cluster Event Monitor
-After=syslog.target network.target
-
-[Service]
-Type=simple
-ExecStart=/k8s_event_logger.sh
-TimeoutStartSec=0
-Restart=always
-RestartSec=120
-User=vagrant
-
-[Install]
-WantedBy=default.target
-EOF
-
-    # sudo systemctl daemon-reload
-    # sudo systemctl enable multipaasevents.service
-    # sudo systemctl start multipaasevents.service
 }
 
 cp_api_auth() {
@@ -803,19 +789,6 @@ if [ "$?" != "0" ]; then
     exit 1
 fi
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 sudo sed -i.bak '/multipaas.com/d' /etc/hosts &>>$err_log
 sudo rm -rf /etc/hosts.bak &>>$err_log
 sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
@@ -839,8 +812,7 @@ if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$HOME
     error "Copy the Registry certificate setup script to your home folder:\n"
     warn " 1. Grab the config script from the control-plane\n"
     warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
-    warn " 2. Place the script in the local home folder,\n"
-    warn "    make sure the script is executable.\n"
+    warn " 2. Place the script in the local home folder\n"
     CONDITION_FAIL="1"
 fi
 log "\n"
@@ -848,8 +820,7 @@ if [ ! -f "$HOME/configNginxRootCA.sh" ]; then
     error "Copy the Nginx root certificate setup script to your home folder:\n"
     warn " 1. Grab the config script from the control-plane\n"
     warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
-    warn " 2. Place the script in the local home folder,\n"
-    warn "    make sure the script is executable.\n"
+    warn " 2. Place the script in the local home folder\n"
     CONDITION_FAIL="1"
 fi
 
@@ -896,15 +867,18 @@ if [ "$IS_K8S_NODE" == "true" ]; then
         create_account_and_register
         
         # Authenticate to registry
-        registry_auth #&>>$err_log &
-        # bussy_indicator "Configure k8s registry credentials..."
-        # log "\n"
+        registry_auth &>>$err_log &
+        bussy_indicator "Configure k8s registry credentials..."
+        log "\n"
 
-        # export KUBECONFIG=$HOME/.kube/admin.conf
-        sleep 5
-        echo "A"
-        kubectl --kubeconfig $HOME/.kube/admin.conf create secret docker-registry regcred --docker-server=registry.multipaas.org --docker-username=$RU --docker-password=$RP --docker-email=multipaas@multipaas.com
-        echo "B"
+        # Configure registry with the cluster
+        sleep 15
+        source $HOME/.bashrc
+        export KUBECONFIG=$HOME/.kube/admin.conf
+        kubectl create secret docker-registry regcred --docker-server=registry.multipaas.org --docker-username=$RU --docker-password=$RP --docker-email=multipaas@multipaas.com
+        
+        # Now create background services
+        create_services >/dev/null 2>&1
         
         log "\n"
 
