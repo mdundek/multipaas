@@ -219,7 +219,11 @@ class TaskVolumeController {
             }
 
             // Mkdir
-            r = await OSController.sshExec(node.ip, `mkdir -p /mnt/${volumeName}`, true);
+            r = await OSController.sshExec(node.ip, `sudo mkdir -p /mnt/${volumeName}`, true);
+            if(r.code != 0) {
+                throw new Error(r.stderr);
+            }
+            r = await OSController.sshExec(node.ip, `sudo chmod a+w /mnt/${volumeName}`, true);
             if(r.code != 0) {
                 throw new Error(r.stderr);
             }
