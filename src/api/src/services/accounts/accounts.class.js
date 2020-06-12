@@ -15,7 +15,9 @@ exports.Accounts = class Accounts extends Service {
      * @param {*} params 
      */
     async create (data, params) {
-        console.log(data);
+
+        console.log("data =>", data);
+
         const { name, email, password } = data;
         // If user exists, make sure he has not his own account
         let potentialUsers = await this.app.service('users').find({
@@ -25,6 +27,8 @@ exports.Accounts = class Accounts extends Service {
             },
             _internalRequest: true
         });
+
+        console.log("potentialUsers =>", potentialUsers);
 
         let adminToken = null;
         let kcUser = null;
@@ -78,6 +82,7 @@ exports.Accounts = class Accounts extends Service {
             }
             
             if(potentialUsers.length == 1) {
+                console.log("Has potential user !!! =>", potentialUsers);
                 let accountUsers = await this.app.service('acc-users').find({
                     paginate: false,
                     query: {
@@ -116,8 +121,13 @@ exports.Accounts = class Accounts extends Service {
 
                 let user = null;
                 if(potentialUsers.length == 1){
+                    console.log("Has potential user 2 !!! =>", potentialUsers);
                     user = potentialUsers[0];
                 } else {
+                    console.log("Creating user ==>", {
+                        email, 
+                        password
+                    });
                     user = await this.app.service('users').create({
                         email, 
                         password
@@ -126,6 +136,12 @@ exports.Accounts = class Accounts extends Service {
                         sequelize: { transaction}
                     });
                 }
+
+                console.log("creating acc-user =>", {
+                    accountId: newAccount.id, 
+                    userId: user.id,
+                    isAccountOwner: true
+                });
 
                 await this.app.service('acc-users').create({
                     accountId: newAccount.id, 
