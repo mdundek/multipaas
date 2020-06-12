@@ -560,7 +560,7 @@ EOT
 cp_api_auth() {
     MP_TOKEN=$(curl -s http://$MASTER_IP:3030/authentication/ \
         -H 'Content-Type: application/json' \
-        --data-binary '{ "strategy": "local", "email": "'"$MPUS"'", "password": "'"$MPPW"'" }' | jq -r '.accessToken')
+        --data-binary '{ "strategy": "local", "email": "'"$1"'", "password": "'"$2"'" }' | jq -r '.accessToken')
     if [ "$MP_TOKEN" == "null" ]; then
         error "MultiPaaS authentication failed\n"
         exit 1
@@ -605,7 +605,7 @@ create_account_and_register() {
     warn "Before you can start using your cluster, you need to register this node with the control-plane"
     log "\n"
 
-    cp_api_auth
+    cp_api_auth "$MPUS" "$MPPW"
 
     # Make sure hostname is not in use
     HNAME=$(hostname)
@@ -630,6 +630,22 @@ create_account_and_register() {
                 ACC_ID=$(echo "$EXISTING_ACC" | jq -r '.data[0].id')
                 VALIDE="1"
             fi
+
+            # User email & password
+            VALIDE='0'
+            while [[ "$VALIDE" == '0' ]]; do
+                read_input "Enter the cluster account user email address:" UPUS
+                while [[ "$UPUS" == '' ]]; do
+                    read_input "\nInvalide answer, try again:" UPUS
+                done
+                cp_api_get EXISTING_USER "users?email=$UPUS"
+
+                if [ "$(echo "$EXISTING_USER" | jq -r '.total')" == "1" ]; then
+                    error "User name already in use.\n"
+                else
+                    VALIDE="1"
+                fi
+            done
         else
             IS_NEW_ACC="1"
             # User email & password
@@ -654,7 +670,7 @@ create_account_and_register() {
             done
 
             # super...
-            J_PAYLOAD='{"action":"account","params":{"accountName":"'"$ACC_NAME"'","email":"'"$UPUS"'","password":"'"$UPUS"'"}}'
+            J_PAYLOAD='{"action":"account","params":{"accountName":"'"$ACC_NAME"'","email":"'"$UPUS"'","password":"'"$UPPW"'"}}'
             cp_api_create ACC_CR_RESP "cli" $J_PAYLOAD
             if [ "$(echo "$ACC_CR_RESP" | jq -r '.code')" != "200" ]; then
                 error "An error occured, could not create account\n"
@@ -667,6 +683,8 @@ create_account_and_register() {
             fi
         fi
     done
+
+    cp_api_auth "$UPUS" "$UPPW"
 
     # Organization
     VALIDE='0'
