@@ -16,14 +16,14 @@ docker run -d \
     --restart unless-stopped \
     --network host \
     -e MP_MODE=unipaas \
-    -e DB_HOST=192.168.1.12 \
-    -e NGINX_HOST_IP=192.168.1.12 \
+    -e DB_HOST=192.168.68.149 \
+    -e NGINX_HOST_IP=192.168.68.149 \
     -e DB_USER=postgres \
     -e DB_PASS=li14ebe14 \
-    -e MOSQUITTO_IP=192.168.1.12 \
+    -e MOSQUITTO_IP=192.168.68.149 \
     -e API_SYSADMIN_USER=mdundek@gmail.com \
     -e API_SYSADMIN_PASSWORD=li14ebe14 \
-    -e REGISTRY_IP=192.168.1.12 \
+    -e REGISTRY_IP=192.168.68.149 \
     -e CRYPTO_KEY=YDbxyG16Q6ujlCpjXH2Pq7nPAtJF66jLGwx4RYkHqhY= \
     -e ENABLE_NGINX_STREAM_DOMAIN_NAME=true \
     -e MP_SERVICES_DIR=/usr/src/app/data/mp_services \

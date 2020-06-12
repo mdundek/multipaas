@@ -65,6 +65,13 @@ module.exports = {
 	after: {
 		all: [],
 		find: [async context => {
+
+			if(context.result.data){
+				console.log("context.result.data =>", context.result.data);
+			} else {
+				console.log("context.result =>", context.result);
+			}
+
 			// Is user is sysadmin, return it all
 			if(await Permissions.isSysAdmin(context) || context.params._internalRequest){
 				delete context.params._internalRequest;
@@ -72,6 +79,9 @@ module.exports = {
 			}
 
 			let userId = Permissions.getUserIdFromJwt(context.params.authentication.accessToken);
+
+			console.log("userId =>", userId);
+
 			let accUsers = await context.app.service('acc-users').find({
 				paginate: false,
 				query: {
@@ -79,6 +89,8 @@ module.exports = {
 				},
 				_internalRequest: true
 			});
+
+			console.log("accUsers =>", accUsers);
 		
 			// Itterate over all returned organizations
 			if(context.result.data){
@@ -91,6 +103,7 @@ module.exports = {
 					return accUsers.find(o => o.accountId == acc.id);
 				});
 			}
+			console.log("context =>", context);
 			return context;
 		}],
 		get: [],
