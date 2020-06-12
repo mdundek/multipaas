@@ -81,20 +81,21 @@ module.exports = {
 		all: [],
 		find: [
 			async context => {
-				console.log(context.result);
+				
 				if(await Permissions.isSysAdmin(context) || context.params._internalRequest){
 					delete context.params._internalRequest;
 					return context;
 				}
 				
 				let userId = Permissions.getUserIdFromJwt(context.params.authentication.accessToken);
+				console.log("userId", userId);
 				let orgUsers = await context.app.service('org-users').find({
 					paginate: false,
 					query: {
 						userId: userId
 					}
 				});
-				
+				console.log("orgUsers", orgUsers);
 				// Itterate over all returned organizations
 				if(context.result.data){
 					context.result.data = context.result.data.filter((org) => {
