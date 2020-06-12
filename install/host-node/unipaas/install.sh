@@ -374,7 +374,6 @@ install_core_components() {
 
     VM_BASE=$HOME/.multipaas/vm_base
     MULTIPAAS_CFG_DIR=$HOME/.multipaas
-
     sed -i "s/<MP_MODE>/unipaas/g" ./env
     sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
     sed -i "s/<DB_PORT>/5432/g" ./env
@@ -386,7 +385,6 @@ install_core_components() {
     sed -i "s/<IS_K8S_NODE>/$IS_K8S_NODE/g" ./env
     sed -i "s/<IS_GLUSTER_PEER>/$IS_GLUSTER_PEER/g" ./env
     sed -i "s/<GLUSTER_VOL>/$GLUSTER_VOLUME/g" ./env
-
     cp env .env
     rm env
 
@@ -395,6 +393,26 @@ install_core_components() {
     if [ "$HOST_NODE_DEPLOYED" == "" ]; then
         npm i
         /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
+        /opt/pm2/bin/pm2 -s startup
+        sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
+        /opt/pm2/bin/pm2 -s save --force
+    fi
+
+    cd $_BASEDIR/src/satelite/ # Position cmd in src folder
+    cp env.template env
+
+    VM_BASE=$HOME/.multipaas/vm_base
+    MULTIPAAS_CFG_DIR=$HOME/.multipaas
+    sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
+    sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
+    sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
+    cp env .env
+    rm env
+
+    HOST_NODE_SATELITE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
+    if [ "$HOST_NODE_SATELITE_DEPLOYED" == "" ]; then
+        npm i
+        /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
         /opt/pm2/bin/pm2 -s startup
         sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
         /opt/pm2/bin/pm2 -s save --force
