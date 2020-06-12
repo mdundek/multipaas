@@ -50,14 +50,13 @@ class MqttController {
             let payload = JSON.parse(message.toString());
             try {
                 let stdoutArray = await OsController.execSilentCommand(payload.cmd);
-            
-                this.client.publish(`/unipaas/local/host/response/${payload.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
+                this.client.publish(`/unipaas/local/host/respond/${payload.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                     status: 200,
                     data: stdoutArray
                 }));
             } catch (error) {
                 console.log(error);
-                this.client.publish(`/unipaas/local/host/response/${payload.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
+                this.client.publish(`/unipaas/local/host/respond/${payload.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                     status: error.code ? error.code : 500,
                     message: error.message
                 }));

@@ -41,12 +41,16 @@ class MqttController {
                 if(process.env.IS_GLUSTER_PEER.toLowerCase() == "true"){
                     this.client.subscribe(`/multipaas/k8s/host/query/gluster_peers/#`);
                 }
-
-                this.client.subscribe(`/unipaas/node/cmd/response/${this.ip}/#`);
                 
+                this.client.subscribe(`/unipaas/local/host/respond/${this.ip}/#`);
+                
+
+
+
+
                 (async() => {
                     console.log("Testing command...");
-                    let testLs = await this.unipaasQueryRequestResponse("192.168.1.96", "cmd", {
+                    let testLs = await this.unipaasQueryRequestResponse("192.168.68.123", "cmd", {
                         cmd: "ls -l"
                     });
                     console.log(testLs);
@@ -74,6 +78,7 @@ class MqttController {
      * @param {*} message 
      */
     static async _processIncommingMessage(topic, message) {
+        console.log(topic);
         let topicSplit = topic.split("/");
         if(topicSplit[0].length == 0)
             topicSplit.shift();
