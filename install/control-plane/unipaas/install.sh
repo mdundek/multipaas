@@ -729,7 +729,8 @@ collect_informations
 # Configure firewall
 # configure_firewall &>>$err_log
 
-sudo sed '/multipaas.com/d' /etc/hosts &>>$err_log
+sudo sed -i.bak '/multipaas.com/d' /etc/hosts &>>$err_log
+sudo rm -rf /etc/hosts.bak &>>$err_log
 sudo -- sh -c "echo $LOCAL_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com multipaas.static.com >> /etc/hosts" &>>$err_log
 
 # Install the core components

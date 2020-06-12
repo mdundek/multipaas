@@ -652,7 +652,6 @@ create_account_and_register() {
                 fi
             done
 
-            log "\n"
             read_input "Enter the cluster account user password:" UPPW
             while [[ "$UPPW" == '' ]]; do
                 read_input "\nInvalide answer, try again:" UPPW
@@ -794,7 +793,8 @@ if [ "$?" != "0" ]; then
     exit 1
 fi
 
-sudo sed '/multipaas.com/d' /etc/hosts &>>$err_log
+sudo sed -i.bak '/multipaas.com/d' /etc/hosts &>>$err_log
+sudo rm -rf /etc/hosts.bak &>>$err_log
 sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
 
 # Clean up first if necessary
