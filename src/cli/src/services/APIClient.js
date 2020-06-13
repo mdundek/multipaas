@@ -197,6 +197,7 @@ class APIClient {
         } else {
             return {
                 "code": 200,
+                "unipaas": this.apiJson.unipaas,
                 "user": this.sessionJson.user,
                 "account": this.sessionJson.account ? this.sessionJson.account : null,
                 "organization": this.sessionJson.organization ? this.sessionJson.organization : null,

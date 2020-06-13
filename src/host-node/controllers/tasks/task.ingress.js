@@ -386,8 +386,13 @@ class TaskIngressController {
             }
         }
         let ingressFilePath = path.join(process.env.VM_BASE_DIR, "workplaces", data.node.workspaceId.toString(), data.node.hostname, `${tmpFolderHash}.yaml`);
-        await OSController.fetchFileSsh(data.node.ip, ingressFilePath, "/home/vagrant/deployment_templates/ingress-controller/daemon-set/nginx-ingress.yaml");
 
+        if(process.env.MP_MODE == "unipaas") {
+            await OSController.copyFile(path.join(process.cwd(), "resources", "k8s_templates", "ingress-controller", "daemon-set", "nginx-ingress.yaml"), ingressFilePath);
+        } else {
+            await OSController.fetchFileSsh(data.node.ip, ingressFilePath, "/home/vagrant/deployment_templates/ingress-controller/daemon-set/nginx-ingress.yaml");
+        }
+        
         // Update NGinx ingress deamonset config
         let ingressDeamonSetYaml = YAML.parse(fs.readFileSync(ingressFilePath, 'utf8'));
         let backupIngressDeamonSet = JSON.parse(JSON.stringify(ingressDeamonSetYaml));
@@ -573,8 +578,13 @@ class TaskIngressController {
             }
         }
         let deamonsetIngressFilePath = path.join(process.env.VM_BASE_DIR, "workplaces", data.node.workspaceId.toString(), data.node.hostname, `${tmpFileNameHash}.yaml`);
-        await OSController.fetchFileSsh(data.node.ip, deamonsetIngressFilePath, "/home/vagrant/deployment_templates/ingress-controller/daemon-set/nginx-ingress.yaml");
-
+        
+        if(process.env.MP_MODE == "unipaas") {
+            await OSController.copyFile(path.join(process.cwd(), "resources", "k8s_templates", "ingress-controller", "daemon-set", "nginx-ingress.yaml"), deamonsetIngressFilePath);
+        } else {
+            await OSController.fetchFileSsh(data.node.ip, deamonsetIngressFilePath, "/home/vagrant/deployment_templates/ingress-controller/daemon-set/nginx-ingress.yaml");
+        }
+        
         // Update NGinx ingress deamonset config
         let ingressDeamonSetYaml = YAML.parse(fs.readFileSync(deamonsetIngressFilePath, 'utf8'));
         let backupIngressDeamonSet = JSON.parse(JSON.stringify(ingressDeamonSetYaml));

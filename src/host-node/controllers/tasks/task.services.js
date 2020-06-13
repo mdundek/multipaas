@@ -225,9 +225,19 @@ class TaskServicesController {
             pString = `--set ${serviceParamStrings.join(',')} `;
         }
 
-        let helmChartTargetPath = `/root/${path.basename(chartTarFilePath)}`;
-        await OSController.pushFileSsh(node.ip, chartTarFilePath, helmChartTargetPath);
-        await _sleep(1000);
+        let helmChartTargetPath;
+        let targetPath;
+        if(process.env.MP_MODE != "unipaas") {
+            targetPath = "/root";
+            helmChartTargetPath = `${targetPath}/${path.basename(chartTarFilePath)}`;
+            await OSController.pushFileSsh(node.ip, chartTarFilePath, helmChartTargetPath);
+            await _sleep(1000);
+        } else {
+            targetPath = path.join(process.env.VM_BASE_DIR, "workplaces", node.workspaceId.toString(), node.hostname);
+            helmChartTargetPath = `${targetPath}/${path.basename(chartTarFilePath)}`;
+            await OSController.copyFile(chartTarFilePath, helmChartTargetPath);
+            await _sleep(1000);
+        }
 
         // Execute HELM command
         let helmCmd = `helm install --atomic ${pString}--output yaml${ns ? " --namespace " + ns : ""} ${serviceName} ${helmChartTargetPath}`;

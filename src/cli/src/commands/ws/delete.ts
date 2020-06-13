@@ -19,6 +19,12 @@ export default class Workspace extends Command {
 	 * run
 	 */
 	async run() {
+		let session = await this.api("status");
+		if(session.unipaas) {
+			this.logError("UniPaaS mode does not support this command.");
+			return;
+		}
+		
 		const {args} = this.parse(Workspace)
 		if(!args.wsName){
 			return this.logError("Missing workspace name.");

@@ -792,15 +792,23 @@ class TaskRuntimeController {
      * @param {*} node 
      */
     static async applyK8SYaml(yamlFilePath, ns, node) {
+        let targetPath = null;
         try {
-            await OSController.pushFileSsh(node.ip, yamlFilePath, `/root/${path.basename(yamlFilePath)}`);
+            if(process.env.MP_MODE != "unipaas") {
+                targetPath = "/root";
+                await OSController.pushFileSsh(node.ip, yamlFilePath, `${targetPath}/${path.basename(yamlFilePath)}`);
+            } else {
+                targetPath = path.join(process.env.VM_BASE_DIR, "workplaces", node.workspaceId.toString(), node.hostname);
+                await OSController.copyFile(yamlFilePath, `${targetPath}/${path.basename(yamlFilePath)}`);
+            }
+
             // Wait untill kubectl answers for 100 seconds max
             let attempts = 0;
             let success = false;
             while(!success && attempts <= 30){
                 await _sleep(1000 * 5);
                 
-                let r = await OSController.sshExec(node.ip, `kubectl apply -f /root/${path.basename(yamlFilePath)}${ns ? " --namespace=" + ns:""}`, true);
+                let r = await OSController.sshExec(node.ip, `kubectl apply -f ${targetPath}/${path.basename(yamlFilePath)}${ns ? " --namespace=" + ns:""}`, true);
                 if(r.code == 0) {
                     success = true;
                 } else {
@@ -815,7 +823,7 @@ class TaskRuntimeController {
                 throw new Error("Could not apply yaml resource on cluster");
             }
         } finally {
-            await OSController.sshExec(node.ip, `rm -rf /root/${path.basename(yamlFilePath)}`, true);
+            await OSController.sshExec(node.ip, `rm -rf ${targetPath}/${path.basename(yamlFilePath)}`, true);
         }
     }
 

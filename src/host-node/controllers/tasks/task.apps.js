@@ -182,10 +182,20 @@ class TaskAppsController {
         // Prepare paths
         let folderName = path.basename(tmpZipFile);
         folderName = folderName.substring(0, folderName.lastIndexOf("."));
-        let zipPath = path.join("/root", path.basename(tmpZipFile));
-        let folderPath = path.join(path.join("/root", folderName));
-       
-        await OSController.pushFileSsh(node.ip, tmpZipFile, zipPath);
+
+        let zipPath;
+        let folderPath;
+        if(process.env.MP_MODE != "unipaas") {
+            targetPath = "/root";
+            zipPath = path.join(targetPath, path.basename(tmpZipFile));
+            folderPath = path.join(path.join(targetPath, folderName));
+            await OSController.pushFileSsh(node.ip, tmpZipFile, zipPath);
+        } else {
+            targetPath = path.join(process.env.VM_BASE_DIR, "workplaces", node.workspaceId.toString(), node.hostname);
+            zipPath = path.join(targetPath, path.basename(tmpZipFile));
+            folderPath = path.join(path.join(targetPath, folderName));
+            await OSController.copyFile(tmpZipFile, zipPath);
+        }
 
         await OSController.sshExec(node.ip, `printf "${rPass}" | docker login registry.multipaas.org --username ${rUser} --password-stdin`);
 
@@ -509,9 +519,17 @@ class TaskAppsController {
             pString = `--set ${serviceParamStrings.join(',')} `;
         }
 
-        let helmChartTargetPath = `/root/${path.basename(chartTarFilePath)}`;
-        await OSController.pushFileSsh(node.ip, chartTarFilePath, helmChartTargetPath);
-        await _sleep(1000);
+        let helmChartTargetPath;
+        if(process.env.MP_MODE != "unipaas") {
+            targetPath = "/root";
+            helmChartTargetPath = `${targetPath}/${path.basename(chartTarFilePath)}`;
+            await OSController.pushFileSsh(node.ip, chartTarFilePath, helmChartTargetPath);
+            await _sleep(1000);
+        } else {
+            targetPath = path.join(process.env.VM_BASE_DIR, "workplaces", node.workspaceId.toString(), node.hostname);
+            helmChartTargetPath = `${targetPath}/${path.basename(chartTarFilePath)}`;
+            await OSController.copyFile(chartTarFilePath, helmChartTargetPath);
+        }
 
         // Execute HELM command
         // let helmCmd = `helm install ${pString}--output yaml${ns ? " --namespace " + ns : ""} ${serviceName} ${helmChartTargetPath}`;

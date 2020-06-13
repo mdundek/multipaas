@@ -19,6 +19,12 @@ export default class Scale extends Command {
 	 * run
 	 */
 	async run() {
+		let session = await this.api("status");
+		if(session.unipaas) {
+			this.logError("UniPaaS mode does not support this command.");
+			return;
+		}
+
 		const {flags} = this.parse(Scale)
 		if(!flags.nodes){
 			this.logError("Missing instance number");

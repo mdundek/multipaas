@@ -172,7 +172,8 @@ class OsController {
 	 * @param {*} target 
 	 */
 	static copyFile(source, destinationDir) {
-		shell.cp(source, destinationDir);
+		if(source != destinationDir)
+			shell.cp(source, destinationDir);
 	}
 
 	/**
@@ -455,14 +456,19 @@ class OsController {
 							}
 							resolve(returnObj);
 						} else {
+							console.log();
 							let returnObj = {
 								code: 1,
-								stdout: result.data.message
+								stderr: result.data.message
 							}
 							resolve(returnObj);
 						}
 					}).catch((_e) => {
-						reject(_e);
+						let returnObj = {
+							code: 1,
+							stderr: _e.message
+						}
+						_resolve(returnObj);
 					});
 				}
 			}
