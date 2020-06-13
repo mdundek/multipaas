@@ -202,6 +202,15 @@ build_for_ubuntu_bionic() {
         log "\n"
     fi
 
+    # Helm
+    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/helm)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/helm
+        wget https://get.helm.sh/helm-v3.2.3-linux-amd64.tar.gz -O $OFFLINE_FOLDER/debs/helm/helm-v3.2.3-linux-amd64.tar.gz &>>$err_log &
+        bussy_indicator "Adding repo Helm 12..."
+        log "\n"
+    fi
+    
+
     sudo apt update -y &>>$err_log &
     bussy_indicator "Updating repos..."
     log "\n"

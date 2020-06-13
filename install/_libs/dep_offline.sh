@@ -375,3 +375,23 @@ EOF'
         . /etc/profile.d/node.sh
     fi
 }
+
+########################################
+# 
+########################################
+dep_helm() {
+    cd $_DIR
+    HELM_EXISTS=$(command -v helm)
+    if [ "$HELM_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            if [ "$MAJ_V" == "18.04" ]; then
+                sudo tar xvf ../build/ubuntu_bionic/debs/helm/helm-v3.2.3-linux-amd64.tar.gz -C ../build/ubuntu_bionic/debs/helm
+                sudo mv ../build/ubuntu_bionic/debs/helm/linux-amd64/helm /usr/local/bin/
+            fi
+        elif [ "$DISTRO" == "redhat" ]; then
+            if [ "$MAJ_V" == "8" ]; then
+                echo "Not implemented yet"
+            fi
+        fi
+    fi
+}

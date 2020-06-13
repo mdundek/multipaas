@@ -156,8 +156,9 @@ dependencies_master () {
     bussy_indicator "Dependency on \"gitlab-runner\"..."
     log "\n"
 
-    # sudo systemctl disable mosquitto &>>$err_log
-    # sudo systemctl stop mosquitto &>>$err_log
+    dep_helm &>>$err_log &
+    bussy_indicator "Dependency on \"Helm\"..."
+    log "\n"
 
     PM2_EXISTS=$(command -v pm2)
     if [ "$PM2_EXISTS" == "" ]; then
