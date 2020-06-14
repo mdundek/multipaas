@@ -345,8 +345,6 @@ dep_sshpass() {
     fi
 }
 
-
-
 ########################################
 # 
 ########################################
@@ -358,7 +356,23 @@ dep_pm2() {
         PM2_INSTALL_DIR=/opt
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                sudo tar xpf ../build/ubuntu_bionic/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
+                if [ -d "$PM2_INSTALL_DIR/pm2" ]; then
+                    sudo rm -rf $PM2_INSTALL_DIR/pm2
+                fi
+                if [ -d "$PM2_INSTALL_DIR/package" ]; then
+                    sudo rm -rf $PM2_INSTALL_DIR/package
+                fi
+                if [ -d "../build" ]; then
+                    sudo tar xpf ../build/ubuntu_bionic/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
+                elif [ -d "../../build/offline_files/npm-modules" ]; then
+                    sudo tar xpf ../../build/offline_files/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
+                else
+                    echo "PM2 binary has not been found"
+                    exit 1
+                fi
+                if [ -d "$PM2_INSTALL_DIR/package" ]; then
+                    sudo mv $PM2_INSTALL_DIR/package $PM2_INSTALL_DIR/pm2
+                fi
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -388,9 +402,9 @@ dep_helm() {
                 if [ -d "../build" ]; then
                     sudo tar xvf ../build/ubuntu_bionic/debs/helm/helm-v3.2.3-linux-amd64.tar.gz -C ../build/ubuntu_bionic/debs/helm
                     sudo mv ../build/ubuntu_bionic/debs/helm/linux-amd64/helm /usr/local/bin/
-                elif [ -d "../../build" ]; then
-                    sudo tar xvf ../../build/ubuntu_bionic/debs/helm/helm-v3.2.3-linux-amd64.tar.gz -C ../../build/ubuntu_bionic/debs/helm
-                    sudo mv ../../build/ubuntu_bionic/debs/helm/linux-amd64/helm /usr/local/bin/
+                elif [ -d "../../build/offline_files/debs" ]; then
+                    sudo tar xvf ../../build/offline_files/debs/helm/helm-v3.2.3-linux-amd64.tar.gz -C ../../build/offline_files/debs/helm
+                    sudo mv ../../build/offline_files/debs/helm/linux-amd64/helm /usr/local/bin/
                 else
                     echo "HELM binary has not been found"
                     exit 1

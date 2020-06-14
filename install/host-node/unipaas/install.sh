@@ -158,25 +158,9 @@ dependencies () {
     bussy_indicator "Dependency on \"Helm\"..."
     log "\n"
 
-    PM2_EXISTS=$(command -v pm2)
-    if [ "$PM2_EXISTS" == "" ]; then
-        PM2_INSTALL_DIR=/opt
-        if [ -d "$PM2_INSTALL_DIR/pm2" ]; then
-            sudo rm -rf $PM2_INSTALL_DIR/pm2
-        fi
-        if [ -d "$PM2_INSTALL_DIR/package" ]; then
-            sudo rm -rf $PM2_INSTALL_DIR/package
-        fi
-        sudo tar xpf $_BASEDIR/install/build/offline_files/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR 
-        if [ -d "$PM2_INSTALL_DIR/package" ]; then
-            sudo mv $PM2_INSTALL_DIR/package $PM2_INSTALL_DIR/pm2
-        fi
-        sudo bash -c 'cat <<EOF > "/etc/profile.d/node.sh"
-#!/bin/sh
-export PATH="'$PM2_INSTALL_DIR'/pm2/bin:\$PATH"
-EOF'
-        . /etc/profile.d/node.sh
-    fi
+    dep_pm2 &>>$err_log &
+    bussy_indicator "Dependency on \"PM2\"..."
+    log "\n"
 
     # Add sysctl settings
     sudo tee -a /etc/sysctl.d/kubernetes.conf >/dev/null <<'EOF'
@@ -547,7 +531,7 @@ EOF
 
     cat <<EOT >> $HOME/gentoken.sh
 #!/bin/bash
-IN="$(kubeadm token create --print-join-command)"
+IN="$(kubeadm token create --print-join-command 2>/dev/null)"
 IFS=' ' read -r -a array <<< "$IN"
 echo "${array[4]} ${array[6]}"
 EOT
@@ -617,18 +601,15 @@ EOT
 init_k8s_worker() { 
     cd $_BASEDIR
    
-    cat <<EOT >> $HOME/config_kublet_ip.sh
+    cat <<EOT > $HOME/config_kublet_ip.sh
 #!/bin/bash
 sed -i "s/--network-plugin=cni/--network-plugin=cni --node-ip=$LOCAL_IP/g" /var/lib/kubelet/kubeadm-flags.env
 EOT
     chmod +x $HOME/config_kublet_ip.sh
+    log "\n"
 
-    # sudo systemctl enable kubelet 
-    # sudo systemctl start kubelet 
-    
     read_input "K8S Master IP:" K8S_MASTER_IP
-
-    warn "Execute the script \$HOME/gentoken.sh on the master node, and enter the generated token here"
+    warn "Execute the script \$HOME/gentoken.sh on the master node, and enter the generated token here\n"
     read_input "TOKEN:" K8S_JOIN_TOKEN
     while [[ "$K8S_JOIN_TOKEN" == '' ]]; do
         read_input "\nInvalide answer, try again:" KEYCLOAK_SECRET
@@ -636,32 +617,15 @@ EOT
     log "\n"
     IFS=' ' read -r -a tokens <<< "$K8S_JOIN_TOKEN"
 
-     
-
-    kubeadm join $K8S_MASTER_IP:6443 --token ${tokens[0]} --discovery-token-ca-cert-hash ${tokens[1]}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    sudo kubeadm join $K8S_MASTER_IP:6443 --token ${tokens[0]} --discovery-token-ca-cert-hash ${tokens[1]} &>>$err_log
+    if [ "$?" != "0" ]; then
+        error "Could not join the cluster"
+        exit 1
+    fi
     sudo bash $HOME/config_kublet_ip.sh
+
+    sudo chmod +x $HOME/configNginxRootCA.sh
+    sudo /bin/bash $HOME/configNginxRootCA.sh
 }
 
 cp_api_auth() {
@@ -706,6 +670,33 @@ cp_api_delete() {
         http://$MASTER_IP:3030/$1)
 
     eval $__resultvar="'$_R'"
+}
+
+declare_worker_node() {
+    cp_api_auth "$MPUS" "$MPPW"
+
+    # Make sure hostname is not in use
+    HNAME=$(hostname)
+    cp_api_get EXISTING_HOST "k8s_hosts?hostname=$HNAME"
+    if [ "$(echo "$EXISTING_HOST" | jq -r '.total')" == "1" ]; then
+        error "This machine hostname $HNAME is already in use."
+        exit 1
+    fi
+
+    cp_api_get EXISTING_MASTER_NODE "k8s_nodes?ip=$K8S_MASTER_IP&nodeType=MASTER"
+    WS_ID=$(echo "$EXISTING_MASTER_NODE" | jq -r '.data[0].workspaceId')
+
+    # Create workspace base folder
+    mkdir -p $HOME/.multipaas/vm_base/workplaces/$WS_ID/$HNAME
+
+    # Host
+    J_PAYLOAD='{"workspaceId":'"$WS_ID"',"ip":"'"$LOCAL_IP"'","hostname":"'"$HNAME"'","status":"ready"}'
+    cp_api_create HOST_CR_RESP "k8s_hosts" $J_PAYLOAD
+    HOST_ID=$(echo "$HOST_CR_RESP" | jq -r '.id')
+    MASTER_UUID=$(echo "$HOST_CR_RESP" | jq -r '.hash')
+
+    J_PAYLOAD='{"workspaceId":'"$WS_ID"',"k8sHostId":'"$HOST_ID"',"ip":"'"$LOCAL_IP"'","hostname":"'"$HNAME"'","hash":"'"$MASTER_UUID"'","nodeType":"WORKER"}'
+    cp_api_create NODE_CR_RESP "k8s_nodes" $J_PAYLOAD
 }
 
 create_account_and_register() {
@@ -1002,10 +993,6 @@ if [ "$IS_K8S_NODE" == "true" ]; then
         log "\n"
         log "\n"
 
-        success "MultiPaaS host controller & K8S master deployed successfully!\n"
-        log "\n"
-        log "\n"
-
         # Register node
         create_account_and_register
         
@@ -1025,47 +1012,7 @@ if [ "$IS_K8S_NODE" == "true" ]; then
         
         log "\n"
 
-        if [ "$IS_GLUSTER_PEER" == "true" ]; then
-            # Start the gluster controller
-            if [ "$NEW_DOCKER" == "true" ]; then
-                log "\n"
-                warn "==> Since Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
-                warn "    Please log out, and log back in, then execute the following command:\n"
-                log "\n"
-                log "    docker run \n"
-                log "       -d --privileged=true \n"
-                log "       --restart unless-stopped \n"
-                log "       --net=host -v /dev/:/dev \n"
-                log "       -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \n"
-                log "       -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \n"
-                log "       -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \n"
-                log "       -v $BRICK_MOUNT_PATH:/bricks:z \n"
-                log "       -v /sys/fs/cgroup:/sys/fs/cgroup:ro \n"
-                log "       --name gluster-ctl \n"
-                log "       gluster/gluster-centos:gluster4u0_centos7\n"
-            else
-                docker rm -f gluster-ctl >/dev/null 2>&1
-                
-                docker run \
-                    -d --privileged=true \
-                    --restart unless-stopped \
-                    --net=host -v /dev/:/dev \
-                    -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \
-                    -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \
-                    -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \
-                    -v $BRICK_MOUNT_PATH:/bricks:z \
-                    -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
-                    --name gluster-ctl \
-                    gluster/gluster-centos:gluster4u0_centos7 &>/dev/null
-            fi
-            
-            # Join the gluster network
-            log "\n"
-            warn "==> To add this Gluster peer to the Gluster network, execute the following command ON ANY OTHER GLUSTER peer host:\n"
-            warn "    PLEASE NOTE: This is only necessary if this is NOT the first Gluster node for this Gluster network\n"
-            log "\n"
-            log "    docker exec gluster-ctl gluster peer probe $LOCAL_IP\n"
-        fi
+        success "MultiPaaS host controller & K8S master deployed successfully!\n"
         log "\n"
     else
         # Install dependencies
@@ -1079,15 +1026,68 @@ if [ "$IS_K8S_NODE" == "true" ]; then
         bussy_indicator "Installing host controller components..."
         log "\n"
 
-        init_k8s_worker &>>$err_log &
-        bussy_indicator "Installing kubernetes cluster worker..."
-        log "\n"
+        init_k8s_worker
         log "\n"
 
         success "MultiPaaS host controller & K8S worker deployed successfully!\n"
         log "\n"
         log "\n"
+
+        # Register node
+        declare_worker_node
+        
+        # Authenticate to registry
+        registry_auth &>>$err_log &
+        bussy_indicator "Configure k8s registry credentials..."
+        log "\n"
+
+        success "MultiPaaS host controller & K8S worker deployed successfully!\n"
+        log "\n"
     fi
+fi
+
+log "\n"
+
+if [ "$IS_GLUSTER_PEER" == "true" ]; then
+    # Start the gluster controller
+    if [ "$NEW_DOCKER" == "true" ]; then
+        log "\n"
+        warn "==> Since Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
+        warn "    Please log out, and log back in, then execute the following command:\n"
+        log "\n"
+        log "    docker run \n"
+        log "       -d --privileged=true \n"
+        log "       --restart unless-stopped \n"
+        log "       --net=host -v /dev/:/dev \n"
+        log "       -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \n"
+        log "       -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \n"
+        log "       -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \n"
+        log "       -v $BRICK_MOUNT_PATH:/bricks:z \n"
+        log "       -v /sys/fs/cgroup:/sys/fs/cgroup:ro \n"
+        log "       --name gluster-ctl \n"
+        log "       gluster/gluster-centos:gluster4u0_centos7\n"
+    else
+        docker rm -f gluster-ctl >/dev/null 2>&1
+        
+        docker run \
+            -d --privileged=true \
+            --restart unless-stopped \
+            --net=host -v /dev/:/dev \
+            -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \
+            -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \
+            -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \
+            -v $BRICK_MOUNT_PATH:/bricks:z \
+            -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+            --name gluster-ctl \
+            gluster/gluster-centos:gluster4u0_centos7 &>/dev/null
+    fi
+    
+    # Join the gluster network
+    log "\n"
+    warn "==> To add this Gluster peer to the Gluster network, execute the following command ON ANY OTHER GLUSTER peer host:\n"
+    warn "    PLEASE NOTE: This is only necessary if this is NOT the first Gluster node for this Gluster network\n"
+    log "\n"
+    log "    docker exec gluster-ctl gluster peer probe $LOCAL_IP\n"
 fi
 
 cd "$_PWD"

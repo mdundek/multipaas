@@ -284,8 +284,6 @@ build_for_ubuntu_bionic() {
     bussy_indicator "Downloading repo glibc-doc-reference..."
     log "\n"
     
-    
-
     ########## Download docker images
 
     cd $_CPWD
