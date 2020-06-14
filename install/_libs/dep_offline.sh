@@ -385,12 +385,21 @@ dep_helm() {
     if [ "$HELM_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                sudo tar xvf ../build/ubuntu_bionic/debs/helm/helm-v3.2.3-linux-amd64.tar.gz -C ../build/ubuntu_bionic/debs/helm
-                sudo mv ../build/ubuntu_bionic/debs/helm/linux-amd64/helm /usr/local/bin/
+                if [ -d "../build" ]; then
+                    sudo tar xvf ../build/ubuntu_bionic/debs/helm/helm-v3.2.3-linux-amd64.tar.gz -C ../build/ubuntu_bionic/debs/helm
+                    sudo mv ../build/ubuntu_bionic/debs/helm/linux-amd64/helm /usr/local/bin/
+                elif [ -d "../../build" ]; then
+                    sudo tar xvf ../../build/ubuntu_bionic/debs/helm/helm-v3.2.3-linux-amd64.tar.gz -C ../../build/ubuntu_bionic/debs/helm
+                    sudo mv ../../build/ubuntu_bionic/debs/helm/linux-amd64/helm /usr/local/bin/
+                else
+                    echo "HELM binary has not been found"
+                    exit 1
+                fi
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
-                echo "Not implemented yet"
+                echo "HELM binary for redhat not implemented"
+                exit 1
             fi
         fi
     fi
