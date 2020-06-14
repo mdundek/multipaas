@@ -107,18 +107,16 @@ dependency_docker () {
     fi
 }
 
-dependencies_master () {
+dependencies () {
     sudo echo "" # Ask user for sudo password now
 
-    if [ "$IS_K8S_NODE" == "true" ]; then
-        dep_tar &>>$err_log &
-        bussy_indicator "Dependency on \"tar\"..."
-        log "\n"
+    dep_tar &>>$err_log &
+    bussy_indicator "Dependency on \"tar\"..."
+    log "\n"
 
-        dep_sshpass &>>$err_log &
-        bussy_indicator "Dependency on \"sshpass\"..."
-        log "\n"
-    fi
+    dep_sshpass &>>$err_log &
+    bussy_indicator "Dependency on \"sshpass\"..."
+    log "\n"
 
     dep_kubernetes &>>$err_log &
     bussy_indicator "Dependency on \"Kubernetes\"..."
@@ -359,7 +357,7 @@ collect_informations() {
 ########################################
 # 
 ########################################
-install_core_components() {
+install_master_core_components() {
     cd $_BASEDIR/src/host-node/ # Position cmd in src folder
     
     mkdir -p $HOME/.multipaas
@@ -420,6 +418,41 @@ install_core_components() {
     fi
 }
 
+########################################
+# 
+########################################
+install_worker_core_components() {
+    cd $_BASEDIR/src/satelite/ # Position cmd in src folder
+    
+    mkdir -p $HOME/.multipaas
+
+    if [ "$IS_GLUSTER_PEER" == "true" ]; then
+        mkdir -p $HOME/.multipaas/gluster/etc/glusterfs 2>&1 | log_error_sanitizer
+        mkdir -p $HOME/.multipaas/gluster/var/lib/glusterd 2>&1 | log_error_sanitizer
+        mkdir -p $HOME/.multipaas/gluster/var/log/glusterfs 2>&1 | log_error_sanitizer
+        sudo mkdir -p $BRICK_MOUNT_PATH 2>&1 | log_error_sanitizer
+    fi
+
+    cp env.template env
+
+    VM_BASE=$HOME/.multipaas/vm_base
+    MULTIPAAS_CFG_DIR=$HOME/.multipaas
+    sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
+    sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
+    sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
+    cp env .env
+    rm env
+
+    HOST_NODE_SATELITE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
+    if [ "$HOST_NODE_SATELITE_DEPLOYED" == "" ]; then
+        npm i
+        /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
+        /opt/pm2/bin/pm2 -s startup
+        sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
+        /opt/pm2/bin/pm2 -s save --force
+    fi
+}
+
 registry_auth() {
     # sshpass -p 'vagrant' scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$MASTER_IP:/home/vagrant/configPrivateRegistry.sh $HOME/configPrivateRegistry.sh &>/dev/null
     sudo chmod +x $HOME/configPrivateRegistry.sh
@@ -441,7 +474,7 @@ registry_auth() {
     done
 }
 
-create_services() {
+create_master_services() {
     # ==> Enable k8s deployment logger
     sudo tee -a /multipaas-tail-deployment-events.sh >/dev/null <<'EOF'
 #!/bin/bash
@@ -514,7 +547,9 @@ EOF
 
     cat <<EOT >> $HOME/gentoken.sh
 #!/bin/bash
-kubeadm token create --print-join-command > /joincluster.sh
+IN="$(kubeadm token create --print-join-command)"
+IFS=' ' read -r -a array <<< "$IN"
+echo "${array[4]} ${array[6]}"
 EOT
     sudo chmod +x $HOME/gentoken.sh
     
@@ -574,6 +609,59 @@ EOT
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-ca-file=/etc/kubernetes/pki/rootCA.crt' /etc/kubernetes/manifests/kube-apiserver.yaml
 
     sudo $HOME/gentoken.sh
+}
+
+########################################
+# 
+########################################
+init_k8s_worker() { 
+    cd $_BASEDIR
+   
+    cat <<EOT >> $HOME/config_kublet_ip.sh
+#!/bin/bash
+sed -i "s/--network-plugin=cni/--network-plugin=cni --node-ip=$LOCAL_IP/g" /var/lib/kubelet/kubeadm-flags.env
+EOT
+    chmod +x $HOME/config_kublet_ip.sh
+
+    # sudo systemctl enable kubelet 
+    # sudo systemctl start kubelet 
+    
+    read_input "K8S Master IP:" K8S_MASTER_IP
+
+    warn "Execute the script \$HOME/gentoken.sh on the master node, and enter the generated token here"
+    read_input "TOKEN:" K8S_JOIN_TOKEN
+    while [[ "$K8S_JOIN_TOKEN" == '' ]]; do
+        read_input "\nInvalide answer, try again:" KEYCLOAK_SECRET
+    done
+    log "\n"
+    IFS=' ' read -r -a tokens <<< "$K8S_JOIN_TOKEN"
+
+     
+
+    kubeadm join $K8S_MASTER_IP:6443 --token ${tokens[0]} --discovery-token-ca-cert-hash ${tokens[1]}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    sudo bash $HOME/config_kublet_ip.sh
 }
 
 cp_api_auth() {
@@ -818,6 +906,10 @@ if [ "$DOCKER_USER_OK" == "" ]; then
     exit 1
 fi
 
+sudo sed -i.bak '/multipaas.com/d' /etc/hosts &>>$err_log
+sudo rm -rf /etc/hosts.bak &>>$err_log
+sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
+
 log "\n"
 read_input "Enter the control-plane VM IP:" MASTER_IP  
 log "\n"
@@ -827,41 +919,6 @@ if [ "$?" != "0" ]; then
     error "Control-plane API server is not responding.\n"
     error "Make sure the firewall is not blocking port 3030 on the control-plane.\n"
     exit 1
-fi
-
-sudo sed -i.bak '/multipaas.com/d' /etc/hosts &>>$err_log
-sudo rm -rf /etc/hosts.bak &>>$err_log
-sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
-
-# Clean up first if necessary
-K8S_INSTALLED=$(docker ps -a | grep "k8s_kube-apiserver")
-if [ "$K8S_INSTALLED" != "" ]; then
-    yes_no "Kubernetes is already running on this machine. Do you wish to reset this instances" REMOVE_K8S_RESPONSE
-    if [ "$REMOVE_K8S_RESPONSE" == "y" ]; then
-        remove_all &>>$err_log &
-        bussy_indicator "Cleaning up..."
-        log "\n"
-        log "\n"
-    else
-        exit 1
-    fi
-fi
-
-# Make sure the registry certificates are installed
-if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$HOME/configPrivateRegistry.sh" ]; then
-    error "Copy the Registry certificate setup script to your home folder:\n"
-    warn " 1. Grab the config script from the control-plane\n"
-    warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
-    warn " 2. Place the script in the local home folder\n"
-    CONDITION_FAIL="1"
-fi
-log "\n"
-if [ ! -f "$HOME/configNginxRootCA.sh" ]; then
-    error "Copy the Nginx root certificate setup script to your home folder:\n"
-    warn " 1. Grab the config script from the control-plane\n"
-    warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
-    warn " 2. Place the script in the local home folder\n"
-    CONDITION_FAIL="1"
 fi
 
 HN_TASK_LIST=("Kubernetes instances" "GlusterFS" "Both")
@@ -877,20 +934,66 @@ elif [ "$NODE_ROLE" == "Both" ]; then
     IS_GLUSTER_PEER="true"
 fi
 
-log "\n"
-
+# Check preconditions
 if [ "$IS_K8S_NODE" == "true" ]; then
     DEP_TARGET_LIST=("Kubernetes master" "Kubernetes worker")
     combo_value DEP_TARGET "What do you wish to install" "Your choice #:" "${DEP_TARGET_LIST[@]}"
     if [ "$DEP_TARGET" == "Kubernetes master" ]; then
+        # Clean up first if necessary
+        K8S_INSTALLED=$(docker ps -a | grep "k8s_kube-apiserver")
+        if [ "$K8S_INSTALLED" != "" ]; then
+            yes_no "Kubernetes is already running on this machine. Do you wish to reset this instances" REMOVE_K8S_RESPONSE
+            if [ "$REMOVE_K8S_RESPONSE" == "y" ]; then
+                remove_all &>>$err_log &
+                bussy_indicator "Cleaning up..."
+                log "\n"
+                log "\n"
+            else
+                exit 1
+            fi
+        fi
+
+        # Make sure the registry certificates are installed
+        if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$HOME/configPrivateRegistry.sh" ]; then
+            error "Copy the Registry certificate setup script to your home folder:\n"
+            warn " 1. Grab the config script from the control-plane\n"
+            warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
+            warn " 2. Place the script in the local home folder\n"
+            CONDITION_FAIL="1"
+        fi
+        log "\n"
+        if [ ! -f "$HOME/configNginxRootCA.sh" ]; then
+            error "Copy the Nginx root certificate setup script to your home folder:\n"
+            warn " 1. Grab the config script from the control-plane\n"
+            warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
+            warn " 2. Place the script in the local home folder\n"
+            CONDITION_FAIL="1"
+        fi
+    else
+        # Make sure the registry certificates are installed
+        if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$HOME/configPrivateRegistry.sh" ]; then
+            error "Copy the Registry certificate setup script to your home folder:\n"
+            warn " 1. Grab the config script from the control-plane\n"
+            warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
+            warn " 2. Place the script in the local home folder\n"
+            CONDITION_FAIL="1"
+        fi
+    fi
+fi
+
+log "\n"
+
+# Now install
+if [ "$IS_K8S_NODE" == "true" ]; then
+    if [ "$DEP_TARGET" == "Kubernetes master" ]; then
         # Install dependencies
-        dependencies_master
+        dependencies
 
         # Collect info from user
         collect_informations
 
         # Install the core components
-        install_core_components &>>$err_log &
+        install_master_core_components &>>$err_log &
         bussy_indicator "Installing host controller components..."
         log "\n"
 
@@ -918,7 +1021,7 @@ if [ "$IS_K8S_NODE" == "true" ]; then
         kubectl create secret docker-registry regcred --docker-server=registry.multipaas.org --docker-username=$RU --docker-password=$RP --docker-email=multipaas@multipaas.com
         
         # Now create background services
-        create_services >/dev/null 2>&1
+        create_master_services >/dev/null 2>&1
         
         log "\n"
 
@@ -965,7 +1068,25 @@ if [ "$IS_K8S_NODE" == "true" ]; then
         fi
         log "\n"
     else
-        echo "Installing worker"
+        # Install dependencies
+        dependencies
+
+        # Collect info from user
+        collect_informations
+
+        # Install the core components
+        install_worker_core_components &>>$err_log &
+        bussy_indicator "Installing host controller components..."
+        log "\n"
+
+        init_k8s_worker &>>$err_log &
+        bussy_indicator "Installing kubernetes cluster worker..."
+        log "\n"
+        log "\n"
+
+        success "MultiPaaS host controller & K8S worker deployed successfully!\n"
+        log "\n"
+        log "\n"
     fi
 fi
 

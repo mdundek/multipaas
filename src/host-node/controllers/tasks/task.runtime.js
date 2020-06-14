@@ -281,7 +281,7 @@ class TaskRuntimeController {
                 VCAPS[data.allServices[i].serviceName].push(SERVICE_VCAPS);
             }
           
-            let ppTemplate = YAML.parse(fs.readFileSync(path.join(process.cwd(), "resources", "k8s_templates/pod-preset.yaml"), 'utf8'));
+            let ppTemplate = YAML.parse(fs.readFileSync(path.join(process.cwd(), "resources", "k8s_templates", "pod-preset.yaml"), 'utf8'));
             ppTemplate.spec.env[0].value = JSON.stringify(VCAPS);
           
             let yamlTmpPath = path.join(process.env.VM_BASE_DIR, "workplaces", data.node.workspaceId.toString(), data.node.hostname, `pp.yml`);
