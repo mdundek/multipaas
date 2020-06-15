@@ -276,8 +276,8 @@ collect_informations() {
     get_network_interface_ip IFACE LOCAL_IP
 
     log "\n"
-    read_input "Enter the MultiPaaS master user email address:" MPUS
-    read_input "Enter the MultiPaaS master user password:" MPPW
+    read_input "Enter the MultiPaaS sysadmin user email address:" MPUS
+    read_input "Enter the MultiPaaS sysadmin user password:" MPPW
     log "\n"
 
     if [ "$IS_GLUSTER_PEER" == "true" ]; then   
@@ -925,6 +925,8 @@ elif [ "$NODE_ROLE" == "Both" ]; then
     IS_GLUSTER_PEER="true"
 fi
 
+log "\n"
+
 # Check preconditions
 if [ "$IS_K8S_NODE" == "true" ]; then
     DEP_TARGET_LIST=("Kubernetes master" "Kubernetes worker")
@@ -943,36 +945,29 @@ if [ "$IS_K8S_NODE" == "true" ]; then
                 exit 1
             fi
         fi
+    fi
 
-        # Make sure the registry certificates are installed
-        if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$HOME/configPrivateRegistry.sh" ]; then
-            error "Copy the Registry certificate setup script to your home folder:\n"
-            warn " 1. Grab the config script from the control-plane\n"
-            warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
-            warn " 2. Place the script in the local home folder\n"
-            CONDITION_FAIL="1"
-        fi
-        log "\n"
-        if [ ! -f "$HOME/configNginxRootCA.sh" ]; then
-            error "Copy the Nginx root certificate setup script to your home folder:\n"
-            warn " 1. Grab the config script from the control-plane\n"
-            warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
-            warn " 2. Place the script in the local home folder\n"
-            CONDITION_FAIL="1"
-        fi
-    else
-        # Make sure the registry certificates are installed
-        if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$HOME/configPrivateRegistry.sh" ]; then
-            error "Copy the Registry certificate setup script to your home folder:\n"
-            warn " 1. Grab the config script from the control-plane\n"
-            warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
-            warn " 2. Place the script in the local home folder\n"
-            CONDITION_FAIL="1"
-        fi
+     # Make sure the registry certificates are installed
+    if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$HOME/configPrivateRegistry.sh" ]; then
+        error "Copy the Registry certificate setup script to your home folder:\n"
+        warn " 1. Grab the config script from the control-plane\n"
+        warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
+        warn " 2. Place the script in the local home folder\n"
+        CONDITION_FAIL="1"
+    fi
+    log "\n"
+    if [ ! -f "$HOME/configNginxRootCA.sh" ]; then
+        error "Copy the Nginx root certificate setup script to your home folder:\n"
+        warn " 1. Grab the config script from the control-plane\n"
+        warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
+        warn " 2. Place the script in the local home folder\n"
+        CONDITION_FAIL="1"
+    fi
+
+    if [ "$CONDITION_FAIL" == "1" ]; then
+        exit 0
     fi
 fi
-
-log "\n"
 
 # Now install
 if [ "$IS_K8S_NODE" == "true" ]; then
@@ -1037,6 +1032,14 @@ if [ "$IS_K8S_NODE" == "true" ]; then
         declare_worker_node
         
         # Authenticate to registry
+        read_input "Enter the organization registry username that the target cluster belongs to:" RU
+        while [[ "$RU" == '' ]]; do
+            read_input "\nInvalide answer, try again:" RU
+        done
+        read_input "Enter the organization registry password:" RP
+        while [[ "$RP" == '' ]]; do
+            read_input "\nInvalide answer, try again:" RP
+        done
         registry_auth &>>$err_log &
         bussy_indicator "Configure k8s registry credentials..."
         log "\n"
