@@ -5,6 +5,7 @@ install/docker-images
 .DS_Store
 **/node_modules
 **/.env
+**/.log
 **/.vagrant
 **/test.sh
 tmp
