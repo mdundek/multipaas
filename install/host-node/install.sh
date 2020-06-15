@@ -325,8 +325,7 @@ if [ "$IS_GLUSTER_PEER" == "true" ]; then
     # Start the gluster controller
     if [ "$NEW_DOCKER" == "true" ]; then
         log "\n"
-        warn "==> Since Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
-        warn "    Please log out, and log back in, then execute the following command:\n"
+        warn "==> Since Docker was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute the following command:\n"
         log "\n"
         log "    docker run \n"
         log "       -d --privileged=true \n"

@@ -87,10 +87,10 @@ collect_informations() {
         exit 1
     fi
     log "\n"
-    read_input "Specify a MultiPaaS master user email address:" MP_U
+    read_input "Specify a MultiPaaS sysadmin user email address:" MP_U
    
     log "\n"
-    read_input "Specify a MultiPaaS master password:" MP_P
+    read_input "Specify a MultiPaaS sysadmin password:" MP_P
    
     log "\n"
     read_input "How much memory (MB) do you wish to allocate to the control plane VM:" VB_MEMORY

@@ -61,8 +61,7 @@ dependencies () {
     if [ "$DK_EXISTS" == "" ]; then
         sudo usermod -aG docker $USER
         log "\n"
-        warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container.\n"
-        warn "    Please log out, and log back in, then execute this script again.\n"
+        warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
         exit 0
     fi
 
@@ -152,8 +151,8 @@ collect_informations() {
     get_network_interface_ip IFACE LOCAL_IP
 
     log "\n"
-    read_input "Specify a MultiPaaS master user email address:" MP_U
-    read_input "Specify a MultiPaaS master password:" MP_P
+    read_input "Specify a MultiPaaS sysadmin user email address:" MP_U
+    read_input "Specify a MultiPaaS sysadmin password:" MP_P
 }
 
 ########################################
