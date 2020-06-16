@@ -17,13 +17,10 @@ _BASEDIR="$(dirname "$_BASEDIR")"
 ########################################
 # Error management
 ########################################
-on_error() {
+on_exit() {
     if [ "$1" != "0" ]; then
         error "An error occured. For more details, check the file ./std.log\n"
         error "\n"
-        # remove_all &>>$err_log &
-        # bussy_indicator "Cleaning up..."
-        # log "\n"
     fi
 }
 
@@ -85,29 +82,46 @@ dependency_docker () {
     log "\n"
     if [ "$DK_EXISTS" == "" ]; then
         log "\n"
-        warn "==> Docker was just installed, you will have to restart\n"
-        warn "    your session before starting the cluster-ctl container.\n"
-        warn "\n"
-        warn "==> Copy the Registry certificate setup script to your home folder:\n" 
-        warn "\n"
-        warn " 1. Grab the config script from the control-plane\n"
-        warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
-        warn " 2. Place the script in the local home folder\n"
-        warn "\n"
-        warn "==> Copy the Nginx root certificate setup script to your home folder:\n"
-        warn "\n"
-        warn " 1. Grab the config script from the control-plane\n"
-        warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
-        warn " 2. Place the script in the local home folder\n"
-        warn "\n"
-        warn "==> Once done, please log out, and log back in, then execute\n"
+        warn "==> Docker was just installed.\n"
+        warn "    Please log out, and log back in, then execute\n"
         warn "    this script again.\n"
 
         exit 0
     fi
 }
 
-dependencies () {
+dependencies_gluster () {
+    sudo echo "" # Ask user for sudo password now
+   
+    if [ "$IS_K8S_NODE" != "true" ]; then
+        dep_node &>>$err_log &
+        bussy_indicator "Dependency on \"NodeJS\"..."
+        log "\n"
+        source ~/.profile
+
+        dep_pm2 &>>$err_log &
+        bussy_indicator "Dependency on \"PM2\"..."
+        log "\n"
+
+        dep_jq &>>$err_log &
+        bussy_indicator "Dependency on \"jq\"..."
+        log "\n"
+
+        dep_gluster_client &>>$err_log &
+        bussy_indicator "Dependency on \"gluster_client\"..."
+        log "\n"
+
+        sudo docker load --input ../../build/offline_files/docker_images/node-12.16.2.tar &>>$err_log &
+        bussy_indicator "Loading docker image node-12.16.2.tar..."
+        log "\n"
+    fi
+    cd $_DIR
+    sudo docker load --input ../../build/offline_files/docker_images/gluster-centos-gluster4u0_centos7.tar &>>$err_log &
+    bussy_indicator "Loading docker image gluster-centos-gluster4u0_centos7.tar..."
+    log "\n"
+}
+
+dependencies_k8s () {
     sudo echo "" # Ask user for sudo password now
 
     dep_tar &>>$err_log &
@@ -135,16 +149,12 @@ dependencies () {
     bussy_indicator "Dependency on \"unzip\"..."
     log "\n"
 
-    dep_tar &>>$err_log &
-    bussy_indicator "Dependency on \"tar\"..."
+    dep_gluster_client &>>$err_log &
+    bussy_indicator "Dependency on \"gluster_client\"..."
     log "\n"
 
-    dep_gluster_server &>>$err_log &
-    bussy_indicator "Dependency on \"gluster_server\"..."
-    log "\n"
-
-    sudo systemctl disable glusterd &>>$err_log
-    sudo systemctl stop glusterd &>>$err_log
+    # sudo systemctl disable glusterd &>>$err_log
+    # sudo systemctl stop glusterd &>>$err_log
 
     dep_mosquitto &>>$err_log &
     bussy_indicator "Dependency on \"mosquitto\"..."
@@ -259,19 +269,73 @@ EOF
     # bussy_indicator "Loading docker image redis-5.0.8-debian-10-r36.tar..."
     # log "\n"
 
-    if [ "$IS_GLUSTER_PEER" == "true" ]; then
-        GLUSTER_IMG_EXISTS=$(docker images gluster/gluster-centos:gluster4u0_centos7 | sed -n '1!p')
-        if [ "$GLUSTER_IMG_EXISTS" == "" ]; then
-            sudo docker load --input ../../build/offline_files/docker_images/gluster-centos-gluster4u0_centos7.tar &>>$err_log &
-            bussy_indicator "Loading docker image gluster-centos-gluster4u0_centos7.tar..."
-            log "\n"
-        fi
-    fi
+    # if [ "$IS_GLUSTER_PEER" == "true" ]; then
+    #     GLUSTER_IMG_EXISTS=$(docker images gluster/gluster-centos:gluster4u0_centos7 | sed -n '1!p')
+    #     if [ "$GLUSTER_IMG_EXISTS" == "" ]; then
+    #         sudo docker load --input ../../build/offline_files/docker_images/gluster-centos-gluster4u0_centos7.tar &>>$err_log &
+    #         bussy_indicator "Loading docker image gluster-centos-gluster4u0_centos7.tar..."
+    #         log "\n"
+    #     fi
+    # fi
 }
 
 ########################################
 # 
 ########################################
+collect_gluster_informations() {
+    # Select filesystem that is used for Gluster
+    FSL=$(df -h | sed 's/|/ /' | awk '{print $1}')
+    readarray -t _FSLarrIN <<<"$FSL"
+    FSLarrIN=("${_FSLarrIN[@]:1}")
+
+    FSLSIZE=$(df -h | sed 's/|/ /' | awk '{print $2}')
+    readarray -t _FSLSIZEarrIN <<<"$FSLSIZE"
+    FSLSIZEarrIN=("${_FSLSIZEarrIN[@]:1}")
+
+    # Find the proper column index for this OS
+    FSLMOUNT_STRINGTEST=$(df -h | sed 's/|/ /')
+    STRINGTEST=(${FSLMOUNT_STRINGTEST[@]})
+    COL_INDEX=0
+    for i in "${STRINGTEST[@]}"
+    do : 
+        COL_INDEX=$((COL_INDEX+1))
+        if [[ $i = "Mounted" ]]
+        then
+            TRG_INDEX=$COL_INDEX
+            break
+        fi
+    done
+
+    FSLMOUNT=$(df -h | sed 's/|/ /' | awk '{print $'"$TRG_INDEX"'}')
+    readarray -t _FSLMOUNTarrIN <<<"$FSLMOUNT"
+    FSLMOUNTarrIN=("${_FSLMOUNTarrIN[@]:1}")
+
+    VALID_FS=()
+    VALID_MOUNTS=()
+
+    FS_INDEX=0
+    for i in "${FSLarrIN[@]}"
+    do : 
+        if [[ $i = /dev/* ]]
+        then
+            VALID_FS+=("$i (${FSLSIZEarrIN[$FS_INDEX]})")
+            VALID_MOUNTS+=("${FSLMOUNTarrIN[$FS_INDEX]}")
+        fi
+        FS_INDEX=$((FS_INDEX+1))
+    done
+
+    log "\n"
+    combo_index MOUNT_INDEX "What filesystem is used for your volume provisionning" "Your choice #:" "${VALID_FS[@]}"
+
+    if [ "${VALID_MOUNTS[$MOUNT_INDEX]}" == "/" ]; then
+        BRICK_MOUNT_PATH="/bricks"
+    else
+        BRICK_MOUNT_PATH="${VALID_MOUNTS[$MOUNT_INDEX]}/bricks"
+    fi
+   
+    GLUSTER_VOLUME="${VALID_MOUNTS[$MOUNT_INDEX]}"
+}
+
 collect_informations() {
     get_network_interface_ip IFACE LOCAL_IP
 
@@ -279,121 +343,68 @@ collect_informations() {
     read_input "Enter the MultiPaaS sysadmin user email address:" MPUS
     read_input "Enter the MultiPaaS sysadmin user password:" MPPW
     log "\n"
-
-    if [ "$IS_GLUSTER_PEER" == "true" ]; then   
-        # Select filesystem that is used for Gluster
-        FSL=$(df -h | sed 's/|/ /' | awk '{print $1}')
-        readarray -t _FSLarrIN <<<"$FSL"
-        FSLarrIN=("${_FSLarrIN[@]:1}")
-
-        FSLSIZE=$(df -h | sed 's/|/ /' | awk '{print $2}')
-        readarray -t _FSLSIZEarrIN <<<"$FSLSIZE"
-        FSLSIZEarrIN=("${_FSLSIZEarrIN[@]:1}")
-
-        # Find the proper column index for this OS
-        FSLMOUNT_STRINGTEST=$(df -h | sed 's/|/ /')
-        STRINGTEST=(${FSLMOUNT_STRINGTEST[@]})
-        COL_INDEX=0
-        for i in "${STRINGTEST[@]}"
-        do : 
-            COL_INDEX=$((COL_INDEX+1))
-            if [[ $i = "Mounted" ]]
-            then
-                TRG_INDEX=$COL_INDEX
-                break
-            fi
-        done
-
-        FSLMOUNT=$(df -h | sed 's/|/ /' | awk '{print $'"$TRG_INDEX"'}')
-        readarray -t _FSLMOUNTarrIN <<<"$FSLMOUNT"
-        FSLMOUNTarrIN=("${_FSLMOUNTarrIN[@]:1}")
-
-        VALID_FS=()
-        VALID_MOUNTS=()
-
-        FS_INDEX=0
-        for i in "${FSLarrIN[@]}"
-        do : 
-            if [[ $i = /dev/* ]]
-            then
-                VALID_FS+=("$i (${FSLSIZEarrIN[$FS_INDEX]})")
-                VALID_MOUNTS+=("${FSLMOUNTarrIN[$FS_INDEX]}")
-            fi
-            FS_INDEX=$((FS_INDEX+1))
-        done
-
-        log "\n"
-        combo_index MOUNT_INDEX "What filesystem is used for your volume provisionning" "Your choice #:" "${VALID_FS[@]}"
-
-        VOL_FULL_NAME=(${VOL_NAME// / })
-        VOL_NAME=(${VOL_FULL_NAME//\// })
-
-        if [ "${VALID_MOUNTS[$MOUNT_INDEX]}" == "/" ]; then
-            BRICK_MOUNT_PATH="/bricks"
-        else
-            BRICK_MOUNT_PATH="${VALID_MOUNTS[$MOUNT_INDEX]}/bricks"
-        fi
-
-        GLUSTER_VOLUME="${VOL_NAME[1]}"
-    fi
 }
 
 ########################################
 # 
 ########################################
 install_master_core_components() {
-    cd $_BASEDIR/src/host-node/ # Position cmd in src folder
-    
     mkdir -p $HOME/.multipaas
 
-    if [ "$IS_GLUSTER_PEER" == "true" ]; then
-        mkdir -p $HOME/.multipaas/gluster/etc/glusterfs 2>&1 | log_error_sanitizer
-        mkdir -p $HOME/.multipaas/gluster/var/lib/glusterd 2>&1 | log_error_sanitizer
-        mkdir -p $HOME/.multipaas/gluster/var/log/glusterfs 2>&1 | log_error_sanitizer
-        sudo mkdir -p $BRICK_MOUNT_PATH 2>&1 | log_error_sanitizer
-    fi
-
-    cp env.template env
-
-    VM_BASE=$HOME/.multipaas/vm_base
-    MULTIPAAS_CFG_DIR=$HOME/.multipaas
-    sed -i "s/<MP_MODE>/unipaas/g" ./env
-    sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
-    sed -i "s/<DB_PORT>/5432/g" ./env
-    sed -i "s/<DB_PASS>/$MPPW/g" ./env
-    sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
-    sed -i "s/<VM_BASE_HOME>/${VM_BASE//\//\\/}/g" ./env
-    sed -i "s/<MULTIPAAS_CFG_DIR>/${MULTIPAAS_CFG_DIR//\//\\/}/g" ./env
-    sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
-    sed -i "s/<IS_K8S_NODE>/$IS_K8S_NODE/g" ./env
-    sed -i "s/<IS_GLUSTER_PEER>/$IS_GLUSTER_PEER/g" ./env
-    sed -i "s/<GLUSTER_VOL>/$GLUSTER_VOLUME/g" ./env
-    cp env .env
-    rm env
-
-    log "\n"
     HOST_NODE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-host-node")
     if [ "$HOST_NODE_DEPLOYED" == "" ]; then
+        cd $_BASEDIR/src/host-node/ # Position cmd in src folder
+
+        cp env.template env
+
+        VM_BASE=$HOME/.multipaas/vm_base
+        MULTIPAAS_CFG_DIR=$HOME/.multipaas
+        sed -i "s/<MP_MODE>/unipaas/g" ./env
+        sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
+        sed -i "s/<DB_PORT>/5432/g" ./env
+        sed -i "s/<DB_PASS>/$MPPW/g" ./env
+        sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
+        sed -i "s/<VM_BASE_HOME>/${VM_BASE//\//\\/}/g" ./env
+        sed -i "s/<MULTIPAAS_CFG_DIR>/${MULTIPAAS_CFG_DIR//\//\\/}/g" ./env
+        sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
+        sed -i "s/<IS_K8S_NODE>/$IS_K8S_NODE/g" ./env
+        sed -i "s/<IS_GLUSTER_PEER>/$IS_GLUSTER_PEER/g" ./env
+        sed -i "s/<GLUSTER_VOL>/${GLUSTER_VOLUME//\//\\/}/g" ./env
+        cp env .env
+        rm env
+
         npm i
         /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
         /opt/pm2/bin/pm2 -s startup
         sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
         /opt/pm2/bin/pm2 -s save --force
+    else
+        if [ "$IS_GLUSTER_PEER" == "true" ]; then
+            cd $_BASEDIR/src/host-node/ # Position cmd in src folder
+
+            change_line "IS_GLUSTER_PEER" "IS_GLUSTER_PEER=true" ./.env
+            change_line "GLUSTER_VOLUME" "GLUSTER_VOLUME=$GLUSTER_VOLUME" ./.env
+            /opt/pm2/bin/pm2 stop multipaas-host-node
+            /opt/pm2/bin/pm2 start multipaas-host-node
+            /opt/pm2/bin/pm2 -s save --force
+        fi
     fi
 
-    cd $_BASEDIR/src/satelite/ # Position cmd in src folder
-    cp env.template env
-
-    VM_BASE=$HOME/.multipaas/vm_base
-    MULTIPAAS_CFG_DIR=$HOME/.multipaas
-    sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
-    sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
-    sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
-    cp env .env
-    rm env
-
+    log "\n"
+    
     HOST_NODE_SATELITE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
     if [ "$HOST_NODE_SATELITE_DEPLOYED" == "" ]; then
+        cd $_BASEDIR/src/satelite/ # Position cmd in src folder
+        cp env.template env
+
+        VM_BASE=$HOME/.multipaas/vm_base
+        MULTIPAAS_CFG_DIR=$HOME/.multipaas
+        sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
+        sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
+        sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
+        cp env .env
+        rm env
+
         npm i
         /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
         /opt/pm2/bin/pm2 -s startup
@@ -405,30 +416,22 @@ install_master_core_components() {
 ########################################
 # 
 ########################################
-install_worker_core_components() {
-    cd $_BASEDIR/src/satelite/ # Position cmd in src folder
-    
+install_satelite_core_components() {
     mkdir -p $HOME/.multipaas
-
-    if [ "$IS_GLUSTER_PEER" == "true" ]; then
-        mkdir -p $HOME/.multipaas/gluster/etc/glusterfs 2>&1 | log_error_sanitizer
-        mkdir -p $HOME/.multipaas/gluster/var/lib/glusterd 2>&1 | log_error_sanitizer
-        mkdir -p $HOME/.multipaas/gluster/var/log/glusterfs 2>&1 | log_error_sanitizer
-        sudo mkdir -p $BRICK_MOUNT_PATH 2>&1 | log_error_sanitizer
-    fi
-
-    cp env.template env
-
-    VM_BASE=$HOME/.multipaas/vm_base
-    MULTIPAAS_CFG_DIR=$HOME/.multipaas
-    sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
-    sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
-    sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
-    cp env .env
-    rm env
-
     HOST_NODE_SATELITE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
     if [ "$HOST_NODE_SATELITE_DEPLOYED" == "" ]; then
+        cd $_BASEDIR/src/satelite/ # Position cmd in src folder
+
+        cp env.template env
+
+        VM_BASE=$HOME/.multipaas/vm_base
+        MULTIPAAS_CFG_DIR=$HOME/.multipaas
+        sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
+        sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
+        sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
+        cp env .env
+        rm env
+
         npm i
         /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
         /opt/pm2/bin/pm2 -s startup
@@ -529,7 +532,7 @@ EOF
 
     sudo kubeadm init --apiserver-advertise-address=$LOCAL_IP --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU
 
-    cat <<EOT >> $HOME/gentoken.sh
+    cat <<'EOT' >> $HOME/gentoken.sh
 #!/bin/bash
 IN="$(kubeadm token create --print-join-command 2>/dev/null)"
 IFS=' ' read -r -a array <<< "$IN"
@@ -645,7 +648,6 @@ cp_api_get() {
         -H "Authorization: Bearer $MP_TOKEN" \
         -X GET \
         http://$MASTER_IP:3030/$2)
-
     eval $__resultvar="'$_R'"
 }
 
@@ -657,7 +659,6 @@ cp_api_create() {
         -X POST \
         -d $3 \
         http://$MASTER_IP:3030/$2)
-
     eval $__resultvar="'$_R'"
 }
 
@@ -668,7 +669,6 @@ cp_api_delete() {
         -H "Authorization: Bearer $MP_TOKEN" \
         -X DELETE \
         http://$MASTER_IP:3030/$1)
-
     eval $__resultvar="'$_R'"
 }
 
@@ -872,11 +872,35 @@ create_account_and_register() {
     cp_api_create NODE_CR_RESP "k8s_nodes" $J_PAYLOAD
 }
 
+create_registry_secret() {
+    source $HOME/.bashrc
+    export KUBECONFIG=$HOME/.kube/admin.conf
+
+    z=0
+    local ALL_GOOD="0"
+    while [[ $z -lt 5 ]]
+    do
+        ((z++))
+        kubectl create secret docker-registry regcred --docker-server=registry.multipaas.org --docker-username=$RU --docker-password=$RP --docker-email=multipaas@multipaas.com
+        if [[ "$?" == "0" ]]; then
+            ALL_GOOD="1"
+            break
+        else
+            sleep 3
+        fi
+    done
+
+    if [ "$ALL_GOOD" == "0" ]; then
+        echo "Could not create registry secret"
+        exit 1
+    fi
+}
+
 
 ########################################
 # LOGIC...
 ########################################
-trap 'on_error $? $LINENO' EXIT
+trap 'on_exit $? $LINENO' EXIT
 
 /usr/bin/clear
 
@@ -897,10 +921,6 @@ if [ "$DOCKER_USER_OK" == "" ]; then
     exit 1
 fi
 
-sudo sed -i.bak '/multipaas.com/d' /etc/hosts &>>$err_log
-sudo rm -rf /etc/hosts.bak &>>$err_log
-sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
-
 log "\n"
 read_input "Enter the control-plane VM IP:" MASTER_IP  
 log "\n"
@@ -911,6 +931,10 @@ if [ "$?" != "0" ]; then
     error "Make sure the firewall is not blocking port 3030 on the control-plane.\n"
     exit 1
 fi
+
+sudo sed -i.bak '/multipaas.com/d' /etc/hosts &>>$err_log
+sudo rm -rf /etc/hosts.bak &>>$err_log
+sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
 
 HN_TASK_LIST=("Kubernetes instances" "GlusterFS" "Both")
 combo_value NODE_ROLE "What tasks should this host-node handle" "Your choice #:" "${HN_TASK_LIST[@]}"
@@ -969,15 +993,17 @@ if [ "$IS_K8S_NODE" == "true" ]; then
     fi
 fi
 
+
+
 # Now install
 if [ "$IS_K8S_NODE" == "true" ]; then
+    # Install dependencies_k8s
+    dependencies_k8s
+
+    # Collect info from user
+    collect_informations
+
     if [ "$DEP_TARGET" == "Kubernetes master" ]; then
-        # Install dependencies
-        dependencies
-
-        # Collect info from user
-        collect_informations
-
         # Install the core components
         install_master_core_components &>>$err_log &
         bussy_indicator "Installing host controller components..."
@@ -997,11 +1023,14 @@ if [ "$IS_K8S_NODE" == "true" ]; then
         log "\n"
 
         # Configure registry with the cluster
-        sleep 15
-        source $HOME/.bashrc
-        export KUBECONFIG=$HOME/.kube/admin.conf
-        kubectl create secret docker-registry regcred --docker-server=registry.multipaas.org --docker-username=$RU --docker-password=$RP --docker-email=multipaas@multipaas.com
-        
+        sleep 20 &>>$err_log &
+        bussy_indicator "Waiting for cluster to become available again..."
+        log "\n"
+
+        create_registry_secret &>>$err_log &
+        bussy_indicator "Create registry secret on cluster..."
+        log "\n"
+
         # Now create background services
         create_master_services >/dev/null 2>&1
         
@@ -1010,24 +1039,13 @@ if [ "$IS_K8S_NODE" == "true" ]; then
         success "MultiPaaS host controller & K8S master deployed successfully!\n"
         log "\n"
     else
-        # Install dependencies
-        dependencies
-
-        # Collect info from user
-        collect_informations
-
         # Install the core components
-        install_worker_core_components &>>$err_log &
+        install_satelite_core_components &>>$err_log &
         bussy_indicator "Installing host controller components..."
         log "\n"
 
         init_k8s_worker
-        log "\n"
-
-        success "MultiPaaS host controller & K8S worker deployed successfully!\n"
-        log "\n"
-        log "\n"
-
+       
         # Register node
         declare_worker_node
         
@@ -1052,25 +1070,24 @@ fi
 log "\n"
 
 if [ "$IS_GLUSTER_PEER" == "true" ]; then
-    # Start the gluster controller
-    if [ "$NEW_DOCKER" == "true" ]; then
-        log "\n"
-        warn "==> Since Docker was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute the following command:\n"
-        log "\n"
-        log "    docker run \n"
-        log "       -d --privileged=true \n"
-        log "       --restart unless-stopped \n"
-        log "       --net=host -v /dev/:/dev \n"
-        log "       -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \n"
-        log "       -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \n"
-        log "       -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \n"
-        log "       -v $BRICK_MOUNT_PATH:/bricks:z \n"
-        log "       -v /sys/fs/cgroup:/sys/fs/cgroup:ro \n"
-        log "       --name gluster-ctl \n"
-        log "       gluster/gluster-centos:gluster4u0_centos7\n"
+    GLUSTER_INSTALLED=$(docker ps -a | grep "gluster-ctl")
+    if [ "$GLUSTER_INSTALLED" != "" ]; then
+        warn "The gluster controller is already running on this machine.\n"
     else
+        dependencies_gluster
+
+        if [ "$LOCAL_IP" == "" ]; then
+            collect_informations
+        fi
+
+        collect_gluster_informations
+
+        mkdir -p $HOME/.multipaas/gluster/etc/glusterfs 2>&1 | log_error_sanitizer
+        mkdir -p $HOME/.multipaas/gluster/var/lib/glusterd 2>&1 | log_error_sanitizer
+        mkdir -p $HOME/.multipaas/gluster/var/log/glusterfs 2>&1 | log_error_sanitizer
+        sudo mkdir -p $BRICK_MOUNT_PATH 2>&1 | log_error_sanitizer
+
         docker rm -f gluster-ctl >/dev/null 2>&1
-        
         docker run \
             -d --privileged=true \
             --restart unless-stopped \
@@ -1082,14 +1099,26 @@ if [ "$IS_GLUSTER_PEER" == "true" ]; then
             -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
             --name gluster-ctl \
             gluster/gluster-centos:gluster4u0_centos7 &>/dev/null
+
+        log "\n"
+
+        install_master_core_components &>>$err_log &
+        bussy_indicator "Reconfiguring host controller components..."
+        log "\n"
+
+        # Gluster Host
+        HNAME=$(hostname)
+        cp_api_auth "$MPUS" "$MPPW"
+        J_PAYLOAD='{"ip":"'"$LOCAL_IP"'","hostname":"'"$HNAME"'","status":"ready"}'
+        cp_api_create HOST_GLUSTER_RESP "gluster-hosts" $J_PAYLOAD
+        
+        # Join the gluster network
+        log "\n"
+        warn "==> To add this Gluster peer to the Gluster network, execute the following command ON ANY OTHER GLUSTER peer host:\n"
+        warn "    PLEASE NOTE: This is only necessary if this is NOT the first Gluster node for this Gluster network\n"
+        log "\n"
+        log "    docker exec gluster-ctl gluster peer probe $LOCAL_IP\n"
     fi
-    
-    # Join the gluster network
-    log "\n"
-    warn "==> To add this Gluster peer to the Gluster network, execute the following command ON ANY OTHER GLUSTER peer host:\n"
-    warn "    PLEASE NOTE: This is only necessary if this is NOT the first Gluster node for this Gluster network\n"
-    log "\n"
-    log "    docker exec gluster-ctl gluster peer probe $LOCAL_IP\n"
 fi
 
 cd "$_PWD"

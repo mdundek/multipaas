@@ -456,7 +456,6 @@ class OsController {
 							}
 							resolve(returnObj);
 						} else {
-							console.log();
 							let returnObj = {
 								code: 1,
 								stderr: result.data.message
@@ -473,7 +472,34 @@ class OsController {
 				}
 			}
         });
-    }
+	}
+	
+	/**
+	 * unipaas_satelite_exec
+	 * @param {*} ip 
+	 * @param {*} command 
+	 */
+	static async unipaasSateliteExec(ip, command) {
+		try {
+			let result = await this.mqttController.unipaasQueryRequestResponse(ip, "cmd", {cmd: command});
+			if(result.data.status == 200) {
+				return {
+					code: 0,
+					stdout: result.data.data.join("\n")
+				}
+			} else {
+				return {
+					code: 1,
+					stderr: result.data.message
+				}
+			}
+		} catch (error) {
+			return {
+				code: 1,
+				stderr: error.message
+			};
+		}
+	}
 
     /**
      * waitUntilUp

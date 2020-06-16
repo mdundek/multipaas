@@ -249,16 +249,16 @@ dep_gitlab_runner() {
 ########################################
 # 
 ########################################
-dep_gluster_server() {
+dep_gluster_client() {
     cd $_DIR
     local C_EXISTS=$(command -v gluster)
     if [ "$C_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
-                deb_offline_install "glibc-doc-reference"
-                deb_offline_install "libc6-dev"
-                deb_offline_install "libnl-3-200"
-                deb_offline_install "glusterfs-server"
+                # deb_offline_install "glibc-doc-reference"
+                # deb_offline_install "libc6-dev"
+                # deb_offline_install "libnl-3-200"
+                deb_offline_install "glusterfs-client"
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then

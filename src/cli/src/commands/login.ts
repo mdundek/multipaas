@@ -33,7 +33,7 @@ export default class Login extends Command {
 			params.email = flags.user
 		}
 		if(!flags.password){
-			params.password = await cli.prompt('What is your password?', {type: 'hide'})
+			params.password = await cli.prompt('What is your password', {type: 'hide'})
 		} else {
 			params.password = flags.password
 		}
