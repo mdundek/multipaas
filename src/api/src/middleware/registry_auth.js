@@ -18,9 +18,9 @@ module.exports = () => {
 	return function registryAuth(req, res, next) {
 		(async() => {
 			try {
-				console.log("AUTH =>", req.headers.authorization);
+				
 				if(req.headers.authorization) {
-					console.log(2);
+					console.log(99);
 					// console.log("HEADERS =>", JSON.stringify(req.headers, null, 4));
 					
 					// --------------- PULL -------------
@@ -51,13 +51,13 @@ module.exports = () => {
 					let userCredentials = buff.toString('ascii').split(":");
 			
 					// TODO: If credentials belong to super user, then authorize everything
-
+					console.log(99);
 					let uriRequest = req.headers["registry-call"];
 				
 					let uriArray = uriRequest.split(" ");
 					let uri = uriArray.find(o => o.indexOf("/v2/") == 0);
 					let uriSplit = uri.split("/").filter(o => o.length > 0);
-			
+					console.log(99);
 					if(uriArray[0] == "GET" && (uri == "/v2/_catalog" || uri == "/v2/" || uri.indexOf("/list") == (uri.length - 5) || uri.indexOf("/manifests/") != -1 )) {
 						res.status(200);
 						res.send('ok');
@@ -65,6 +65,7 @@ module.exports = () => {
 						console.log(3);
 						throw new Error("Unauthorized");
 					} else {
+						console.log(99);
 						let existingAcc = accounts.find(o => o.name == uriSplit[1]);
 						if(!existingAcc){
 							existingAcc = await DBController.getAccountByName(uriSplit[1]);
@@ -99,6 +100,7 @@ module.exports = () => {
 						res.send('ok');
 					}
 				} else {
+					console.log(7);
 					throw new Error("Unauthorized");
 				}
 			} catch (error) {
