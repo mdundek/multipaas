@@ -20,6 +20,13 @@ export default class Organization extends Command {
 	 * run
 	 */
 	async run() {
+		let session = await this.api("status");
+		if(session.unipaas) {
+			this.logError("UniPaaS mode does not support this command.");
+			return;
+		}
+		
+		
 		const {args} = this.parse(Organization)
 		if(!args.orgName){
 			return this.logError("Missing organization name.");
