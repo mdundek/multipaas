@@ -273,7 +273,7 @@ class TaskAppsController {
     static async getRegistryImages(node, orgName, accountName, rUser, rPass) {
         await OSController.sshExec(node.ip, `printf "${rPass}" | docker login registry.multipaas.org --username ${rUser} --password-stdin`);
         let result = await OSController.sshExec(node.ip, `curl -k -X GET https://${encodeURIComponent(rUser)}:${encodeURIComponent(rPass)}@registry.multipaas.org/v2/_catalog`);
-      
+        
         result = JSON.parse(result);
         let repos = result.repositories.filter(o => o.indexOf(`${accountName}/${orgName}/`) == 0);
         let tagCommands = repos.map(o => `curl -k -X GET https://${encodeURIComponent(rUser)}:${encodeURIComponent(rPass)}@registry.multipaas.org/v2/${o}/tags/list`);
@@ -520,6 +520,7 @@ class TaskAppsController {
         }
 
         let helmChartTargetPath;
+        let targetPath = null;
         if(process.env.MP_MODE != "unipaas") {
             targetPath = "/root";
             helmChartTargetPath = `${targetPath}/${path.basename(chartTarFilePath)}`;

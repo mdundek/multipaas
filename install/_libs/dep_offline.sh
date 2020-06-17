@@ -114,6 +114,8 @@ dep_docker() {
                 deb_offline_install "containerd"
                 deb_offline_install "docker-ce-cli"
                 deb_offline_install "docker-ce" && sudo usermod -aG docker $USER
+                sudo systemctl start docker
+                sudo systemctl enable docker
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then
@@ -237,6 +239,11 @@ dep_gitlab_runner() {
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
                 deb_offline_install "gitlab-runner"
+                sudo usermod -aG docker gitlab-runner
+                DKR_EXISTS=$(command -v docker)
+                if [ "$DKR_EXISTS" == "" ]; then
+                    sudo service docker restart
+                fi
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "8" ]; then

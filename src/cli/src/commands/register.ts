@@ -16,6 +16,12 @@ export default class Login extends Command {
 	 * run
 	 */
 	async run() {
+		let session = await this.api("status");
+		if(session.unipaas) {
+			this.logError("UniPaaS mode does not support this command.");
+			return;
+		}
+		
 		let params = {
 			accountName: "",
 			email: "",

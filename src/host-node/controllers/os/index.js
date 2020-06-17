@@ -450,24 +450,36 @@ class OsController {
 				} else {
 					this.mqttController.unipaasQueryRequestResponse(ip, "cmd", {cmd: command}).then((result) => {
 						if(result.data.status == 200) {
-							let returnObj = {
-								code: 0,
-								stdout: result.data.data.join("\n")
+							if(!inline){
+								resolve(result.data.data.join("\n"));
+							} else {
+								let returnObj = {
+									code: 0,
+									stdout: result.data.data.join("\n")
+								}
+								resolve(returnObj);
 							}
-							resolve(returnObj);
+						} else {
+							if(!inline){
+								resolve(result.data.message);
+							} else {
+								let returnObj = {
+									code: 1,
+									stderr: result.data.message
+								}
+								resolve(returnObj);
+							}
+						}
+					}).catch((_e) => {
+						if(!inline){
+							resolve(_e.message);
 						} else {
 							let returnObj = {
 								code: 1,
-								stderr: result.data.message
+								stderr: _e.message
 							}
 							resolve(returnObj);
 						}
-					}).catch((_e) => {
-						let returnObj = {
-							code: 1,
-							stderr: _e.message
-						}
-						_resolve(returnObj);
 					});
 				}
 			}

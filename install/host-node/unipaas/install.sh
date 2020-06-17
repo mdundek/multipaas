@@ -337,12 +337,78 @@ collect_gluster_informations() {
 }
 
 collect_informations() {
-    get_network_interface_ip IFACE LOCAL_IP
-
-    log "\n"
+    read_input "Enter the control-plane VM IP:" MASTER_IP 
     read_input "Enter the MultiPaaS sysadmin user email address:" MPUS
     read_input "Enter the MultiPaaS sysadmin user password:" MPPW
+
+    get_network_interface_ip IFACE LOCAL_IP
     log "\n"
+    curl --output /dev/null --silent --head --fail http://$MASTER_IP:3030
+    if [ "$?" != "0" ]; then
+        error "Control-plane API server is not responding.\n"
+        error "Make sure the firewall is not blocking port 3030 on the control-plane.\n"
+        exit 1
+    fi
+
+    HN_TASK_LIST=("Kubernetes instances" "GlusterFS" "Both")
+    combo_value NODE_ROLE "What tasks should this host-node handle" "Your choice #:" "${HN_TASK_LIST[@]}"
+    if [ "$NODE_ROLE" == "Kubernetes instances" ]; then
+        IS_K8S_NODE="true"
+        IS_GLUSTER_PEER="false"
+    elif [ "$NODE_ROLE" == "GlusterFS" ]; then
+        IS_K8S_NODE="false"
+        IS_GLUSTER_PEER="true"
+    elif [ "$NODE_ROLE" == "Both" ]; then
+        IS_K8S_NODE="true"
+        IS_GLUSTER_PEER="true"
+    fi
+
+    sudo sed -i.bak '/multipaas.com/d' /etc/hosts &>>$err_log
+    sudo rm -rf /etc/hosts.bak &>>$err_log
+    sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
+
+    # Check preconditions
+    if [ "$IS_K8S_NODE" == "true" ]; then
+        log "\n"
+        DEP_TARGET_LIST=("Kubernetes master" "Kubernetes worker")
+        combo_value DEP_TARGET "What do you wish to install" "Your choice #:" "${DEP_TARGET_LIST[@]}"
+        if [ "$DEP_TARGET" == "Kubernetes master" ]; then
+            # Clean up first if necessary
+            K8S_INSTALLED=$(docker ps -a | grep "k8s_kube-apiserver")
+            if [ "$K8S_INSTALLED" != "" ]; then
+                yes_no "Kubernetes is already running on this machine. Do you wish to reset this instances" REMOVE_K8S_RESPONSE
+                if [ "$REMOVE_K8S_RESPONSE" == "y" ]; then
+                    remove_all &>>$err_log &
+                    bussy_indicator "Cleaning up..."
+                    log "\n"
+                    log "\n"
+                else
+                    exit 1
+                fi
+            fi
+        fi
+
+        # Make sure the registry certificates are installed
+        if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$HOME/configPrivateRegistry.sh" ]; then
+            error "Copy the Registry certificate setup script to your home folder:\n"
+            warn " 1. Grab the config script from the control-plane\n"
+            warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
+            warn " 2. Place the script in the local home folder\n"
+            CONDITION_FAIL="1"
+        fi
+        log "\n"
+        if [ ! -f "$HOME/configNginxRootCA.sh" ]; then
+            error "Copy the Nginx root certificate setup script to your home folder:\n"
+            warn " 1. Grab the config script from the control-plane\n"
+            warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
+            warn " 2. Place the script in the local home folder\n"
+            CONDITION_FAIL="1"
+        fi
+
+        if [ "$CONDITION_FAIL" == "1" ]; then
+            exit 0
+        fi
+    fi
 }
 
 ########################################
@@ -878,7 +944,7 @@ create_registry_secret() {
 
     z=0
     local ALL_GOOD="0"
-    while [[ $z -lt 5 ]]
+    while [[ $z -lt 10 ]]
     do
         ((z++))
         kubectl create secret docker-registry regcred --docker-server=registry.multipaas.org --docker-username=$RU --docker-password=$RP --docker-email=multipaas@multipaas.com
@@ -886,7 +952,7 @@ create_registry_secret() {
             ALL_GOOD="1"
             break
         else
-            sleep 3
+            sleep 6
         fi
     done
 
@@ -921,87 +987,14 @@ if [ "$DOCKER_USER_OK" == "" ]; then
     exit 1
 fi
 
-log "\n"
-read_input "Enter the control-plane VM IP:" MASTER_IP  
-log "\n"
-
-curl --output /dev/null --silent --head --fail http://$MASTER_IP:3030
-if [ "$?" != "0" ]; then
-    error "Control-plane API server is not responding.\n"
-    error "Make sure the firewall is not blocking port 3030 on the control-plane.\n"
-    exit 1
-fi
-
-sudo sed -i.bak '/multipaas.com/d' /etc/hosts &>>$err_log
-sudo rm -rf /etc/hosts.bak &>>$err_log
-sudo -- sh -c "echo $MASTER_IP multipaas.com multipaas.registry.com registry.multipaas.org multipaas.keycloak.com multipaas.gitlab.com multipaas.static.com >> /etc/hosts" &>>$err_log
-
-HN_TASK_LIST=("Kubernetes instances" "GlusterFS" "Both")
-combo_value NODE_ROLE "What tasks should this host-node handle" "Your choice #:" "${HN_TASK_LIST[@]}"
-if [ "$NODE_ROLE" == "Kubernetes instances" ]; then
-    IS_K8S_NODE="true"
-    IS_GLUSTER_PEER="false"
-elif [ "$NODE_ROLE" == "GlusterFS" ]; then
-    IS_K8S_NODE="false"
-    IS_GLUSTER_PEER="true"
-elif [ "$NODE_ROLE" == "Both" ]; then
-    IS_K8S_NODE="true"
-    IS_GLUSTER_PEER="true"
-fi
-
-log "\n"
-
-# Check preconditions
-if [ "$IS_K8S_NODE" == "true" ]; then
-    DEP_TARGET_LIST=("Kubernetes master" "Kubernetes worker")
-    combo_value DEP_TARGET "What do you wish to install" "Your choice #:" "${DEP_TARGET_LIST[@]}"
-    if [ "$DEP_TARGET" == "Kubernetes master" ]; then
-        # Clean up first if necessary
-        K8S_INSTALLED=$(docker ps -a | grep "k8s_kube-apiserver")
-        if [ "$K8S_INSTALLED" != "" ]; then
-            yes_no "Kubernetes is already running on this machine. Do you wish to reset this instances" REMOVE_K8S_RESPONSE
-            if [ "$REMOVE_K8S_RESPONSE" == "y" ]; then
-                remove_all &>>$err_log &
-                bussy_indicator "Cleaning up..."
-                log "\n"
-                log "\n"
-            else
-                exit 1
-            fi
-        fi
-    fi
-
-     # Make sure the registry certificates are installed
-    if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$HOME/configPrivateRegistry.sh" ]; then
-        error "Copy the Registry certificate setup script to your home folder:\n"
-        warn " 1. Grab the config script from the control-plane\n"
-        warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
-        warn " 2. Place the script in the local home folder\n"
-        CONDITION_FAIL="1"
-    fi
-    log "\n"
-    if [ ! -f "$HOME/configNginxRootCA.sh" ]; then
-        error "Copy the Nginx root certificate setup script to your home folder:\n"
-        warn " 1. Grab the config script from the control-plane\n"
-        warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
-        warn " 2. Place the script in the local home folder\n"
-        CONDITION_FAIL="1"
-    fi
-
-    if [ "$CONDITION_FAIL" == "1" ]; then
-        exit 0
-    fi
-fi
-
-
+log "\n" 
+# Collect info from user
+collect_informations
 
 # Now install
 if [ "$IS_K8S_NODE" == "true" ]; then
     # Install dependencies_k8s
     dependencies_k8s
-
-    # Collect info from user
-    collect_informations
 
     if [ "$DEP_TARGET" == "Kubernetes master" ]; then
         # Install the core components
@@ -1067,16 +1060,13 @@ if [ "$IS_K8S_NODE" == "true" ]; then
     fi
 fi
 
+# Now Gluster
 if [ "$IS_GLUSTER_PEER" == "true" ]; then
     GLUSTER_INSTALLED=$(docker ps -a | grep "gluster-ctl")
     if [ "$GLUSTER_INSTALLED" != "" ]; then
         warn "The gluster controller is already running on this machine.\n"
     else
         dependencies_gluster
-
-        if [ "$LOCAL_IP" == "" ]; then
-            collect_informations
-        fi
 
         collect_gluster_informations
 

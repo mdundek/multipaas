@@ -17,6 +17,7 @@ Vagrant.configure(2) do |config|
 
   config.vm.define "multipaas.base" do |multipaas|
     multipaas.vm.box = "multipaas-basebox-centos/7"
+    multipaas.disksize.size = '20GB'
     multipaas.vm.hostname = "multipaas.base"
     multipaas.vm.network "public_network", ip: "<VM_IP>", bridge: "#$default_network_interface"
     multipaas.vm.provider "virtualbox" do |v|

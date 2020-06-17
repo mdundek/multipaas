@@ -113,6 +113,11 @@ dep_vbox() {
     if [ "$VAGRANT_VGA_PLUGIN_EXISTS" == "" ]; then
         vagrant plugin install vagrant-vbguest
     fi
+
+    VAGRANT_DSIZE_PLUGIN_EXISTS=$(vagrant plugin list | grep "vagrant-disksize")
+    if [ "$VAGRANT_DSIZE_PLUGIN_EXISTS" == "" ]; then
+        vagrant plugin install vagrant-disksize
+    fi
 }
 
 
