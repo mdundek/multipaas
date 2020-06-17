@@ -216,6 +216,7 @@ class TaskController {
      */
     static async collectDiskSpaceFromGlusterNetwork() {
         let sizeArray = await this.mqttController.collectRequestResponse("/multipaas/k8s/host/query/gluster_peers/free_disk_size");
+        console.log("sizeArray =>", sizeArray);
         sizeArray.sort(( a, b ) => {
             if ( a.glusterVolumeCount < b.glusterVolumeCount ){
                 return -1;
