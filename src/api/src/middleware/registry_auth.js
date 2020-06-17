@@ -18,7 +18,7 @@ module.exports = () => {
 	return function registryAuth(req, res, next) {
 		(async() => {
 			try {
-				
+				console.log("AUTH =>", req.headers.authorization);
 				if(req.headers.authorization) {
 					
 					// console.log("HEADERS =>", JSON.stringify(req.headers, null, 4));
