@@ -57,10 +57,11 @@ module.exports = () => {
 					let uriArray = uriRequest.split(" ");
 					let uri = uriArray.find(o => o.indexOf("/v2/") == 0);
 					let uriSplit = uri.split("/").filter(o => o.length > 0);
-					console.log(uriArray[0]);
-					console.log(uri);
+					
+					
 					if(uriArray[0] == "GET" && (uri == "/v2/_catalog" || uri == "/v2/" || uri.indexOf("/list") == (uri.length - 5) || uri.indexOf("/manifests/") != -1 )) {
 						res.status(200);
+						console.log("OK");
 						res.send('ok');
 					} else if(uriSplit.length < 4 || (uriSplit[4] != "blobs" && uriSplit[4] != "manifests")) {
 						
