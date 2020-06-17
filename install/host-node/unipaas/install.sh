@@ -17,12 +17,12 @@ _BASEDIR="$(dirname "$_BASEDIR")"
 ########################################
 # Error management
 ########################################
-on_exit() {
-    if [ "$1" != "0" ]; then
-        error "An error occured. For more details, check the file ./std.log\n"
-        error "\n"
-    fi
-}
+# on_exit() {
+#     if [ "$1" != "0" ]; then
+#         error "An error occured. For more details, check the file ./std.log\n"
+#         error "\n"
+#     fi
+# }
 
 remove_all() {
     local C_EXISTS=$(command -v docker)
@@ -900,7 +900,7 @@ create_registry_secret() {
 ########################################
 # LOGIC...
 ########################################
-trap 'on_exit $? $LINENO' EXIT
+# trap 'on_exit $? $LINENO' EXIT
 
 /usr/bin/clear
 
@@ -1067,8 +1067,6 @@ if [ "$IS_K8S_NODE" == "true" ]; then
     fi
 fi
 
-log "\n"
-
 if [ "$IS_GLUSTER_PEER" == "true" ]; then
     GLUSTER_INSTALLED=$(docker ps -a | grep "gluster-ctl")
     if [ "$GLUSTER_INSTALLED" != "" ]; then
@@ -1117,7 +1115,7 @@ if [ "$IS_GLUSTER_PEER" == "true" ]; then
         warn "==> To add this Gluster peer to the Gluster network, execute the following command ON ANY OTHER GLUSTER peer host:\n"
         warn "    PLEASE NOTE: This is only necessary if this is NOT the first Gluster node for this Gluster network\n"
         log "\n"
-        log "    docker exec gluster-ctl gluster peer probe $LOCAL_IP\n"
+        log "    docker exec gluster-ctl gluster peer probe $LOCAL_IP \n"
     fi
 fi
 

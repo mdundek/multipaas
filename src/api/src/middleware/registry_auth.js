@@ -18,7 +18,6 @@ module.exports = () => {
 	return function registryAuth(req, res, next) {
 		(async() => {
 			try {
-				console.log("AUTH =>", req.headers.authorization);
 				if(req.headers.authorization) {
 					
 					// console.log("HEADERS =>", JSON.stringify(req.headers, null, 4));
@@ -58,16 +57,12 @@ module.exports = () => {
 					let uri = uriArray.find(o => o.indexOf("/v2/") == 0);
 					let uriSplit = uri.split("/").filter(o => o.length > 0);
 					
-					
 					if(uriArray[0] == "GET" && (uri == "/v2/_catalog" || uri == "/v2/" || uri.indexOf("/list") == (uri.length - 5) || uri.indexOf("/manifests/") != -1 )) {
-						res.status(200);
-						console.log("OK");
+						res.status(200);						
 						res.send('ok');
 					} else if(uriSplit.length < 4 || (uriSplit[4] != "blobs" && uriSplit[4] != "manifests")) {
-						
 						throw new Error("Unauthorized");
 					} else {
-						
 						let existingAcc = accounts.find(o => o.name == uriSplit[1]);
 						if(!existingAcc){
 							existingAcc = await DBController.getAccountByName(uriSplit[1]);
@@ -95,14 +90,12 @@ module.exports = () => {
 							existingOrg.registryUser != userCredentials[0] || 
 							decrypt(existingOrg.registryPass, existingOrg.bcryptSalt) != userCredentials[1]
 						){
-							
 							throw new Error("Unauthorized");
 						}
 						res.status(200);
 						res.send('ok');
 					}
 				} else {
-					
 					throw new Error("Unauthorized");
 				}
 			} catch (error) {
@@ -113,14 +106,6 @@ module.exports = () => {
 		})();
 	};
 };
-
-
-
-
-
-
-
-
 
 // curl -k -sSL -I -H "Accept: application/vnd.docker.distribution.manifest.v2+json" "https://${registry}/v2/${name}/manifests/1.0"
 

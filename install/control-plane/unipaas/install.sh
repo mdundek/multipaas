@@ -303,11 +303,11 @@ EOT
     NR_CRED=$(docker run --entrypoint htpasswd registry:2.7.1 -bn multipaas_master_user multipaas_master_pass)
 
     cat > $HOME/.multipaas/auth/nginx/htpasswd << EOF
-$DR_CRED
+$NR_CRED
 EOF
 
     cat > $HOME/.multipaas/auth/registry/htpasswd << EOF
-$NR_CRED
+$DR_CRED
 EOF
 
     touch $HOME/.multipaas/mosquitto/log/mosquitto.log
