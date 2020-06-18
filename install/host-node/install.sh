@@ -40,6 +40,10 @@ dependencies () {
             error "The host-node will be installed in a Virtualbox VM, but Virtualbox is not installed.\n" 
             warn "Please install Virtualbox first, then run this script again.\n"
             exit 1
+        elif [ "$VB_EXISTS" == "" ] && [ "$DISTRO" == "centos" ]; then
+            error "The host-node will be installed in a Virtualbox VM, but Virtualbox is not installed.\n" 
+            warn "Please install Virtualbox first, then run this script again.\n"
+            exit 1
         fi
 
         if [ "$DOCKER_EXISTS" == "" ] || [ "$VAG_EXISTS" == "" ] || [ "$NODE_EXISTS" == "" ] || [ "$PM2_EXISTS" == "" ]; then
@@ -82,6 +86,8 @@ dependencies () {
 
     if [ "$VB_EXISTS" == "" ] && [ "$DISTRO" == "redhat" ]; then
         sudo yum module enable perl -y &>>$err_log
+    elif [ "$VB_EXISTS" == "" ] && [ "$DISTRO" == "centos" ]; then
+        sudo yum module enable perl -y &>>$err_log
     fi
 
     if [ "$IS_K8S_NODE" == "true" ]; then
@@ -117,7 +123,7 @@ dependencies () {
                 if [ "$MAJ_V" == "18.04" ]; then
                     sudo docker load --input ../build/ubuntu_bionic/docker-images/gluster-centos-gluster4u0_centos7.tar
                 fi
-            elif [ "$DISTRO" == "redhat" ]; then
+            elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
                 if [ "$MAJ_V" == "8" ]; then
                     sudo docker load --input ../build/centos8/docker-images/gluster-centos-gluster4u0_centos7.tar
                 fi

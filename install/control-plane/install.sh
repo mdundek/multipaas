@@ -30,11 +30,17 @@ dependencies () {
         error "The control plane will be installed in a Virtualbox VM, but Virtualbox is not installed.\n" 
         warn "Please install Virtualbox first, then run this script again.\n"
         exit 1
+    elif [ "$VB_EXISTS" == "" ] && [ "$DISTRO" == "centos" ]; then
+        error "The control plane will be installed in a Virtualbox VM, but Virtualbox is not installed.\n" 
+        warn "Please install Virtualbox first, then run this script again.\n"
+        exit 1
     fi
 
     sudo echo "" # Ask user for sudo password now
 
     if [ "$VB_EXISTS" == "" ] && [ "$DISTRO" == "redhat" ]; then
+        sudo yum module enable perl -y &>>$err_log
+    elif [ "$VB_EXISTS" == "" ] && [ "$DISTRO" == "centos" ]; then
         sudo yum module enable perl -y &>>$err_log
     fi
 
@@ -114,7 +120,7 @@ configure_firewall() {
             sudo ufw allow https
         fi
     fi
-    if [ "$DISTRO" == "redhat" ]; then
+    if [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
         if [[ `firewall-cmd --state` = running ]]; then
             sudo firewall-cmd --zone=public --permanent --add-service=http
             sudo firewall-cmd --zone=public --permanent --add-service=https
@@ -145,7 +151,7 @@ install_core_components() {
     if [ "$DISTRO" == "ubuntu" ]; then
         sed -i "s/<TARGET_IMG_OS_NAME>/ubuntu_bionic/g" ./Vagrantfile
     fi
-    if [ "$DISTRO" == "redhat" ]; then
+    if [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
         sed -i "s/<TARGET_IMG_OS_NAME>/centos8/g" ./Vagrantfile
     fi
     

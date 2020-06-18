@@ -231,7 +231,7 @@ get_network_interface_ip() {
     if [ "$DISTRO" == "ubuntu" ]; then
         IFACES=$(ifconfig | cut -d ' ' -f1 | tr ':' '\n' | awk NF)
         readarray -t IFACESarrIN <<<"$IFACES"
-    elif [ "$DISTRO" == "redhat" ]; then
+    elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
         IFACES=$(nmcli device status | cut -d ' ' -f1)
         readarray -t _IFACESarrIN <<<"$IFACES"
         IFACESarrIN=("${_IFACESarrIN[@]:1}")

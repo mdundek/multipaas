@@ -166,7 +166,7 @@ configure_firewall() {
             sudo ufw allow https
         fi
     fi
-    if [ "$DISTRO" == "redhat" ]; then
+    if [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
         if [[ `firewall-cmd --state` = running ]]; then
             sudo firewall-cmd --zone=public --permanent --add-service=http
             sudo firewall-cmd --zone=public --permanent --add-service=https

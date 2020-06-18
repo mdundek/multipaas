@@ -7,7 +7,7 @@ update() {
     if [ "$DISTRO" == "ubuntu" ]; then
         sudo apt-get -y update &>>$err_log &
         bussy_indicator "Updating system..."
-    elif [ "$DISTRO" == "redhat" ]; then
+    elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
         CKERNEL=$(uname -r)
         sudo yum -y update &>>$err_log &
         bussy_indicator "Updating system..."

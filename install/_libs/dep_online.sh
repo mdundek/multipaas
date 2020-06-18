@@ -26,9 +26,9 @@ dep_node() {
             curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh
             sudo bash nodesource_setup.sh
             sudo apt install -y nodejs
-        elif [ "$DISTRO" == "redhat" ]; then
-            echo "OS not supported yet"
-            exit 1
+            sudo rm -rf nodesource_setup.sh
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
+            sudo dnf module install -y nodejs:10/development
         fi
     fi
 }
@@ -51,7 +51,7 @@ dep_docker() {
     if [ "$C_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             sudo apt install -y docker.io && sudo usermod -aG docker $USER
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
             sudo dnf install docker-ce --nobest -y
             sudo systemctl start docker
@@ -72,7 +72,7 @@ dep_vbox() {
             sudo add-apt-repository "deb [arch=amd64] http://download.virtualbox.org/virtualbox/debian $(lsb_release -cs) contrib"
             sudo apt update -y
             sudo apt install -y virtualbox-6.1 && sudo usermod -aG vboxusers $USER
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 wget -q https://download.virtualbox.org/virtualbox/rpm/el/virtualbox.repo
                 sudo mv virtualbox.repo /etc/yum.repos.d/
@@ -104,7 +104,7 @@ dep_vbox() {
             sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key AD319E0F7CFFA38B4D9F6E55CE3F3DE92099F7A4 D2BABDFD63EA9ECAB4E09C7228A873EA3C7C705F
             sudo apt-get update -y
             sudo apt -y install vagrant
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 sudo dnf -y install https://releases.hashicorp.com/vagrant/2.2.7/vagrant_2.2.7_x86_64.rpm
             fi
@@ -136,7 +136,7 @@ dep_vbox() {
 #             if [ "$MAJ_V" == "18.04" ]; then
 #                 deb_offline_install "curl"
 #             fi
-#         elif [ "$DISTRO" == "redhat" ]; then
+#         elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
 #             if [ "$MAJ_V" == "8" ]; then
 #                 rpm_offline_install "curl"
 #             fi
@@ -157,7 +157,7 @@ dep_vbox() {
 #                 deb_offline_install "kubectl"
 #                 deb_offline_install "kubelet"
 #             fi
-#         elif [ "$DISTRO" == "redhat" ]; then
+#         elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
 #             if [ "$MAJ_V" == "8" ]; then
 #                 rpm_offline_install "kubeadm"
 #                 rpm_offline_install "kubectl"
@@ -179,7 +179,7 @@ dep_vbox() {
 #                 deb_offline_install "libonig4"
 #                 deb_offline_install "jq"
 #             fi
-#         elif [ "$DISTRO" == "redhat" ]; then
+#         elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
 #             if [ "$MAJ_V" == "8" ]; then
 #                 rpm_offline_install "jq"
 #             fi
@@ -198,7 +198,7 @@ dep_vbox() {
 #             if [ "$MAJ_V" == "18.04" ]; then
 #                 deb_offline_install "gitlab-runner"
 #             fi
-#         elif [ "$DISTRO" == "redhat" ]; then
+#         elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
 #             if [ "$MAJ_V" == "8" ]; then
 #                 rpm_offline_install "gitlab-runner"
 #             fi
@@ -220,7 +220,7 @@ dep_vbox() {
 #                 deb_offline_install "libnl-3-200"
 #                 deb_offline_install "glusterfs-server"
 #             fi
-#         elif [ "$DISTRO" == "redhat" ]; then
+#         elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
 #             if [ "$MAJ_V" == "8" ]; then
 #                 rpm_offline_install "glusterfs-server"
 #             fi
@@ -239,7 +239,7 @@ dep_vbox() {
 #             if [ "$MAJ_V" == "18.04" ]; then
 #                 deb_offline_install "mosquitto-clients"
 #             fi
-#         elif [ "$DISTRO" == "redhat" ]; then
+#         elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
 #             if [ "$MAJ_V" == "8" ]; then
 #                 rpm_offline_install "mosquitto-clients"
 #             fi
@@ -258,7 +258,7 @@ dep_vbox() {
 #             if [ "$MAJ_V" == "18.04" ]; then
 #                 deb_offline_install "tar"
 #             fi
-#         elif [ "$DISTRO" == "redhat" ]; then
+#         elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
 #             if [ "$MAJ_V" == "8" ]; then
 #                 rpm_offline_install "tar"
 #             fi
@@ -277,7 +277,7 @@ dep_vbox() {
 #             if [ "$MAJ_V" == "18.04" ]; then
 #                 deb_offline_install "unzip"
 #             fi
-#         elif [ "$DISTRO" == "redhat" ]; then
+#         elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
 #             if [ "$MAJ_V" == "8" ]; then
 #                 rpm_offline_install "unzip"
 #             fi
@@ -296,7 +296,7 @@ dep_vbox() {
 #             if [ "$MAJ_V" == "18.04" ]; then
 #                 deb_offline_install "sshpass"
 #             fi
-#         elif [ "$DISTRO" == "redhat" ]; then
+#         elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
 #             if [ "$MAJ_V" == "8" ]; then
 #                 rpm_offline_install "sshpass"
 #             fi
@@ -319,7 +319,7 @@ dep_vbox() {
 #             if [ "$MAJ_V" == "18.04" ]; then
 #                 sudo tar xpf ../build/ubuntu_bionic/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
 #             fi
-#         elif [ "$DISTRO" == "redhat" ]; then
+#         elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
 #             if [ "$MAJ_V" == "8" ]; then
 #                 sudo tar xpf ../build/centos8/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
 #             fi

@@ -51,7 +51,7 @@ dep_wget() {
             if [ "$MAJ_V" == "18.04" ]; then
                 deb_offline_install "wget"
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "wget"
             fi
@@ -91,7 +91,7 @@ dep_node() {
                 echo 'export PATH=$NODEJS_HOME:$PATH' >> ~/.bashrc
                 source ~/.profile
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 if [ "$(command -v python2)" == "" ]; then
                     rpm_offline_install "python2"
@@ -117,7 +117,7 @@ dep_docker() {
                 sudo systemctl start docker
                 sudo systemctl enable docker
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "container-selinux"
                 rpm_offline_install "containerd.io"
@@ -146,7 +146,7 @@ dep_vbox() {
                 deb_offline_install "virtualbox-6.1" && sudo usermod -aG vboxusers $USER
             fi
         fi
-        if [ "$DISTRO" == "redhat" ]; then
+        if [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             error "Virtualbox is required, but it is not installed.\n" 
             warn "Please install Virtualbox manually first, then run this script again.\n"
             exit 1
@@ -158,7 +158,7 @@ dep_vbox() {
             if [ "$MAJ_V" == "18.04" ]; then
                 deb_offline_install "vagrant"
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "vagrant"
             fi
@@ -178,7 +178,7 @@ dep_curl() {
             if [ "$MAJ_V" == "18.04" ]; then
                 deb_offline_install "curl"
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "curl"
             fi
@@ -199,7 +199,7 @@ dep_kubernetes() {
                 deb_offline_install "kubectl"
                 deb_offline_install "kubelet"
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "kubeadm"
                 rpm_offline_install "kubectl"
@@ -221,7 +221,7 @@ dep_jq() {
                 deb_offline_install "libonig4"
                 deb_offline_install "jq"
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "jq"
             fi
@@ -245,7 +245,7 @@ dep_gitlab_runner() {
                     sudo service docker restart
                 fi
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "gitlab-runner"
             fi
@@ -267,7 +267,7 @@ dep_gluster_client() {
                 # deb_offline_install "libnl-3-200"
                 deb_offline_install "glusterfs-client"
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "glusterfs-server"
             fi
@@ -287,7 +287,7 @@ dep_mosquitto() {
                 deb_offline_install "libc-ares2"
                 deb_offline_install "mosquitto-clients"
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "mosquitto-clients"
             fi
@@ -306,7 +306,7 @@ dep_tar() {
             if [ "$MAJ_V" == "18.04" ]; then
                 deb_offline_install "tar"
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "tar"
             fi
@@ -325,7 +325,7 @@ dep_unzip() {
             if [ "$MAJ_V" == "18.04" ]; then
                 deb_offline_install "unzip"
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "unzip"
             fi
@@ -344,7 +344,7 @@ dep_sshpass() {
             if [ "$MAJ_V" == "18.04" ]; then
                 deb_offline_install "sshpass"
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 rpm_offline_install "sshpass"
             fi
@@ -381,7 +381,7 @@ dep_pm2() {
                     sudo mv $PM2_INSTALL_DIR/package $PM2_INSTALL_DIR/pm2
                 fi
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 sudo tar xpf ../build/centos8/npm-modules/pm2-4.4.0.tgz -C $PM2_INSTALL_DIR
             fi
@@ -417,7 +417,7 @@ dep_helm() {
                     exit 1
                 fi
             fi
-        elif [ "$DISTRO" == "redhat" ]; then
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             if [ "$MAJ_V" == "8" ]; then
                 echo "HELM binary for redhat not implemented"
                 exit 1
