@@ -52,8 +52,10 @@ dep_docker() {
         if [ "$DISTRO" == "ubuntu" ]; then
             sudo apt install -y docker.io && sudo usermod -aG docker $USER
         elif [ "$DISTRO" == "redhat" ]; then
-            echo "OS not supported yet"
-            exit 1
+            sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+            sudo dnf install docker-ce --nobest -y
+            sudo systemctl start docker
+            sudo systemctl enable docker
         fi
         NEW_DOCKER="true"
     fi

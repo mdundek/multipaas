@@ -15,7 +15,7 @@ err_log=$_DIR/std.log
 ########################################
 # CHECK DEPS FILES
 ########################################
-dependency_dl_exists() {
+dependency_dl_exists_deb() {
     local _EXISTS=""
     
     if [ -d "$1" ]; then
@@ -37,10 +37,10 @@ dependency_dl_exists() {
 # DOWNLOAD DEPS
 ########################################
 download_deb() {
-    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/$1)" ]; then
-        mkdir $OFFLINE_FOLDER/debs/$1
+    if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/$1)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/$1
         echo "==> Downloading package $1"
-        cd $OFFLINE_FOLDER/debs/$1
+        cd $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/$1
         for i in $(apt-cache depends $1 | grep -E 'Depends|Recommends|Suggests' | cut -d ':' -f 2,3 | sed -e s/'<'/''/ -e s/'>'/''/); do apt-get download $i 2>>errors.txt; done
         apt-get install $1 --print-uris --reinstall --yes | sed -n "s/^'\([^']*\)'.*$/\1/p" > ./debs.txt
         _IFS=$'\r\n' GLOBIGNORE='*' command eval  'DEP_ARR=($(cat ./debs.txt))'
@@ -92,19 +92,21 @@ dependencies () {
     dep_docker &>>$err_log &
     bussy_indicator "Dependency on \"docker\"..."
     log "\n"
-    if [ "$DK_EXISTS" == "" ]; then
-        log "\n"
-        warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
-        exit 1
-    fi
 
-    dep_node &>>$err_log &
-    bussy_indicator "Dependency on \"node\"..."
-    log "\n"
+    echo "$(docker images)"
+    # if [ "$DK_EXISTS" == "" ]; then
+    #     log "\n"
+    #     warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
+    #     exit 1
+    # fi
 
-    dep_npm_bundle &>>$err_log &
-    bussy_indicator "Dependency on \"npm_bundle\"..."
-    log "\n"
+    # dep_node &>>$err_log &
+    # bussy_indicator "Dependency on \"node\"..."
+    # log "\n"
+
+    # dep_npm_bundle &>>$err_log &
+    # bussy_indicator "Dependency on \"npm_bundle\"..."
+    # log "\n"
 }
 
 build_multipaas_api() {
@@ -145,47 +147,45 @@ build_for_ubuntu_bionic() {
 
     ########## Download binaries
 
-    _CPWD=$(pwd)
-    
     # Nodejs
-    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/nodejs)" ]; then
-        mkdir $OFFLINE_FOLDER/debs/nodejs
-        wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/debs/nodejs/node-v12.18.0-linux-x64.tar.xz &>>$err_log &
+    if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/nodejs)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/nodejs
+        wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/nodejs/node-v12.18.0-linux-x64.tar.xz &>>$err_log &
         bussy_indicator "Adding repo NodeJS 12..."
         log "\n"
     fi
 
     # DOCKER
-    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/containerd)" ]; then
-        mkdir $OFFLINE_FOLDER/debs/containerd
-        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/containerd.io_1.2.6-3_amd64.deb -O $OFFLINE_FOLDER/debs/containerd/containerd.io_1.2.6-3_amd64.deb &>>$err_log &
+    if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/containerd)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/containerd
+        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/containerd.io_1.2.6-3_amd64.deb -O $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/containerd/containerd.io_1.2.6-3_amd64.deb &>>$err_log &
         bussy_indicator "Adding repo Containerd..."
         log "\n"
     fi
 
-    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/docker-ce-cli)" ]; then
-        mkdir $OFFLINE_FOLDER/debs/docker-ce-cli
-        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce-cli_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/docker-ce-cli/docker-ce-cli_19.03.9~3-0~ubuntu-bionic_amd64.deb &>>$err_log &
+    if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/docker-ce-cli)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/docker-ce-cli
+        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce-cli_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/docker-ce-cli/docker-ce-cli_19.03.9~3-0~ubuntu-bionic_amd64.deb &>>$err_log &
         bussy_indicator "Adding repo docker-ce-cli..."
         log "\n"
     fi
 
-    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/docker-ce)" ]; then
-        mkdir $OFFLINE_FOLDER/debs/docker-ce
-        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/docker-ce/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb &>>$err_log &
+    if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/docker-ce)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/docker-ce
+        wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/docker-ce/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb &>>$err_log &
         bussy_indicator "Adding repo docker-ce..."
         log "\n"
     fi
     
     # GITLAB-RUNNER
-    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/gitlab-runner)" ]; then
+    if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/gitlab-runner)" ]; then
         curl -s -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash &>>$err_log &
         bussy_indicator "Adding repo gitlab-runner..."
         log "\n"
     fi
 
     # KUBERNETES
-    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/kubeadm)" ]; then
+    if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/kubeadm)" ]; then
         curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add &>>$err_log &
         bussy_indicator "Adding repo key K8S..."
         log "\n"
@@ -195,16 +195,16 @@ build_for_ubuntu_bionic() {
     fi
 
     # Add Gluster repo
-    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/glusterfs-server)" ]; then
+    if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/glusterfs-server)" ]; then
         sudo add-apt-repository -y ppa:gluster/glusterfs-5 &>>$err_log &
         bussy_indicator "Adding repo GlusterFS..."
         log "\n"
     fi
 
     # Helm
-    if [ -z "$(dependency_dl_exists $OFFLINE_FOLDER/debs/helm)" ]; then
-        mkdir $OFFLINE_FOLDER/debs/helm
-        wget https://get.helm.sh/helm-v3.2.3-linux-amd64.tar.gz -O $OFFLINE_FOLDER/debs/helm/helm-v3.2.3-linux-amd64.tar.gz &>>$err_log &
+    if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/helm)" ]; then
+        mkdir $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/helm
+        wget https://get.helm.sh/helm-v3.2.3-linux-amd64.tar.gz -O $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/helm/helm-v3.2.3-linux-amd64.tar.gz &>>$err_log &
         bussy_indicator "Adding repo Helm 12..."
         log "\n"
     fi
@@ -264,7 +264,7 @@ build_for_ubuntu_bionic() {
 
     download_deb gitlab-runner &>>$err_log &
     bussy_indicator "Downloading repo gitlab-runner..."
-    rm -rf $OFFLINE_FOLDER/debs/gitlab-runner/docker-engine_*.deb
+    rm -rf $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/gitlab-runner/docker-engine_*.deb
     log "\n"
 
     download_deb libc6-dev &>>$err_log &
@@ -282,10 +282,152 @@ build_for_ubuntu_bionic() {
     download_deb glibc-doc-reference &>>$err_log &
     bussy_indicator "Downloading repo glibc-doc-reference..."
     log "\n"
-    
-    ########## Download docker images
+}
 
-    cd $_CPWD
+build_for_centos8() {
+    cd $_DIR
+    
+    ########## Download binaries
+
+    # # Nodejs
+    # if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/nodejs)" ]; then
+    #     mkdir $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/nodejs
+    #     wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/nodejs/node-v12.18.0-linux-x64.tar.xz &>>$err_log &
+    #     bussy_indicator "Adding repo NodeJS 12..."
+    #     log "\n"
+    # fi
+
+    # # DOCKER
+    # if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/containerd)" ]; then
+    #     mkdir $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/containerd
+    #     wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/containerd.io_1.2.6-3_amd64.deb -O $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/containerd/containerd.io_1.2.6-3_amd64.deb &>>$err_log &
+    #     bussy_indicator "Adding repo Containerd..."
+    #     log "\n"
+    # fi
+
+    # if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/docker-ce-cli)" ]; then
+    #     mkdir $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/docker-ce-cli
+    #     wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce-cli_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/docker-ce-cli/docker-ce-cli_19.03.9~3-0~ubuntu-bionic_amd64.deb &>>$err_log &
+    #     bussy_indicator "Adding repo docker-ce-cli..."
+    #     log "\n"
+    # fi
+
+    # if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/docker-ce)" ]; then
+    #     mkdir $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/docker-ce
+    #     wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb -O $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/docker-ce/docker-ce_19.03.9~3-0~ubuntu-bionic_amd64.deb &>>$err_log &
+    #     bussy_indicator "Adding repo docker-ce..."
+    #     log "\n"
+    # fi
+    
+    # # GITLAB-RUNNER
+    # if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/gitlab-runner)" ]; then
+    #     curl -s -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash &>>$err_log &
+    #     bussy_indicator "Adding repo gitlab-runner..."
+    #     log "\n"
+    # fi
+
+    # # KUBERNETES
+    # if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/kubeadm)" ]; then
+    #     curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add &>>$err_log &
+    #     bussy_indicator "Adding repo key K8S..."
+    #     log "\n"
+    #     sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main" &>>$err_log &
+    #     bussy_indicator "Adding repo K8S..."
+    #     log "\n"
+    # fi
+
+    # # Add Gluster repo
+    # if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/glusterfs-server)" ]; then
+    #     sudo add-apt-repository -y ppa:gluster/glusterfs-5 &>>$err_log &
+    #     bussy_indicator "Adding repo GlusterFS..."
+    #     log "\n"
+    # fi
+
+    # # Helm
+    # if [ -z "$(dependency_dl_exists_deb $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/helm)" ]; then
+    #     mkdir $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/helm
+    #     wget https://get.helm.sh/helm-v3.2.3-linux-amd64.tar.gz -O $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/helm/helm-v3.2.3-linux-amd64.tar.gz &>>$err_log &
+    #     bussy_indicator "Adding repo Helm 12..."
+    #     log "\n"
+    # fi
+    
+
+    # sudo apt update -y &>>$err_log &
+    # bussy_indicator "Updating repos..."
+    # log "\n"
+
+    # download_deb kubeadm &>>$err_log &
+    # bussy_indicator "Downloading repo kubeadm..."
+    # log "\n"
+
+    # download_deb kubelet &>>$err_log &
+    # bussy_indicator "Downloading repo kubelet..."
+    # log "\n"
+
+    # download_deb kubectl &>>$err_log &
+    # bussy_indicator "Downloading repo kubectl..."
+    # log "\n"
+
+    # download_deb sshpass &>>$err_log &
+    # bussy_indicator "Downloading repo sshpass..."
+    # log "\n"
+
+    # download_deb unzip &>>$err_log &
+    # bussy_indicator "Downloading repo unzip..."
+    # log "\n"
+
+    # download_deb jq &>>$err_log &
+    # bussy_indicator "Downloading repo jq..."
+    # log "\n"
+
+    # download_deb mosquitto &>>$err_log &
+    # bussy_indicator "Downloading repo mosquitto..."
+    # log "\n"
+
+    # download_deb libc-ares2 &>>$err_log &
+    # bussy_indicator "Downloading repo libc-ares2..."
+    # log "\n"
+
+    # download_deb mosquitto-clients &>>$err_log &
+    # bussy_indicator "Downloading repo mosquitto-clients..."
+    # log "\n"
+
+    # download_deb software-properties-common &>>$err_log &
+    # bussy_indicator "Downloading repo software-properties-common..."
+    # log "\n"
+
+    # download_deb glusterfs-client &>>$err_log &
+    # bussy_indicator "Downloading repo glusterfs-client..."
+    # log "\n"
+
+    # download_deb glusterfs-server &>>$err_log &
+    # bussy_indicator "Downloading repo glusterfs-server..."
+    # log "\n"
+
+    # download_deb gitlab-runner &>>$err_log &
+    # bussy_indicator "Downloading repo gitlab-runner..."
+    # rm -rf $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME/gitlab-runner/docker-engine_*.deb
+    # log "\n"
+
+    # download_deb libc6-dev &>>$err_log &
+    # bussy_indicator "Downloading repo libc6-dev..."
+    # log "\n"
+
+    # download_deb libnl-3-200 &>>$err_log &
+    # bussy_indicator "Downloading repo libnl-3-200..."
+    # log "\n"
+
+    # download_deb libonig4 &>>$err_log &
+    # bussy_indicator "Downloading repo libonig4..."
+    # log "\n"
+
+    # download_deb glibc-doc-reference &>>$err_log &
+    # bussy_indicator "Downloading repo glibc-doc-reference..."
+    # log "\n"
+}
+
+download_docker_images() {
+    cd $_DIR
     # Clear layer cach to prevent stuck corrupt image layers
     sudo systemctl stop docker
     sudo rm -rf /var/lib/docker
@@ -319,7 +461,6 @@ build_for_ubuntu_bionic() {
     bussy_indicator "Building multipaas controller service..."
     log "\n"
 }
-
 ########################################
 # LOGIC...
 ########################################
@@ -330,19 +471,36 @@ log "\n\n"
 
 # Determine current distro
 distro
-if [ "$DISTRO" != "ubuntu" ] || [ "$MAJ_V" != "18.04" ]; then
+
+OFFLINE_FOLDER="$(dirname "$_DIR")/offline_files"
+
+if [ "$DISTRO" == "ubuntu" ] && [ "$MAJ_V" == "18.04" ]; then
+    PK_FOLDER_NAME="ubuntu_bionic"
+    mkdir -p $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME
+
+    # Install dependencies
+    dependencies
+    log "\n"
+
+    build_for_ubuntu_bionic
+    log "\n"
+elif [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "8" ]; then
+    PK_FOLDER_NAME="redhat_eight"
+    mkdir -p $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME
+
+    # Install dependencies
+    dependencies
+    log "\n"
+
+    build_for_centos8
+    log "\n"
+else
     echo "Unsupported OS. This script only works on Ubuntu 18.04"
     exit 1
 fi
 
-OFFLINE_FOLDER="$(dirname "$_DIR")/offline_files"
-
-# Install dependencies
-dependencies
-log "\n"
-
-build_for_ubuntu_bionic
-log "\n"
+########## Download docker images
+# download_docker_images
 
 log "\n"
 success "Build process done! You can now proceed to the installation of the control-plane as well as the host-node.\n"
