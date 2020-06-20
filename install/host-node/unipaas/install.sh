@@ -72,6 +72,33 @@ remove_all() {
 ########################################
 # 
 ########################################
+configure_firewall() {
+    if [ "$DISTRO" == "ubuntu" ]; then
+        FW_INACTIVE=$(sudo ufw status verbose | grep "inactive")
+        if [ "$FW_INACTIVE" == "" ]; then
+            sudo ufw allow http
+            sudo ufw allow https
+        fi
+    fi
+    if [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
+        if [[ `sudo firewall-cmd --state` = running ]]; then
+            sudo firewall-cmd --zone=public --permanent --add-service=http
+            sudo firewall-cmd --zone=public --permanent --add-service=https
+            sudo firewall-cmd --permanent --add-port=3030/tcp
+            sudo firewall-cmd --permanent --add-port=6443/tcp
+            sudo firewall-cmd --permanent --add-port=2379-2380/tcp
+            sudo firewall-cmd --permanent --add-port=10250/tcp
+            sudo firewall-cmd --permanent --add-port=10251/tcp
+            sudo firewall-cmd --permanent --add-port=10252/tcp
+            sudo firewall-cmd --permanent --add-port=10255/tcp
+            sudo firewall-cmd --reload
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
 
 dependency_docker () {
     DK_EXISTS=$(command -v docker)
@@ -128,9 +155,9 @@ dependencies_k8s () {
     bussy_indicator "Dependency on \"tar\"..."
     log "\n"
 
-    dep_sshpass &>>$err_log &
-    bussy_indicator "Dependency on \"sshpass\"..."
-    log "\n"
+    # dep_sshpass &>>$err_log &
+    # bussy_indicator "Dependency on \"sshpass\"..."
+    # log "\n"
 
     dep_kubernetes &>>$err_log &
     bussy_indicator "Dependency on \"Kubernetes\"..."
@@ -143,14 +170,14 @@ dependencies_k8s () {
     dep_node &>>$err_log &
     bussy_indicator "Dependency on \"NodeJS\"..."
     log "\n"
-    source ~/.profile
+    source ~/.bashrc
 
     dep_unzip &>>$err_log &
     bussy_indicator "Dependency on \"unzip\"..."
     log "\n"
 
     dep_gluster_client &>>$err_log &
-    bussy_indicator "Dependency on \"gluster_client\"..."
+    bussy_indicator "Dependency on \"gluster_client\"..."   
     log "\n"
 
     # sudo systemctl disable glusterd &>>$err_log
@@ -975,6 +1002,17 @@ log "\n\n"
 
 # Figure out what distro we are running
 distro
+if [ "$DISTRO" == "ubuntu" ] && [ "$MAJ_V" == "18.04" ]; then
+    PK_FOLDER_NAME="ubuntu_bionic"
+elif [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "8" ]; then
+    PK_FOLDER_NAME="redhat_eight"
+else
+    echo "Unsupported OS. This script only works on Ubuntu 18.04 & RedHat 8"
+    exit 1
+fi
+
+# Firewall rules
+configure_firewall
 
 # Install docker first
 dependency_docker

@@ -9,8 +9,8 @@ dep_wget() {
         if [ "$DISTRO" == "ubuntu" ]; then
            sudo apt-get install -y wget
         elif [ "$DISTRO" == "redhat" ]; then
-            if [ "$MAJ_V" == "8" ]; then
-                sudo dnf -y install wget
+            if [ "$MAJ_V" == "7" ]; then
+                sudo yum -y install wget
             fi
         fi
     fi
@@ -27,8 +27,9 @@ dep_node() {
             sudo bash nodesource_setup.sh
             sudo apt install -y nodejs
             sudo rm -rf nodesource_setup.sh
-        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
-            sudo dnf module install -y nodejs:10/development
+        elif [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "7" ]; then
+            sudo curl -sL https://rpm.nodesource.com/setup_12.x | sudo bash -
+            sudo yum install -y nodejs
         fi
     fi
 }
@@ -52,10 +53,11 @@ dep_docker() {
         if [ "$DISTRO" == "ubuntu" ]; then
             sudo apt install -y docker.io && sudo usermod -aG docker $USER
         elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
-            sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
-            sudo dnf install docker-ce --nobest -y
-            sudo systemctl start docker
-            sudo systemctl enable docker
+            sudo yum install -y docker device-mapper-libs device-mapper-event-libs
+            sudo systemctl enable --now docker.service
+            sudo groupadd docker
+            sudo usermod -aG docker ${USER}
+            sudo chmod 666 /var/run/docker.sock
         fi
         NEW_DOCKER="true"
     fi

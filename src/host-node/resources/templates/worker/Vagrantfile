@@ -12,7 +12,7 @@ Vagrant.configure(2) do |config|
   config.vbguest.auto_update = false
   config.vm.define "worker.<WS_HASH>" do |worker|
     worker.vm.box = "multipaas-worker"
-    worker.disksize.size = '20GB'
+    # worker.disksize.size = '20GB'
     worker.vm.hostname = "worker.<WS_HASH>"
     worker.vm.network "public_network", bridge: "<IF_NAME>"<STATIC_IP>
     worker.vm.provider "virtualbox" do |v|

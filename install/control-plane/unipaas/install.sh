@@ -15,12 +15,7 @@ err_log=$_DIR/std.log
 ########################################
 on_error() {
   if [ "$1" != "0" ]; then
-    error "An error occured on line $2: $1\n"
-    error "\n"
-    remove_all &>>$err_log &
-    bussy_indicator "Cleaning up..."
-    log "\n"
-    error "For more details, check the file ./std.log\n"
+    error "An error occured, check the file ./std.log\n"
   fi
 }
 
@@ -54,12 +49,35 @@ remove_all() {
 dependencies () {
     sudo echo "" # Ask user for sudo password now
 
+
+
+
+
+
+
+    if [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "7" ]; then
+        sudo yum install -y --cacheonly --disablerepo=* ../../build/offline_files/rpms/$PK_FOLDER_NAME/yum-utils/*.rpm
+        sudo yum install -y --cacheonly --disablerepo=* ../../build/offline_files/rpms/$PK_FOLDER_NAME/createrepo/*.rpm
+    fi
+
+
+
+
+
+
+
+
+
+
     DK_EXISTS=$(command -v docker)
     dep_docker &>>$err_log &
     bussy_indicator "Dependency on \"Docker CE\"..."
     log "\n"
     if [ "$DK_EXISTS" == "" ]; then
-        sudo usermod -aG docker $USER
+        if [ "$DISTRO" == "redhat" ]; then
+            sudo firewall-cmd --permanent --zone=trusted --add-interface=docker0 &>>$err_log
+            sudo firewall-cmd --reload &>>$err_log
+        fi
         log "\n"
         warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
         exit 0
@@ -81,13 +99,12 @@ dependencies () {
     bussy_indicator "Dependency on \"curl\"..."
     log "\n"
 
-    dep_sshpass &>>$err_log &
-    bussy_indicator "Dependency on \"sshpass\"..."
-    log "\n"
+    # dep_sshpass &>>$err_log &
+    # bussy_indicator "Dependency on \"sshpass\"..."
+    # log "\n"
 
     sudo systemctl enable docker > /dev/null 2>&1 
     sudo systemctl start docker > /dev/null 2>&1 
-
 
     if [ "$(docker images | grep -E 'eclipse-mosquitto.*1.6')" == "" ]; then
         sudo docker load --input ../../build/offline_files/docker_images/eclipse-mosquitto-1.6.tar &>>$err_log &
@@ -167,9 +184,15 @@ configure_firewall() {
         fi
     fi
     if [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
-        if [[ `firewall-cmd --state` = running ]]; then
+        if [[ `sudo firewall-cmd --state` = running ]]; then
             sudo firewall-cmd --zone=public --permanent --add-service=http
             sudo firewall-cmd --zone=public --permanent --add-service=https
+            sudo firewall-cmd --permanent --add-port=3030/tcp
+            sudo firewall-cmd --permanent --add-port=5432/tcp
+            sudo firewall-cmd --permanent --add-port=5000/tcp
+            sudo firewall-cmd --permanent --add-port=1883/tcp
+            sudo firewall-cmd --permanent --add-port=8888/tcp
+            sudo firewall-cmd --permanent --add-port=8080/tcp
             sudo firewall-cmd --reload
         fi
     fi
@@ -709,6 +732,14 @@ log "\n\n"
 
 # Figure out what distro we are running
 distro
+if [ "$DISTRO" == "ubuntu" ] && [ "$MAJ_V" == "18.04" ]; then
+    PK_FOLDER_NAME="ubuntu_bionic"
+elif [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "7" ]; then
+    PK_FOLDER_NAME="redhat_seven"
+else
+    echo "Unsupported OS. This script only works on Ubuntu 18.04 & RedHat 7"
+    exit 1
+fi
 
 # Install dependencies
 dependencies
@@ -730,7 +761,7 @@ fi
 collect_informations
 
 # Configure firewall
-# configure_firewall &>>$err_log
+configure_firewall &>>$err_log
 
 sudo sed -i.bak '/multipaas.com/d' /etc/hosts &>>$err_log
 sudo rm -rf /etc/hosts.bak &>>$err_log

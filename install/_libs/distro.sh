@@ -14,10 +14,9 @@ distro() {
         # Otherwise, use release info file
         else
             export DISTRO=$(ls -d /etc/[A-Za-z]*[_-][rv]e[lr]* | grep -v "lsb" | cut -d'/' -f3 | cut -d'-' -f1 | cut -d'_' -f1 | tr '[:upper:]' '[:lower:]')
-            if [[ $DISTRO == *"redhat"* ]; then
+            if [[ $DISTRO == *"redhat"* ]]; then
                 DISTRO="redhat"
-            fi
-            if [[ $DISTRO == *"centos"* ]]; then
+            elif [[ $DISTRO == *"centos"* ]]; then
                 DISTRO="centos"
             fi
         fi
@@ -33,15 +32,15 @@ distro() {
             exit 1
         fi
     elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
-        MAJ_V_8=$(cat /etc/os-release | grep "VERSION=\"8")
-        if [ "$MAJ_V_8" != "" ]; then
-            MAJ_V="8"
+        MAJ_V_7=$(cat /etc/os-release | grep "VERSION=\"7")
+        if [ "$MAJ_V_7" != "" ]; then
+            MAJ_V="7"
         else
-            echo "Unsupported RedHat / CentOS version. This script only works on versions 8"
+            echo "Unsupported RedHat / CentOS version. This script only works on versions 7"
             exit 1
         fi
     else
-        echo "Unsupported OS. This script only works on Ubuntu 18.04, RedHat 8 and CentOS 8"
+        echo "Unsupported OS. This script only works on Ubuntu 18.04, RedHat 8 and CentOS 7"
         exit 1
     fi
 }

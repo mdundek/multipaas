@@ -121,9 +121,12 @@ configure_firewall() {
         fi
     fi
     if [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
-        if [[ `firewall-cmd --state` = running ]]; then
+        if [[ `sudo firewall-cmd --state` = running ]]; then
             sudo firewall-cmd --zone=public --permanent --add-service=http
             sudo firewall-cmd --zone=public --permanent --add-service=https
+            sudo firewall-cmd --permanent --add-port=3030/tcp
+            sudo firewall-cmd --permanent --add-port=5432/tcp
+            sudo firewall-cmd --permanent --add-port=5000/tcp
             sudo firewall-cmd --reload
         fi
     fi
