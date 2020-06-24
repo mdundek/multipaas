@@ -1,0 +1,24 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_NO_PARALLEL'] = 'yes'
+ENV["LC_ALL"] = "en_US.UTF-8"
+
+Vagrant.configure(2) do |config|
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+  config.vm.synced_folder "/Users/mdundek/workspaces/perso/multipaas", "/home/vagrant/multipaas"
+  config.vbguest.auto_update = false
+  config.vm.provision "shell", path: "bootstrap.sh", privileged: false
+  config.vm.define "unipaas.hn1.rh7" do |instance|
+    instance.vm.box = "generic/rhel7"
+    instance.registration.username = 'mdundek'
+    instance.registration.password = 'R3b3cc8!'
+    instance.vm.hostname = "unipaas.hn1.rh7"
+    instance.vm.network "public_network", bridge: "en0: Wi-Fi (Wireless)", ip: "192.168.68.152"
+    instance.vm.provider "virtualbox" do |v|
+      v.name = "unipaas.hn1.rh7"
+      v.memory = 4096
+      v.cpus = 2
+    end
+  end
+end

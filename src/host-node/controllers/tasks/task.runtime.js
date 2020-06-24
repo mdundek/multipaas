@@ -47,17 +47,13 @@ class TaskRuntimeController {
     static async requestCreateK8SResource(topicSplit, data) {
         try{
             await this.kubectl(`kubectl create ${data.type} ${data.name}${data.ns ? " --namespace=" + data.ns : ""}`, data.node);
-
             if(data.type == "namespace") {
-                console.log("PWD => ", process.cwd());
                 let adminRoleBindingYamlPath = path.join(process.cwd(), "resources", "k8s_templates", "rbac_role_bindings.yaml");
                 let wsTmpYamlPath = path.join(process.env.VM_BASE_DIR, "workplaces", data.node.workspaceId.toString(), data.node.hostname, `rbac_role_bindings.yaml`);
                 await OSController.copyFile(adminRoleBindingYamlPath, path.dirname(wsTmpYamlPath));
                 let adminRoleBindingYaml = YAML.parse(fs.readFileSync(wsTmpYamlPath, 'utf8'));
-
                 adminRoleBindingYaml.kind = "RoleBinding";
                 adminRoleBindingYaml.metadata.namespace = data.name;
-
                 for(let i=0; i<data.groups.length; i++) {
                     if(data.groups[i].name != "cluster-admin") {
                         adminRoleBindingYaml.metadata.name = `mp-${data.name}-${data.groups[i].name}-binding`;
@@ -68,10 +64,8 @@ class TaskRuntimeController {
                         await TaskRuntimeController.applyK8SYaml(wsTmpYamlPath, null, data.node);
                     }
                 }
-
                 await TaskRuntimeController.kubectl(`kubectl create secret docker-registry regcred --docker-server=${data.registry.server} --docker-username=${data.registry.username} --docker-password=${data.registry.password} --docker-email=${data.registry.email} --namespace=${data.name}`, data.node);
             }
-
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: 200,
                 task: "create k8s resource"
@@ -112,6 +106,7 @@ class TaskRuntimeController {
                 output: resourceResponses
             }));
         } catch (err) {
+            console.log(err);
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
                 status: err.code ? err.code : 500,
                 message: err.message,

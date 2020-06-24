@@ -40,35 +40,36 @@ class TaskNamespaceController {
             "targets": ["namespaces"],
             "node": r.data[0]
         }, 15000);
-
+        
         if(response.data.status == 200){
             if(response.data.output.namespaces.find(o => o.NAME == data.name)) {
                 return { "code": 409 }
             } else {
+                
                 params._internalRequest = true;
                 let ws = await this.app.service("workspaces").get(data.workspaceId, params);
                 params._internalRequest = true;
                 let org = await this.app.service("organizations").get(ws.organizationId, params);
                 params._internalRequest = true;
                 let acc = await this.app.service("accounts").get(org.accountId, params);
-
+                
                 let allGroups = await TaskKeycloakController.getAvailableClusterGroups({
                     accName: acc.name,
                     orgName: org.name,
                     wsName: ws.name
                 });
-
+               
                 if(allGroups.code != 200) {
                     return { "code": 500 }
                 }
-
+                
                 // Decrypt registry password
                 let iv = Buffer.from(org.bcryptSalt, 'base64');
                 let encryptedText = Buffer.from(org.registryPass, 'hex');
                 let decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
                 let decrypted = decipher.update(encryptedText);
                 decrypted = Buffer.concat([decrypted, decipher.final()]);
-                 
+           
                 response = await MQTTController.queryRequestResponse(r.data[0].k8s_host.ip, "create_k8s_resource", {
                     "type": "namespace",
                     "name": data.name,
@@ -140,7 +141,7 @@ class TaskNamespaceController {
             "targets": ["namespaces"],
             "node": r.data[0]
         }, 15000);
-
+        
         if(response.data.status == 200){
             return {
                 "code": 200,

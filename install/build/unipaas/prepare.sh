@@ -5,6 +5,10 @@ _DIR="$(cd "$(dirname "$0")" && pwd)"
 _PWD="$(pwd)"
 cd $_DIR
 
+BASE_FOLDER="$(dirname "$_DIR")"
+BASE_FOLDER="$(dirname "$BASE_FOLDER")"
+BASE_FOLDER="$(dirname "$BASE_FOLDER")"
+
 err_log=$_DIR/std.log
 
 . ../../_libs/common.sh
@@ -135,16 +139,11 @@ dependencies_redhat_8 () {
 dependencies_redhat_7 () {
     sudo yum install -y yum-utils
     sudo yum install -y epel-release
-    sudo yum install -y createrepo
     sudo modprobe fuse    
 }
 
-dependencies () {
+dependencies_offline_mode () {
     sudo echo "" # Ask user for sudo password now
-
-    dep_wget &>>$err_log &
-    bussy_indicator "Dependency on \"wget\"..."
-    log "\n"
 
     DK_EXISTS=$(command -v docker)
     dep_docker &>>$err_log &
@@ -161,9 +160,21 @@ dependencies () {
         exit 1
     fi
 
+    # Make sure we have access to docher deamon
+    DOCKER_USER_OK=$(groups | grep "docker")
+    if [ "$DOCKER_USER_OK" == "" ]; then
+        error "The current user does not have access to the docker deamon.\n"
+        error "Did you restart your session afterhaving installed docker?\n"
+        exit 1
+    fi
+
+    dep_wget &>>$err_log &
+    bussy_indicator "Dependency on \"wget\"..."
+    log "\n"
+
     if [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "7" ]; then
         dependencies_redhat_7 &>>$err_log &
-        bussy_indicator "Dependency for \"redhat\"..."
+        bussy_indicator "Dependency on \"redhat\"..."
         log "\n"
     fi
 
@@ -277,7 +288,7 @@ build_for_ubuntu_bionic() {
     fi
     
 
-    sudo apt update -y --nobest &>>$err_log &
+    sudo apt update -y &>>$err_log &
     bussy_indicator "Updating repos..."
     log "\n"
 
@@ -293,12 +304,28 @@ build_for_ubuntu_bionic() {
     bussy_indicator "Downloading repo kubectl..."
     log "\n"
 
+    dep_kubernetes &>>$err_log &
+    bussy_indicator "Installing Kubernetes binaries..."
+    log "\n"
+    
+    kubeadm config images pull &>>$err_log &
+    bussy_indicator "Pulling K8S images..."
+    log "\n"
+
     download_deb_ubuntu_bionic sshpass &>>$err_log &
     bussy_indicator "Downloading repo sshpass..."
     log "\n"
 
     download_deb_ubuntu_bionic unzip &>>$err_log &
     bussy_indicator "Downloading repo unzip..."
+    log "\n"
+
+    download_deb_ubuntu_bionic wget &>>$err_log &
+    bussy_indicator "Downloading repo wget..."
+    log "\n"
+
+    download_deb_ubuntu_bionic curl &>>$err_log &
+    bussy_indicator "Downloading repo curl..."
     log "\n"
 
     download_deb_ubuntu_bionic jq &>>$err_log &
@@ -376,10 +403,34 @@ downloading_gitlab_runner_redhat_7() {
     fi
 }
 
-adding_repo_kubernetes_redhat_7() {
+downloading_kubernetes_redhat_7() {
     if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubeadm)" ]; then
-        if [ ! -f "/etc/yum.repos.d/kubernetes.repo" ]; then
-            sudo tee -a /etc/yum.repos.d/kubernetes.repo >/dev/null <<'EOF'
+        download_rpm_redhat_7 kubeadm
+        download_rpm_redhat_7 kubectl
+        download_rpm_redhat_7 kubelet
+        download_rpm_redhat_7 kubernetes-cni
+    
+        # Delete dupliucate libs with diff versions (keep newest)
+        array=($(ls $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubelet/))
+        for i in "${!array[@]}"; do
+            PREV_I=$(($i-1))
+            if [ "$PREV_I" != "-1" ]; then
+                if [[ ${array[$i]} == conntrack-tools-* ]] && [[ ${array[$(($i-1))]} == conntrack-tools-* ]]; then
+                    sudo rm -rf "$OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubelet/${array[$(($i-1))]}"
+                elif [[ ${array[$i]} == socat-* ]] && [[ ${array[$(($i-1))]} == socat-* ]]; then
+                    sudo rm -rf "$OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubelet/${array[$(($i-1))]}"
+                fi
+            fi
+        done
+        wget http://mirror.centos.org/centos/7/os/x86_64/Packages/libnetfilter_cttimeout-1.0.0-7.el7.x86_64.rpm -P $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubelet/
+        wget http://mirror.centos.org/centos/7/os/x86_64/Packages/libnetfilter_queue-1.0.2-2.el7_2.x86_64.rpm -P $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubelet/
+        wget http://mirror.centos.org/centos/7/os/x86_64/Packages/libnetfilter_cthelper-1.0.0-11.el7.x86_64.rpm -P $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubelet/
+    fi
+}
+
+adding_repo_kubernetes_redhat_7() {
+    if [ ! -f "/etc/yum.repos.d/kubernetes.repo" ]; then
+        sudo tee -a /etc/yum.repos.d/kubernetes.repo >/dev/null <<'EOF'
 [kubernetes]
 name=Kubernetes
 baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
@@ -388,7 +439,6 @@ gpgcheck=1
 repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF
-        fi
     fi
 }
 
@@ -406,7 +456,15 @@ build_for_redhat_7() {
     sudo yum update -y &>>$err_log &
     bussy_indicator "Updating repos..."
     log "\n"
+
+    dep_kubernetes &>>$err_log &
+    bussy_indicator "Installing Kubernetes binaries..."
+    log "\n"
     
+    kubeadm config images pull &>>$err_log &
+    bussy_indicator "Pulling K8S images..."
+    log "\n"
+
     ########## Download binaries
     downloading_nodejs_redhat_7 &>>$err_log &
     bussy_indicator "Downloading NodeJS..."
@@ -428,16 +486,8 @@ build_for_redhat_7() {
         log "\n"
     fi
     
-    download_rpm_redhat_7 kubeadm &>>$err_log &
-    bussy_indicator "Downloading kubeadm..."
-    log "\n"
-
-    download_rpm_redhat_7 kubelet &>>$err_log &
-    bussy_indicator "Downloading kubelet..."
-    log "\n"
-
-    download_rpm_redhat_7 kubectl &>>$err_log &
-    bussy_indicator "Downloading kubectl..."
+    downloading_kubernetes_redhat_7 &>>$err_log &
+    bussy_indicator "Downloading kubernetes..."
     log "\n"
 
     download_rpm_redhat_7 unzip &>>$err_log &
@@ -452,12 +502,12 @@ build_for_redhat_7() {
     bussy_indicator "Downloading mosquitto..."
     log "\n"
 
-    # download_rpm_redhat_7 openssh-server &>>$err_log &
-    # bussy_indicator "Downloading openssh-server..."
-    # log "\n"
-
     download_rpm_redhat_7 wget &>>$err_log &
     bussy_indicator "Downloading wget..."
+    log "\n"
+
+    download_rpm_redhat_7 curl &>>$err_log &
+    bussy_indicator "Downloading curl..."
     log "\n"
 
     download_rpm_redhat_7 fuse &>>$err_log &
@@ -485,6 +535,13 @@ build_for_redhat_7() {
 
 download_docker_images() {
     cd $_DIR
+
+    sed -i.bak '/k8s.gcr.io/d' ../offline_files/docker_images/image-list.cfg
+    docker images | grep "k8s.gcr.io" | awk -F" " '{ print $1,$2 }' | while read line; do
+        UNAME=$(echo $line | awk '{split($0,a,"/"); print a[2]}' | awk '{ print $1 }')
+        echo "$line $UNAME" >> ../offline_files/docker_images/image-list.cfg
+    done
+
     # Clear layer cach to prevent stuck corrupt image layers
     sudo systemctl stop docker
     sudo rm -rf /var/lib/docker
@@ -504,11 +561,9 @@ download_docker_images() {
             log "\n"
         fi
     done
+}
 
-    BASE_FOLDER="$(dirname "$_DIR")"
-    BASE_FOLDER="$(dirname "$BASE_FOLDER")"
-    BASE_FOLDER="$(dirname "$BASE_FOLDER")"
-
+build_mp_docker_images() {
     # Build & export multipaas docker images
     build_multipaas_api &>>$err_log &
     bussy_indicator "Building multipaas api service..."
@@ -518,6 +573,7 @@ download_docker_images() {
     bussy_indicator "Building multipaas controller service..."
     log "\n"
 }
+
 ########################################
 # LOGIC...
 ########################################
@@ -546,37 +602,21 @@ if [ "$DISTRO" == "ubuntu" ] && [ "$MAJ_V" == "18.04" ]; then
     mkdir -p $OFFLINE_FOLDER/debs/$PK_FOLDER_NAME
 
     # Install dependencies
-    dependencies
+    dependencies_offline_mode
     log "\n"
 
     build_for_ubuntu_bionic
     log "\n"
-elif [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "7" ]; then
-    PK_FOLDER_NAME="redhat_seven"
-    mkdir -p $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME
-
-    export LANG=en_US.UTF-8
-    export LANGUAGE=en_US.UTF-8
-    export LC_COLLATE=C
-    export LC_CTYPE=en_US.UTF-8
-
-    config_repos_redhat_7 &>>$err_log &
-    bussy_indicator "Activating repositories..."
-    log "\n"
-
-    # Install dependencies
-    dependencies
-    log "\n"
-
-    build_for_redhat_7
-    log "\n"
 else
-    echo "Unsupported OS. This script only works on Ubuntu 18.04 & RedHat 8"
+    echo "Unsupported OS. This script only works on Ubuntu 18.04"
     exit 1
 fi
 
 ########## Download docker images
 download_docker_images
+
+########## Build multipaas docker images
+build_mp_docker_images
 
 log "\n"
 success "Build process done! You can now proceed to the installation of the control-plane as well as the host-node.\n"

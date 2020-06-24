@@ -155,10 +155,11 @@ k8s_build_base_boxes() {
     vagrant provision --provision-with images &>>$err_log &
     bussy_indicator "Downloading docker images..."
     log "\n"
-  
+
     vagrant provision --provision-with install &>>$err_log &
     bussy_indicator "Installing master components..."
     log "\n"
+
     rm -rf ./multipaas-master.box
    
     vagrant package --output ./multipaas-master.box &>>$err_log &

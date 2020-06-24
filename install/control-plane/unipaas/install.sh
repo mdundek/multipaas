@@ -4,11 +4,14 @@ _DIR="$(cd "$(dirname "$0")" && pwd)"
 _PWD="$(pwd)"
 cd $_DIR
 
+BASE_FOLDER="$(dirname "$_DIR")"
+BASE_FOLDER="$(dirname "$BASE_FOLDER")"
+BASE_FOLDER="$(dirname "$BASE_FOLDER")"
+
 err_log=$_DIR/std.log
 
 . ../../_libs/common.sh
 . ../../_libs/distro.sh
-. ../../_libs/dep_offline.sh
 
 ########################################
 # Error management
@@ -43,32 +46,7 @@ remove_all() {
     fi
 }
 
-########################################
-# 
-########################################
-dependencies () {
-    sudo echo "" # Ask user for sudo password now
-
-
-
-
-
-
-
-    if [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "7" ]; then
-        sudo yum install -y --cacheonly --disablerepo=* ../../build/offline_files/rpms/$PK_FOLDER_NAME/yum-utils/*.rpm
-        sudo yum install -y --cacheonly --disablerepo=* ../../build/offline_files/rpms/$PK_FOLDER_NAME/createrepo/*.rpm
-    fi
-
-
-
-
-
-
-
-
-
-
+dependency_docker () {
     DK_EXISTS=$(command -v docker)
     dep_docker &>>$err_log &
     bussy_indicator "Dependency on \"Docker CE\"..."
@@ -90,6 +68,61 @@ dependencies () {
         error "Did you restart your session afterhaving installed docker?\n"
         exit 1
     fi
+}
+
+build_multipaas_api() {
+    cd $BASE_FOLDER/src/api
+    rm -rf node_modules
+    rm -rf package-lock.json
+    docker build -t multipaas-api:0.9 .
+    if [ $? -ne 0 ]; then
+        echo "Error building MultiPaaS API docker image"
+        exit 1
+    fi
+}
+
+build_multipaas_ctrl() {
+    cd $BASE_FOLDER/src/task-controller
+    rm -rf node_modules
+    rm -rf package-lock.json
+    docker build -t multipaas-ctrl:0.9 .
+    if [ $? -ne 0 ]; then
+        echo "Error building MultiPaaS Ctrl docker image"
+        exit 1
+    fi
+}
+
+########################################
+# 
+########################################
+dependencies_online_mode () {
+    sudo echo "" # Ask user for sudo password now
+
+    dep_jq &>>$err_log &
+    bussy_indicator "Dependency on \"jq\"..."
+    log "\n"
+
+    dep_curl &>>$err_log &
+    bussy_indicator "Dependency on \"curl\"..."
+    log "\n"
+
+    # Build & export multipaas docker images
+    build_multipaas_api &>>$err_log &
+    bussy_indicator "Building multipaas api service..."
+    log "\n"
+
+    build_multipaas_ctrl &>>$err_log &
+    bussy_indicator "Building multipaas controller service..."
+    log "\n"
+
+    cd $_DIR
+}
+
+########################################
+# 
+########################################
+dependencies_offline_mode () {
+    sudo echo "" # Ask user for sudo password now
 
     dep_jq &>>$err_log &
     bussy_indicator "Dependency on \"jq\"..."
@@ -103,8 +136,8 @@ dependencies () {
     # bussy_indicator "Dependency on \"sshpass\"..."
     # log "\n"
 
-    sudo systemctl enable docker > /dev/null 2>&1 
-    sudo systemctl start docker > /dev/null 2>&1 
+    # sudo systemctl enable docker > /dev/null 2>&1 
+    # sudo systemctl start docker > /dev/null 2>&1 
 
     if [ "$(docker images | grep -E 'eclipse-mosquitto.*1.6')" == "" ]; then
         sudo docker load --input ../../build/offline_files/docker_images/eclipse-mosquitto-1.6.tar &>>$err_log &
@@ -133,6 +166,12 @@ dependencies () {
     if [ "$(docker images | grep -E 'registry.*2.7.1')" == "" ]; then
         sudo docker load --input ../../build/offline_files/docker_images/registry-2.7.1.tar &>>$err_log &
         bussy_indicator "Loading docker image registry..."
+        log "\n"
+    fi
+
+    if [ "$(docker images | grep -E 'htpasswd.*latest')" == "" ]; then
+        sudo docker load --input ../../build/offline_files/docker_images/htpasswd-latest.tar &>>$err_log &
+        bussy_indicator "Loading docker image htpasswd..."
         log "\n"
     fi
 
@@ -202,10 +241,6 @@ configure_firewall() {
 # 
 ########################################
 install_core_components() {
-    BASE_FOLDER="$(dirname "$_DIR")"
-    BASE_FOLDER="$(dirname "$BASE_FOLDER")"
-    BASE_FOLDER="$(dirname "$BASE_FOLDER")"
-
     cd $BASE_FOLDER
 
     POSTGRES_PASSWORD="$MP_P"
@@ -322,8 +357,11 @@ EOT
         -out $NGINX_CRT_FOLDER/nginx-keycloak.crt \
         -days 500 -sha256 -extensions v3_req -extfile ssl.conf > /dev/null 2>&1
 
-    DR_CRED=$(docker run --entrypoint htpasswd registry:2.7.1 -Bbn multipaas_master_user multipaas_master_pass)
-    NR_CRED=$(docker run --entrypoint htpasswd registry:2.7.1 -bn multipaas_master_user multipaas_master_pass)
+    if [ "$INTERNET_AVAILABLE" == "1" ]; then
+        docker pull xmartlabs/htpasswd:latest > /dev/null 2>&1
+    fi
+    DR_CRED=$(docker run --rm --entrypoint "htpasswd" xmartlabs/htpasswd:latest -Bbn multipaas_master_user multipaas_master_pass)
+    NR_CRED=$(docker run --rm --entrypoint "htpasswd" xmartlabs/htpasswd:latest -bn multipaas_master_user multipaas_master_pass)
 
     cat > $HOME/.multipaas/auth/nginx/htpasswd << EOF
 $NR_CRED
@@ -492,6 +530,7 @@ setup_keycloak() {
         read_input "\nInvalide answer, try again:" KEYCLOAK_SECRET
     done
     log "\n"
+    log "Configuring Keycloak...\n"
 
     # Get master token from Keycloak
     KC_TOKEN=$(curl -s -k -X POST \
@@ -578,6 +617,8 @@ setup_keycloak() {
 # 
 ########################################
 install_gitlab() {
+    log "Installing Gitlab (this might take a while)...\n"
+
     # Create client for gitlab
     KC_TOKEN=$(curl -s -k -X POST \
         'https://multipaas.keycloak.com/auth/realms/master/protocol/openid-connect/token' \
@@ -732,17 +773,88 @@ log "\n\n"
 
 # Figure out what distro we are running
 distro
-if [ "$DISTRO" == "ubuntu" ] && [ "$MAJ_V" == "18.04" ]; then
-    PK_FOLDER_NAME="ubuntu_bionic"
-elif [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "7" ]; then
-    PK_FOLDER_NAME="redhat_seven"
-else
-    echo "Unsupported OS. This script only works on Ubuntu 18.04 & RedHat 7"
-    exit 1
+
+log "==> This script will install the MultiPaaS control-plane and it's dependencies on this machine.\n"
+log "\n"
+read_input "Do you wish to continue (y/n)?" CONTINUE_INSTALL
+while [[ "$CONTINUE_INSTALL" != 'y' ]] && [[ "$CONTINUE_INSTALL" != 'n' ]]; do
+    read_input "Invalide answer, try again (y/n)?" CONTINUE_INSTALL
+done
+if [ "$CONTINUE_INSTALL" == "n" ]; then
+    exit 0
 fi
 
-# Install dependencies
-dependencies
+# Test and see if internet access is available
+wget -q --spider http://google.com &>>$err_log
+if [ $? -eq 0 ]; then
+    INTERNET_AVAILABLE=1
+fi
+
+if [ "$INTERNET_AVAILABLE" != "1" ]; then
+    if [ "$DISTRO" == "ubuntu" ] && [ "$MAJ_V" == "18.04" ]; then
+        PK_FOLDER_NAME="ubuntu_bionic"
+    else
+        echo "Unsupported OS. This script only works on Ubuntu 18.04"
+        exit 1
+    fi
+
+    . ../../_libs/dep_offline.sh
+
+    # Start with docker
+    dependency_docker
+
+    # Install dependencies
+    dependencies_offline_mode
+else
+    if [ "$DISTRO" == "ubuntu" ] && [ "$MAJ_V" == "18.04" ]; then
+        curl -s -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash &>>$err_log &
+        bussy_indicator "Adding gitlab-runner repo..."
+        log "\n"
+    elif [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "7" ]; then
+        log "Enabeling repos...\n"
+
+        EPEL_REPO_PRESENT=$(yum repolist epel | grep "Extra Packages for Enterprise Linux 7")
+        if [ "$EPEL_REPO_PRESENT" == "" ]; then
+            log "\n"
+            sudo yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>$err_log &
+            bussy_indicator "Adding EPEL repo..."
+            log "\n"
+        fi
+
+        RH7EXTRA_REPO_PRESENT=$(yum repolist "Red Hat Enterprise Linux 7 Server - Extras (RPMs)" | grep "rhel-7-server-extras-rpms/x86_64")
+        if [ "$RH7EXTRA_REPO_PRESENT" == "" ]; then
+            sudo subscription-manager repos --enable=rhel-7-server-extras-rpms &>>$err_log &
+            bussy_indicator "Adding extra repo subscription..."
+            log "\n"
+        fi
+
+        DOCKER_REPO_PRESENT=$(yum repolist "Docker CE Stable - x86_64" | grep "docker-ce-stable/x86_64")
+        if [ "$DOCKER_REPO_PRESENT" == "" ]; then
+            sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo &>>$err_log &
+            bussy_indicator "Adding Docker repo..."
+            log "\n"
+        fi
+
+        sudo yum update -y &>>$err_log &
+        bussy_indicator "Updating repos..."
+        log "\n"
+
+        sudo yum install epel-release -y &>>$err_log &
+        bussy_indicator "Installing epel-release..."
+        log "\n"
+    else
+        echo "Unsupported OS. This script only works on Ubuntu 18.04 and RedHat 7"
+        exit 1
+    fi
+
+    . ../../_libs/dep_online.sh
+
+    # Start with docker
+    dependency_docker
+
+    # Install dependencies
+    dependencies_online_mode
+fi
 
 # Clean up first
 if [ -d "$HOME/.multipaas/nginx" ]; then
@@ -761,7 +873,9 @@ fi
 collect_informations
 
 # Configure firewall
-configure_firewall &>>$err_log
+configure_firewall &>>$err_log &
+bussy_indicator "Configuring firewall..."
+log "\n"
 
 sudo sed -i.bak '/multipaas.com/d' /etc/hosts &>>$err_log
 sudo rm -rf /etc/hosts.bak &>>$err_log

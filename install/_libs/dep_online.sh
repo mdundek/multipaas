@@ -9,9 +9,21 @@ dep_wget() {
         if [ "$DISTRO" == "ubuntu" ]; then
            sudo apt-get install -y wget
         elif [ "$DISTRO" == "redhat" ]; then
-            if [ "$MAJ_V" == "7" ]; then
-                sudo yum -y install wget
-            fi
+            sudo yum -y install wget
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_curl() {
+    CURL_EXISTS=$(command -v curl)
+    if [ "$CURL_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+           sudo apt-get install -y curl
+        elif [ "$DISTRO" == "redhat" ]; then
+            sudo yum -y install curl
         fi
     fi
 }
@@ -37,6 +49,223 @@ dep_node() {
 ########################################
 # 
 ########################################
+dep_docker() {
+    local C_EXISTS=$(command -v docker)
+    if [ "$C_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            sudo apt install -y docker.io && sudo systemctl start docker && sudo systemctl enable docker && sudo usermod -aG docker $USER
+        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
+            sudo yum install -y docker-ce && sudo usermod -aG docker ${USER} && sudo systemctl start docker && sudo systemctl enable docker
+        fi
+        NEW_DOCKER="true"
+    fi
+}
+
+########################################
+# 
+########################################
+dep_kubernetes() {
+    local K_EXISTS=$(command -v kubeadm)
+    if [ "$K_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            sudo apt install -y kubeadm
+            sudo apt install -y kubectl
+            sudo apt install -y kubelet
+        elif [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "7" ]; then
+            sudo tee -a /etc/yum.repos.d/kubernetes.repo >/dev/null <<EOF
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kube*
+EOF
+            sudo setenforce 0
+            sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+            sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+            sudo systemctl enable --now kubelet
+
+            modprobe br_netfilter
+
+            sudo tee -a /etc/sysctl.d/k8s.conf >/dev/null <<EOF
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+            sudo sysctl --system
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_jq() {
+    JQ_EXISTS=$(command -v jq)
+    if [ "$JQ_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+           sudo apt-get install -y jq
+        elif [ "$DISTRO" == "redhat" ]; then
+            sudo yum -y install jq
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_gitlab_runner() {
+    C_EXISTS=$(command -v gitlab-runner)
+    if [ "$C_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ] && [ "$MAJ_V" == "18.04" ]; then
+            sudo apt-get install -y gitlab-runner
+            sudo usermod -aG docker gitlab-runner
+            DKR_EXISTS=$(command -v docker)
+            if [ "$DKR_EXISTS" == "" ]; then
+                sudo service docker restart
+            fi
+        elif [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "7" ]; then
+            C_EXISTS=$(command -v git)
+            if [ "$C_EXISTS" == "" ]; then
+                sudo tee -a /etc/yum.repos.d/WANdisco-git.repo >/dev/null <<EOF
+[WANdisco-git]
+name=WANdisco Git
+baseurl=http://opensource.wandisco.com/rhel/\$releasever/git/\$basearch
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-WANdisco
+EOF
+                sudo rpm --import http://opensource.wandisco.com/RPM-GPG-KEY-WANdisco
+                sudo yum install -y git
+            fi
+            sudo yum install -y gitlab-runner
+            DKR_EXISTS=$(command -v docker)
+            if [ "$DKR_EXISTS" == "" ]; then
+                sudo service docker restart
+            fi
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_gluster_client() {
+    C_EXISTS=$(command -v gluster)
+    if [ "$C_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ] && [ "$MAJ_V" == "18.04" ]; then
+            sudo apt-get install -y glusterfs-client
+        elif [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "7" ]; then
+            sudo yum install -y glusterfs-server
+
+            sudo systemctl stop glusterd
+            sudo systemctl disable glusterd
+
+            if [[ `sudo firewall-cmd --state` = running ]]; then
+                sudo firewall-cmd --permanent --add-service=glusterfs
+                sudo firewall-cmd --zone=public --add-port=24007-24008/tcp --permanent
+                sudo firewall-cmd --zone=public --add-port=24009/tcp --permanent
+                sudo firewall-cmd --zone=public --add-service=nfs --add-service=samba --add-service=samba-client --permanent
+                sudo firewall-cmd --zone=public --add-port=111/tcp --add-port=139/tcp --add-port=445/tcp --add-port=965/tcp --add-port=2049/tcp --add-port=38465-38469/tcp --add-port=631/tcp --add-port=111/udp --add-port=963/udp --add-port=49152-49251/tcp --permanent
+                sudo firewall-cmd --reload
+            fi
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_mosquitto() {
+    C_EXISTS=$(command -v mosquitto_pub)
+    if [ "$C_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            if [ "$MAJ_V" == "18.04" ]; then
+                # sudo apt-get install -y libc-ares2
+                sudo apt-get install -y mosquitto-clients
+            fi
+        elif [ "$DISTRO" == "redhat" ]; then
+            if [ "$MAJ_V" == "7" ]; then
+                sudo yum install -y mosquitto
+                sudo systemctl stop mosquitto
+                sudo systemctl disable mosquitto
+            fi
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_tar() {
+    TAR_EXISTS=$(command -v tar)
+    if [ "$TAR_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+           sudo apt-get install -y tar
+        elif [ "$DISTRO" == "redhat" ]; then
+            sudo yum -y install tar
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_sshpass() {
+    SSHPASS_EXISTS=$(command -v sshpass)
+    if [ "$SSHPASS_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+           sudo apt-get install -y sshpass
+        elif [ "$DISTRO" == "redhat" ]; then
+            sudo yum -y install sshpass
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_unzip() {
+    UNZIP_EXISTS=$(command -v unzip)
+    if [ "$UNZIP_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+           sudo apt-get install -y unzip
+        elif [ "$DISTRO" == "redhat" ]; then
+            sudo yum -y install unzip
+        fi
+    fi
+}
+
+
+
+########################################
+# 
+########################################
+dep_pm2() {
+    PM2_EXISTS=$(command -v pm2)
+    if [ "$PM2_EXISTS" == "" ]; then
+        sudo npm install pm2@latest -g
+    fi
+}
+
+########################################
+# 
+########################################
+dep_helm() {
+    HELM_EXISTS=$(command -v helm)
+    if [ "$HELM_EXISTS" == "" ]; then
+        curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+    fi
+}
+
+
+
+
+
+
+########################################
+# 
+########################################
 dep_npm_bundle() {
     local C_EXISTS=$(command -v npm-bundle)
     if [ "$C_EXISTS" == "" ]; then
@@ -44,24 +273,7 @@ dep_npm_bundle() {
     fi
 }
 
-########################################
-# 
-########################################
-dep_docker() {
-    local C_EXISTS=$(command -v docker)
-    if [ "$C_EXISTS" == "" ]; then
-        if [ "$DISTRO" == "ubuntu" ]; then
-            sudo apt install -y docker.io && sudo usermod -aG docker $USER
-        elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
-            sudo yum install -y docker device-mapper-libs device-mapper-event-libs
-            sudo systemctl enable --now docker.service
-            sudo groupadd docker
-            sudo usermod -aG docker ${USER}
-            sudo chmod 666 /var/run/docker.sock
-        fi
-        NEW_DOCKER="true"
-    fi
-}
+
 
 ########################################
 # 

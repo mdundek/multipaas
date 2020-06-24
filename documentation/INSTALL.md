@@ -1,6 +1,10 @@
 # Installation
 
-An example of the overall topology once deployed can look like the following:
+## MultiPaaS Mode
+
+> This mode relies on VirtualBox to provision the control plane and the K8S clusters, enabeling the automation of the multi-tennancy mode. 
+
+An example of the overall topology once deployed looks like the following:
 
 ![MultiPaaS Component diagram](../resources/component-diagram.png)
 
@@ -11,14 +15,13 @@ An example of the overall topology once deployed can look like the following:
 
 As seen in the diagram above, `MultiPaaS` is composed of a `control-plane` environement, and at least one `host-node` controllers.
 
-
 > PLEASE NOTE: As of now, MultiPaaS can be installed on `CentOS / RedHat 8` or `Ubuntu 18.04` only. 
 
 Here is a video on the installation procedure of MultiPaaS for those who prefer watching rather than reading:
 
 [![MultiPaaS Installation](https://img.youtube.com/vi/W33z-4Bse8E/0.jpg)](https://www.youtube.com/watch?v=W33z-4Bse8E)
 
-## Some notes about DHCP
+### Some notes about DHCP
 
 `MultiPaaS` is a multi-tenant Kubernetes cluster solution (1 K8S cluster for each tenant), this means that each tenant cluster node will run on a dedicated VM on the network. Worker nodes are linked to their master nodes, therefore VM IPs need to not change over time once they are assigned. The developement of MultiPaaS is done on a typical home router, where IPs are assigned randomely when a machine joins the network. Problems occure when a VM is down, and the router's DHCP server assigns that VMs IP to a new machine that joins the network. Once the VM starts up again, that IP is gone and the VM get's a new IP, thereby breaking the cluster.  
 
@@ -30,7 +33,7 @@ To prevent this from happening, MultiPaaS takes control over IP assignement for 
 > This configuration is available on the `MultiPaaS Task Controller` component, by setting specific environement variables. More on this later, I just wanted to raise awareness on that specific subject before moving on to the installation part.
 
 
-## Prepare the environement before the installation
+### Prepare the environement before the installation
 
 Before installing the `control-plane` and the `host-node` packages on the target machines, you need to prepare, download the required dependencies upfront and build the base images. To do this, use the helper script that will perform those tasks for you. This script will provision the required VM environements in order to download the required packages & images based on your target OS, as well as building the core components of the solution from inside that VM.  
 To prepare the various components, MultiPaaS uses Vagrant. This will keep your build machine clean and ensure that the build outcomes are compatible with the target runtimes.  
@@ -53,7 +56,7 @@ Lets start by cloning the repository on a `Ubuntu 18.04` or `CentOS / RedHat 8` 
 git clone https://github.com/mdundek/multipaas.git
 ```
 
-### A script to prepare for the deployment
+#### A script to prepare for the deployment
 
 The script is located at `install/build/prepare.sh`. It takes the following arguments:
 
@@ -81,7 +84,7 @@ Go have a coffe, this script will take a while to finish (on my Macbook Pro, it 
 You are now ready to install the MultiPaaS core components.  
 
   
-## Install the Control-Plane environement
+### Install the Control-Plane environement
 
 __Before you move on, make sure went through the preparation steps mentioned in the previous chapter.__
 
@@ -123,7 +126,7 @@ At some point, the script will pause and ask you to do some manual configuration
 > To overcome this limitation, some extra developement work is necessary. At some point, this should become a priority in the developement of MultiPaaS, idealy involving some network specialists that could provide me with some guidance about what it would take to set up a more complex network topology. 
 
 
-## Install the Host-Node services
+### Install the Host-Node services
 
 __Before you move on, make sure went through the preparation steps mentioned in the previous chapter.__
 
@@ -160,6 +163,83 @@ Some steps require sudo, at which point the script will ask for your credentials
 
 Once you have installed the `host-node` controller on all target machines, you are done and ready to start using MultiPaaS cloud.
 
+## UniPaaS Mode
+
+> This mode relies on a deployment script to install each tenant kubernetes cluster on a dedicated VM or bare mettal system.
+
+The UniPaaS topology once deployed looks like the following:
+
+![UniPaaS Component diagram](../resources/unipaas-component-diagram.png)
+
+As seen in the diagram above, `MultiPaaS` in UniPaaS mode is composed of a `control-plane` environement, and at least one `host-node` controllers for each kubernetes node (worker and master).
+
+### Internet access vs no internet access
+
+If your target environement has internet access, then you will not need to run the preparation script before you can install the `control-plane` and `host-node` services.  
+On the other hand, if there is no internet access on your target system, you will have to run the preparation script first before proceeding with the installation of the `control-plane` and `host-node` services.  
+
+> PLEASE NOTE: As of now, MultiPaaS in UniPaaS mode can be installed on `Ubuntu 18.04` if the target environement DOES NOT have internet access, and `Ubuntu 18.04` and `RedHat 7` if the target environement DOES have internet access. 
+
+### Prepare the environement before the installation (only if target has no internet access)
+
+Simply execute the script without any arguments:
+
+```
+./install/build/unipaas/prepare.sh
+``` 
+
+This script will download all necessary dependency repositories and docker images required to install the `control-plane` and `host-node` services on your offline environement. Once the script is done, simply zip up and copy the git repo over to your target environement and prosceed with the installation of the `control-plane` and `host-nodes`.
+
+### Install the Control-Plane environement
+
+__If you target system has no internet access, before you move on, make sure went through the preparation steps mentioned in the previous chapter.__
+
+The `control-plane` is installed directly on the target system, the following docker containers will be started: 
+
+- `Docker registry` for your private Docker images
+- `GitLab CE` for your private GIT environements
+- `Keycloak` SSO authentication gateway
+- `PostgreSQL` database
+- `NGinx` proxy server
+- `multipaas-api` server to talk to the `mp` CLI
+- `multipaas-ctrl` server for job orchestration and configuration tasks
+
+To start the installation of the `control-plane`, execute the following script:
+
+```
+./install/control-plane/unipaas/install.sh
+```
+
+The script will ask for some base configuration values such as admin credentials.  
+At some point, the script will pause and ask you to do some manual configuration steps before continuing. Those step details will be provided to you in the terminal directly.
+
+### Install the Host-Node services
+
+__If you target system has no internet access, before you move on, make sure went through the preparation steps mentioned in the previous chapter.__
+
+You can chose to deploy a `host-node` component to handle only Gluster Volume management tasks, Kubernetes Cluster management tasks or both. This can be usefull if you wish to dedicate certain host machines to distributed Gluster storage management only, and let other host machines deal with K8S Cluster specific tasks.  
+
+The `host-node` controllers will also deal with the setup of volumes, configure access to the docker registry, provision services on your cluster and more.  
+
+> NOTE: Do not install the `host-node` controller on the same machine than the `control-plane` controller
+
+To install the `host-node`, execute the following script:
+
+```
+./install/host-node/unipaas/install.sh
+```
+
+Again, the script will ask for some base configuration values. Provide the IP address of the `control-plane` installation, enter the database password required to connect to the admin database, and specify if you wish to install the `host-node` controller to controll kubernetes clusters, gluster servers or both.  
+Some steps require sudo, at which point the script will ask for your credentials. 
+Since the `UniPaaS` mode does not permit automatic cluster provisionning, the kubernetes cluster is installed and initialized at the end of this script. You will be asked to enter the following information:
+
+- An `account name` for this cluster (if an existing account name is used, this cluster will be linked to the existing account rather than creating a new one)
+- If the account is a new one, you will be asked to enter a `sysadmin username and password`
+- An `organization name`, (if an existing organization name is used, this cluster will be linked to the existing organization rather than creating a new one)
+- If the organization is a new one, you will be asked to enter a organization `registry username and password`
+- A `cluster / workspace name`
+
+Once done, your cluster is up and running, ready to be used using the MultiPaaS CLI (aka. mp)
 
 ## Install the CLI
 

@@ -51,6 +51,7 @@ systemctl start docker > /dev/null 2>&1
 ########################################
 echo "[TASK 3] Install docker base images"
 docker load < /home/vagrant/docker-images/registry-2.7.1.tar
+docker load < /home/vagrant/docker-images/htpasswd-latest.tar
 docker load < /home/vagrant/docker-images/postgres-12.2-alpine.tar
 docker load < /home/vagrant/docker-images/keycloak-9.0.3.tar
 docker load < /home/vagrant/docker-images/nginx-1.17.10-alpine.tar
@@ -218,12 +219,12 @@ mkdir -p /opt/docker/containers/nginx-registry/auth
 # touch /opt/docker/containers/docker-registry/auth/htpasswd
 # touch /opt/docker/containers/nginx-registry/auth/htpasswd
 
-# docker run --entrypoint htpasswd registry:2.7.1 -Bbn multipaas_master_user multipaas_master_pass > /opt/docker/containers/docker-registry/auth/htpasswd > /dev/null 2>&1 
-# docker run --entrypoint htpasswd registry:2.7.1 -bn multipaas_master_user multipaas_master_pass > /opt/docker/containers/nginx-registry/auth/htpasswd > /dev/null 2>&1 
+# docker run --entrypoint xmartlabs/htpasswd -Bbn multipaas_master_user multipaas_master_pass > /opt/docker/containers/docker-registry/auth/htpasswd > /dev/null 2>&1 
+# docker run --entrypoint xmartlabs/htpasswd -bn multipaas_master_user multipaas_master_pass > /opt/docker/containers/nginx-registry/auth/htpasswd > /dev/null 2>&1 
 
 
-DR_CRED=$(docker run --entrypoint htpasswd registry:2.7.1 -Bbn multipaas_master_user multipaas_master_pass)
-NR_CRED=$(docker run --entrypoint htpasswd registry:2.7.1 -bn multipaas_master_user multipaas_master_pass)
+DR_CRED=$(docker run --rm --entrypoint "htpasswd" xmartlabs/htpasswd:latest -Bbn multipaas_master_user multipaas_master_pass)
+NR_CRED=$(docker run --rm --entrypoint "htpasswd" xmartlabs/htpasswd:latest -bn multipaas_master_user multipaas_master_pass)
 
 cat > /opt/docker/containers/docker-registry/auth/htpasswd << EOF
 $DR_CRED

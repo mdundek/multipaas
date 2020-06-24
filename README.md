@@ -21,15 +21,29 @@ MultiPaaS is a open source, truely multi-tenant cloud platform that can be insta
 
 ## When would I use MultiPaaS
 
-- If you own and control your datacenter and network
-- You can't / dont want to host your data and applications on public cloud infrastructures
-- You want the convenience of a public cloud environement for your teams & projects, but as a self hosted private cloud native platform.
+- If you cant / dont want to host your data and applications on public cloud infrastructures
+- If you want the convenience of a public cloud environement for your teams & projects, but as a self hosted private cloud native platform.
+  
+Depending on your requirements, there are two specific ways to operate MultiPaaS. 
 
-Think of MultiPaaS as something that resembles RedHat Openshift (way less mature of course given the amount of work that went into the latter), but with multi-tenancy / multi-cluster philosophy as it's core. 
+1. `MultiPaaS mode` => Automated provision and scaling K8S MultiPaaS clusters (dependant on VirtualBox)
+2. `UniPaaS mode` => Install K8S MultiPaaS clusters directly on your VMs or bare metal servers
+
+Think of MultiPaaS as something that resembles RedHat Openshift (less mature of course given the amount of work that went into the latter), but with multi-tenancy / multi-cluster philosophy as it's core, and no vendor lockin using vanilla K8S. 
 
 > IMPORTANT NOTE  
-> `MultiPaaS` is a standalone multi-tenant Kubernetes management platform, in other words it is __NOT__ designed to work with public cloud kubernetes implementations such as Amazon EKS, Google GKE or Azure AKS. MultiPaaS uses the official Kuberenetes open-source implementation to provision, manage and run clusters on an independant network that you are in control of.  
+> `MultiPaaS` is a standalone multi-tenant Kubernetes management platform, in other words it is __NOT__ designed to use public cloud kubernetes implementations such as Amazon EKS, Google GKE or Azure AKS. MultiPaaS uses the official Kuberenetes open-source implementation to provision, manage and run clusters on an independant network that you are in control of.  
 > The documentation is work in progress. Whatever you might see on this repo at the moment is subject to change until the repo is stabalized.
+
+### When would I use the _MultiPaaS_ Mode
+
+- If you own and control your datacenter and network
+- If you want to fully automate cluster provisionning and scaling for your teams and projects
+
+### When would I use the _UniPaaS_ Mode
+
+- If you want to install MultiPaaS anywhere, on your own data centers but also on public clouds
+- If you are ok with provisionning your clusters to your VMs and servers using the UniPaaS installation script
 
 ## Motivations
 
@@ -49,14 +63,20 @@ Also, there is no Web UI at the moment to manage MultiPaaS, everything is done w
 ## Documentation TOC
 
 * [Installation](documentation/INSTALL.md#installation)
-  * [Some notes about DHCP](documentation/INSTALL.md#some-notes-about-dhcp)
-  * [Prepare the environement before the installation](documentation/INSTALL.md#prepare-the-environement-before-the-installation)
-    * [A script to prepare for deployment](documentation/INSTALL.md#a-script-to-prepare-for-deployment)
-  * [Install the Control-Plane environement](documentation/INSTALL.md#install-the-control-plane-environement)
-  * [Install the Host-Node services](documentation/INSTALL.md#install-the-host-node-services)
+  * [MultiPaaS Mode]()
+    * [Some notes about DHCP](documentation/INSTALL.md#some-notes-about-dhcp)
+    * [Prepare the environement before the installation](documentation/INSTALL.md#prepare-the-environement-before-the-installation)
+      * [A script to prepare for deployment](documentation/INSTALL.md#a-script-to-prepare-for-deployment)
+    * [Install the Control-Plane environement](documentation/INSTALL.md#install-the-control-plane-environement)
+    * [Install the Host-Node services](documentation/INSTALL.md#install-the-host-node-services)
+  * [UniPaaS Mode]()
+    * [Internet access vs no internet access]()
+    * [Prepare the environement before the installation (only if target has no internet access)]()
+    * [Install the Control-Plane environement](documentation/INSTALL.md#install-the-control-plane-environement)
+    * [Install the Host-Node services](documentation/INSTALL.md#install-the-host-node-services)
   * [Install the CLI](documentation/INSTALL.md#install-the-cli)
 * [Getting Started](documentation/GETTING-STARTED.md)
   * [Prerequisite](https://github.com/mdundek/multipaas/blob/master/documentation/GETTING-STARTED.md#prerequisite)
-  * [Register an account and scale my first cluster](https://github.com/mdundek/multipaas/blob/master/documentation/GETTING-STARTED.md#register-an-account-set-up--scale-my-first-cluster)
+  * [Register an account and scale my first cluster (MultiPaaS mode only)](https://github.com/mdundek/multipaas/blob/master/documentation/GETTING-STARTED.md#register-an-account-set-up--scale-my-first-cluster)
   * [Deploying services and applications](https://github.com/mdundek/multipaas/blob/master/documentation/GETTING-STARTED.md#deploying-services--applications)
   * [Canary & blue / green deployments, domains & SSL](https://github.com/mdundek/multipaas/blob/master/documentation/GETTING-STARTED.md#canary-deployments-blue--green-deployment-domain-names--ssl)

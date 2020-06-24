@@ -139,23 +139,23 @@ exports.Organizations = class Organizations extends Service {
                 try {
                     // Create user/pass for NGinx & Registry
                     if(process.env.MP_MODE == "unipaas") {
-                        await this._execSilentCommand(`docker run --entrypoint htpasswd registry:2.7.1 -Bbn ${registryUser} ${registryPass} >> /usr/src/app/auth-docker/htpasswd`);
+                        await this._execSilentCommand(`docker run --rm --entrypoint "htpasswd" xmartlabs/htpasswd:latest -Bbn ${registryUser} ${registryPass} >> /usr/src/app/auth-docker/htpasswd`);
                     } else {
                         let REGISTYRY_PASSWD_PATH="/usr/src/app/auth-docker/htpasswd";
                         if (!fs.existsSync(REGISTYRY_PASSWD_PATH)) {
                             fs.writeFileSync(REGISTYRY_PASSWD_PATH, '');
                         }
-                        await this._sshExec(process.env.REGISTRY_IP, `docker run --entrypoint htpasswd registry:2.7.1 -Bbn ${registryUser} ${registryPass} >> /opt/docker/containers/docker-registry/auth/htpasswd`);
+                        await this._sshExec(process.env.REGISTRY_IP, `docker run --rm --entrypoint "htpasswd" xmartlabs/htpasswd:latest -Bbn ${registryUser} ${registryPass} >> /opt/docker/containers/docker-registry/auth/htpasswd`);
                     }
 
                     if(process.env.MP_MODE == "unipaas") {
-                        await this._execSilentCommand(`docker run --entrypoint htpasswd registry:2.7.1 -bn ${registryUser} ${registryPass} >> /usr/src/app/auth-nginx/htpasswd`);
+                        await this._execSilentCommand(`docker run --rm --entrypoint "htpasswd" xmartlabs/htpasswd:latest -bn ${registryUser} ${registryPass} >> /usr/src/app/auth-nginx/htpasswd`);
                     } else {
                         let NGINX_PASSWD_PATH="/usr/src/app/auth-nginx/htpasswd";
                         if (!fs.existsSync(NGINX_PASSWD_PATH)) {
                             fs.writeFileSync(NGINX_PASSWD_PATH, '');
                         }
-                        await this._sshExec(process.env.REGISTRY_IP, `docker run --entrypoint htpasswd registry:2.7.1 -bn ${registryUser} ${registryPass} >> /opt/docker/containers/nginx-registry/auth/htpasswd`);
+                        await this._sshExec(process.env.REGISTRY_IP, `docker run --rm --entrypoint "htpasswd" xmartlabs/htpasswd:latest -bn ${registryUser} ${registryPass} >> /opt/docker/containers/nginx-registry/auth/htpasswd`);
                     }
                     await transaction.commit();
                 } catch (_error) {

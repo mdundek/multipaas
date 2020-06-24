@@ -8,7 +8,6 @@ err_log=$_DIR/std.log
 
 . ../../_libs/common.sh
 . ../../_libs/distro.sh
-. ../../_libs/dep_offline.sh
 
 _BASEDIR="$(dirname "$_DIR")"
 _BASEDIR="$(dirname "$_BASEDIR")"
@@ -40,9 +39,15 @@ remove_all() {
     local C_EXISTS=$(command -v docker)
     HOST_NODE_INSTALLED=$(ps aux | grep "[m]ultipaas/src/host-node")
     if [ "$HOST_NODE_INSTALLED" != "" ]; then
-        /opt/pm2/bin/pm2 stop multipaas-host-node &>>$err_log
-        /opt/pm2/bin/pm2 delete multipaas-host-node &>>$err_log
-        /opt/pm2/bin/pm2 save --force &>>$err_log
+        if [ "$INTERNET_AVAILABLE" != "1" ]; then
+            /opt/pm2/bin/pm2 stop multipaas-host-node &>>$err_log
+            /opt/pm2/bin/pm2 delete multipaas-host-node &>>$err_log
+            /opt/pm2/bin/pm2 save --force &>>$err_log
+        else
+            pm2 stop multipaas-host-node &>>$err_log
+            pm2 delete multipaas-host-node &>>$err_log
+            pm2 save --force &>>$err_log
+        fi
     fi
 
     if [ "$MASTER_IP" != "" ] && "$MPUS" != "" ] && [ "$MPPW" != "" ]; then
@@ -84,6 +89,7 @@ configure_firewall() {
         if [[ `sudo firewall-cmd --state` = running ]]; then
             sudo firewall-cmd --zone=public --permanent --add-service=http
             sudo firewall-cmd --zone=public --permanent --add-service=https
+            
             sudo firewall-cmd --permanent --add-port=3030/tcp
             sudo firewall-cmd --permanent --add-port=6443/tcp
             sudo firewall-cmd --permanent --add-port=2379-2380/tcp
@@ -92,6 +98,7 @@ configure_firewall() {
             sudo firewall-cmd --permanent --add-port=10252/tcp
             sudo firewall-cmd --permanent --add-port=10255/tcp
             sudo firewall-cmd --reload
+            sudo modprobe br_netfilter
         fi
     fi
 }
@@ -101,19 +108,38 @@ configure_firewall() {
 ########################################
 
 dependency_docker () {
+    local  __resultvar=$1
     DK_EXISTS=$(command -v docker)
-
     dep_docker &>>$err_log &
     bussy_indicator "Dependency on \"Docker CE\"..."
-    sudo usermod -aG docker $USER
+
     log "\n"
     if [ "$DK_EXISTS" == "" ]; then
-        log "\n"
-        warn "==> Docker was just installed.\n"
-        warn "    Please log out, and log back in, then execute\n"
-        warn "    this script again.\n"
+        if [ "$DISTRO" == "redhat" ]; then
+            sudo firewall-cmd --permanent --zone=trusted --add-interface=docker0 &>>$err_log
+            sudo firewall-cmd --reload &>>$err_log
+        fi
+        eval $__resultvar="'1'"
+    else
+        # Make sure we have access to docher deamon
+        DOCKER_USER_OK=$(groups | grep "docker")
+        if [ "$DOCKER_USER_OK" == "" ]; then
+            error "The current user does not have access to the docker deamon.\n"
+            error "Did you restart your session afterhaving installed docker?\n"
+            exit 1
+        fi
+    fi
+}
 
-        exit 0
+dependency_node () {
+    local  __resultvar=$1
+    NODE_EXISTS=$(command -v node)
+    dep_node &>>$err_log &
+    bussy_indicator "Dependency on \"NodeJS\"..."
+
+    log "\n"
+    if [ "$NODE_EXISTS" == "" ]; then
+        eval $__resultvar="'1'"
     fi
 }
 
@@ -121,11 +147,6 @@ dependencies_gluster () {
     sudo echo "" # Ask user for sudo password now
    
     if [ "$IS_K8S_NODE" != "true" ]; then
-        dep_node &>>$err_log &
-        bussy_indicator "Dependency on \"NodeJS\"..."
-        log "\n"
-        source ~/.profile
-
         dep_pm2 &>>$err_log &
         bussy_indicator "Dependency on \"PM2\"..."
         log "\n"
@@ -155,8 +176,12 @@ dependencies_k8s () {
     bussy_indicator "Dependency on \"tar\"..."
     log "\n"
 
-    # dep_sshpass &>>$err_log &
-    # bussy_indicator "Dependency on \"sshpass\"..."
+    # dep_wget &>>$err_log &
+    # bussy_indicator "Dependency on \"wget\"..."
+    # log "\n"
+
+    # dep_curl &>>$err_log &
+    # bussy_indicator "Dependency on \"curl\"..."
     # log "\n"
 
     dep_kubernetes &>>$err_log &
@@ -167,11 +192,6 @@ dependencies_k8s () {
     bussy_indicator "Dependency on \"jq\"..."
     log "\n"
 
-    dep_node &>>$err_log &
-    bussy_indicator "Dependency on \"NodeJS\"..."
-    log "\n"
-    source ~/.bashrc
-
     dep_unzip &>>$err_log &
     bussy_indicator "Dependency on \"unzip\"..."
     log "\n"
@@ -179,9 +199,6 @@ dependencies_k8s () {
     dep_gluster_client &>>$err_log &
     bussy_indicator "Dependency on \"gluster_client\"..."   
     log "\n"
-
-    # sudo systemctl disable glusterd &>>$err_log
-    # sudo systemctl stop glusterd &>>$err_log
 
     dep_mosquitto &>>$err_log &
     bussy_indicator "Dependency on \"mosquitto\"..."
@@ -209,8 +226,9 @@ EOF
     # Disable swap
     sudo sed -i '/swap/d' /etc/fstab &>>$err_log
     sudo swapoff -a &>>$err_log
+}
 
-
+load_docker_images() {
     sudo docker load --input ../../build/offline_files/docker_images/coredns-1.6.7.tar &>>$err_log &
     bussy_indicator "Loading docker image coredns-1.6.7.tar..."
     log "\n"
@@ -227,21 +245,21 @@ EOF
     bussy_indicator "Loading docker image gitlab-runner-v12.10.1.tar..."
     log "\n"
 
-    sudo docker load --input ../../build/offline_files/docker_images/kube-apiserver-v1.18.3.tar &>>$err_log &
-    bussy_indicator "Loading docker image kube-apiserver-v1.18.3.tar..."
-    log "\n"
+    # sudo docker load --input ../../build/offline_files/docker_images/kube-apiserver-*.tar &>>$err_log &
+    # bussy_indicator "Loading docker image kube-apiserver-v1.18.3.tar..."
+    # log "\n"
 
-    sudo docker load --input ../../build/offline_files/docker_images/kube-controller-manager-v1.18.3.tar &>>$err_log &
-    bussy_indicator "Loading docker image kube-controller-manager-v1.18.3.tar..."
-    log "\n"
+    # sudo docker load --input ../../build/offline_files/docker_images/kube-controller-manager-*.tar &>>$err_log &
+    # bussy_indicator "Loading docker image kube-controller-manager-v1.18.3.tar..."
+    # log "\n"
 
-    sudo docker load --input ../../build/offline_files/docker_images/kube-proxy-v1.18.3.tar &>>$err_log &
-    bussy_indicator "Loading docker image kube-proxy-v1.18.3.tar..."
-    log "\n"
+    # sudo docker load --input ../../build/offline_files/docker_images/kube-proxy-*.tar &>>$err_log &
+    # bussy_indicator "Loading docker image kube-proxy-v1.18.3.tar..."
+    # log "\n"
 
-    sudo docker load --input ../../build/offline_files/docker_images/kube-scheduler-v1.18.3.tar &>>$err_log &
-    bussy_indicator "Loading docker image kube-scheduler-v1.18.3.tar..."
-    log "\n"
+    # sudo docker load --input ../../build/offline_files/docker_images/kube-scheduler-*.tar &>>$err_log &
+    # bussy_indicator "Loading docker image kube-scheduler-v1.18.3.tar..."
+    # log "\n"
 
     sudo docker load --input ../../build/offline_files/docker_images/local-path-provisioner-v0.0.13.tar &>>$err_log &
     bussy_indicator "Loading docker image local-path-provisioner-v0.0.13.tar..."
@@ -258,6 +276,16 @@ EOF
     sudo docker load --input ../../build/offline_files/docker_images/node-12.16.2.tar &>>$err_log &
     bussy_indicator "Loading docker image node-12.16.2.tar..."
     log "\n"
+
+    cd ../../build/offline_files/docker_images
+    FILES=( $(ls kube-*.*) )
+    for i in "${FILES[@]}"
+    do
+        sudo docker load --input ./$i &>>$err_log &
+        bussy_indicator "Loading docker image $i..."
+        log "\n"
+    done
+    cd $_DIR
 
     # sudo docker load --input ../../build/offline_files/docker_images/cp-kafka-5.0.1.tar &>>$err_log &
     # bussy_indicator "Loading docker image cp-kafka-5.0.1.tar..."
@@ -444,7 +472,12 @@ collect_informations() {
 install_master_core_components() {
     mkdir -p $HOME/.multipaas
 
-    HOST_NODE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-host-node")
+    if [ "$INTERNET_AVAILABLE" != "1" ]; then
+        HOST_NODE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-host-node")
+    else
+        HOST_NODE_DEPLOYED=$(pm2 ls | grep "multipaas-host-node")
+    fi
+    
     if [ "$HOST_NODE_DEPLOYED" == "" ]; then
         cd $_BASEDIR/src/host-node/ # Position cmd in src folder
 
@@ -467,25 +500,44 @@ install_master_core_components() {
         rm env
 
         npm i
-        /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
-        /opt/pm2/bin/pm2 -s startup
-        sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-        /opt/pm2/bin/pm2 -s save --force
+        if [ "$INTERNET_AVAILABLE" != "1" ]; then
+            /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
+            /opt/pm2/bin/pm2 -s startup
+            sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
+            /opt/pm2/bin/pm2 -s save --force
+        else
+            pm2 -s start index.js --watch --name multipaas-host-node --time
+            pm2 -s startup
+            sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER)
+            pm2 -s save --force
+        fi
     else
         if [ "$IS_GLUSTER_PEER" == "true" ]; then
             cd $_BASEDIR/src/host-node/ # Position cmd in src folder
 
             change_line "IS_GLUSTER_PEER" "IS_GLUSTER_PEER=true" ./.env
             change_line "GLUSTER_VOLUME" "GLUSTER_VOLUME=$GLUSTER_VOLUME" ./.env
-            /opt/pm2/bin/pm2 stop multipaas-host-node
-            /opt/pm2/bin/pm2 start multipaas-host-node
-            /opt/pm2/bin/pm2 -s save --force
+
+            if [ "$INTERNET_AVAILABLE" != "1" ]; then
+                /opt/pm2/bin/pm2 stop multipaas-host-node
+                /opt/pm2/bin/pm2 start multipaas-host-node
+                /opt/pm2/bin/pm2 -s save --force
+            else
+                pm2 stop multipaas-host-node
+                pm2 start multipaas-host-node
+                pm2 -s save --force
+            fi
         fi
     fi
 
     log "\n"
     
-    HOST_NODE_SATELITE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
+    if [ "$INTERNET_AVAILABLE" != "1" ]; then
+        HOST_NODE_SATELITE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
+    else
+        HOST_NODE_SATELITE_DEPLOYED=$(pm2 ls | grep "multipaas-satelite")
+    fi
+
     if [ "$HOST_NODE_SATELITE_DEPLOYED" == "" ]; then
         cd $_BASEDIR/src/satelite/ # Position cmd in src folder
         cp env.template env
@@ -499,10 +551,17 @@ install_master_core_components() {
         rm env
 
         npm i
-        /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
-        /opt/pm2/bin/pm2 -s startup
-        sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-        /opt/pm2/bin/pm2 -s save --force
+        if [ "$INTERNET_AVAILABLE" != "1" ]; then
+            /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
+            /opt/pm2/bin/pm2 -s startup
+            sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
+            /opt/pm2/bin/pm2 -s save --force
+        else
+            pm2 -s start index.js --watch --name multipaas-satelite --time
+            pm2 -s startup
+            sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER)
+            pm2 -s save --force
+        fi
     fi
 }
 
@@ -511,7 +570,12 @@ install_master_core_components() {
 ########################################
 install_satelite_core_components() {
     mkdir -p $HOME/.multipaas
-    HOST_NODE_SATELITE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
+    if [ "$INTERNET_AVAILABLE" != "1" ]; then
+        HOST_NODE_SATELITE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
+    else
+        HOST_NODE_SATELITE_DEPLOYED=$(pm2 ls | grep "multipaas-satelite")
+    fi
+
     if [ "$HOST_NODE_SATELITE_DEPLOYED" == "" ]; then
         cd $_BASEDIR/src/satelite/ # Position cmd in src folder
 
@@ -526,10 +590,17 @@ install_satelite_core_components() {
         rm env
 
         npm i
-        /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
-        /opt/pm2/bin/pm2 -s startup
-        sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-        /opt/pm2/bin/pm2 -s save --force
+        if [ "$INTERNET_AVAILABLE" != "1" ]; then
+            /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
+            /opt/pm2/bin/pm2 -s startup
+            sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
+            /opt/pm2/bin/pm2 -s save --force
+        else
+            pm2 -s start index.js --watch --name multipaas-satelite --time
+            pm2 -s startup
+            # sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
+            pm2 -s save --force
+        fi
     fi
 }
 
@@ -1002,27 +1073,121 @@ log "\n\n"
 
 # Figure out what distro we are running
 distro
-if [ "$DISTRO" == "ubuntu" ] && [ "$MAJ_V" == "18.04" ]; then
-    PK_FOLDER_NAME="ubuntu_bionic"
-elif [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "8" ]; then
-    PK_FOLDER_NAME="redhat_eight"
+
+log "==> This script will install the MultiPaaS host-node and it's dependencies on this machine.\n"
+log "\n"
+read_input "Do you wish to continue (y/n)?" CONTINUE_INSTALL
+while [[ "$CONTINUE_INSTALL" != 'y' ]] && [[ "$CONTINUE_INSTALL" != 'n' ]]; do
+    read_input "Invalide answer, try again (y/n)?" CONTINUE_INSTALL
+done
+if [ "$CONTINUE_INSTALL" == "n" ]; then
+    exit 0
+fi
+
+# Test and see if internet access is available
+wget -q --spider http://google.com &>>$err_log
+if [ $? -eq 0 ]; then
+    INTERNET_AVAILABLE=1
+fi
+
+if [ "$INTERNET_AVAILABLE" != "1" ]; then
+    . ../../_libs/dep_offline.sh
+
+    GIT_EXISTS=$(command -v git)
+    if [ "$GIT_EXISTS" == "" ]; then
+        log "\n"
+        error "==> Gitlab-runner requires Git to be installed on this machine. Please install Git first, then run this script again.\n"
+        exit 1
+    fi
+
+    if [ "$DISTRO" == "ubuntu" ] && [ "$MAJ_V" == "18.04" ]; then
+        PK_FOLDER_NAME="ubuntu_bionic"
+    else
+        echo "Unsupported OS. This script only works on Ubuntu 18.04 & RedHat 7"
+        exit 1
+    fi
 else
-    echo "Unsupported OS. This script only works on Ubuntu 18.04 & RedHat 8"
-    exit 1
+    . ../../_libs/dep_online.sh
+
+    if [ "$DISTRO" == "ubuntu" ] && [ "$MAJ_V" == "18.04" ]; then
+        curl -s -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash &>>$err_log &
+        bussy_indicator "Adding gitlab-runner repo..."
+        log "\n"
+    elif [ "$DISTRO" == "redhat" ] && [ "$MAJ_V" == "7" ]; then
+        log "Enabeling repos...\n"
+
+        EPEL_REPO_PRESENT=$(yum repolist epel | grep "Extra Packages for Enterprise Linux 7")
+        if [ "$EPEL_REPO_PRESENT" == "" ]; then
+            log "\n"
+            sudo yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>$err_log &
+            bussy_indicator "Adding EPEL repo..."
+            log "\n"
+        fi
+
+        RUNNER_REPO_PRESENT=$(yum repolist runner_gitlab-runner | grep "runner_gitlab-runner/x86_64")
+        if [ "$RUNNER_REPO_PRESENT" == "" ]; then
+            curl -s -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh | sudo bash &>>$err_log &
+            bussy_indicator "Adding gitlab-runner repo..."
+            log "\n"
+        fi
+
+        RH7EXTRA_REPO_PRESENT=$(yum repolist "Red Hat Enterprise Linux 7 Server - Extras (RPMs)" | grep "rhel-7-server-extras-rpms/x86_64")
+        if [ "$RH7EXTRA_REPO_PRESENT" == "" ]; then
+            sudo subscription-manager repos --enable=rhel-7-server-extras-rpms &>>$err_log &
+            bussy_indicator "Adding extra repo subscription..."
+            log "\n"
+        fi
+
+        DOCKER_REPO_PRESENT=$(yum repolist "Docker CE Stable - x86_64" | grep "docker-ce-stable/x86_64")
+        if [ "$DOCKER_REPO_PRESENT" == "" ]; then
+            sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo &>>$err_log &
+            bussy_indicator "Adding Docker repo..."
+            log "\n"
+        fi
+
+        if [ ! -f "/etc/yum.repos.d/Gluster.repo" ]; then
+            sudo tee -a /etc/yum.repos.d/Gluster.repo >/dev/null <<'EOF'
+[gluster38]
+name=Gluster 3.8
+baseurl=http://mirror.centos.org/centos/7/storage/x86_64/gluster-7/
+gpgcheck=0
+enabled=1
+EOF
+        fi
+        
+        sudo yum update -y &>>$err_log &
+        bussy_indicator "Updating repos..."
+        log "\n"
+
+        sudo yum install epel-release -y &>>$err_log &
+        bussy_indicator "Installing epel-release..."
+        log "\n"
+    else
+        echo "Unsupported OS. This script only works on Ubuntu 18.04 and RedHat 7"
+        exit 1
+    fi
 fi
 
 # Firewall rules
-configure_firewall
+configure_firewall &>>$err_log &
+bussy_indicator "Configuring firewall..."
+log "\n"
 
-# Install docker first
-dependency_docker
-
-# Make sure we have access to docher deamon
-DOCKER_USER_OK=$(groups | grep "docker")
-if [ "$DOCKER_USER_OK" == "" ]; then
-    error "The current user does not have access to the docker deamon.\n"
-    error "Did you restart your session afterhaving installed docker?\n"
-    exit 1
+# Install docker & NodeJS first
+dependency_docker NEED_DK_RESTART
+dependency_node NEED_NODE_RESTART
+if [ "$INTERNET_AVAILABLE" != "1" ]; then
+    if [ "$NEED_DK_RESTART" == "1" ] || [ "$NEED_NODE_RESTART" == "1" ]; then
+        log "\n"
+        warn "==> Docker and/or NodeJS was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
+        exit 0
+    fi
+else
+    if [ "$NEED_DK_RESTART" == "1" ]; then
+        log "\n"
+        warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
+        exit 0
+    fi
 fi
 
 log "\n" 
@@ -1033,6 +1198,10 @@ collect_informations
 if [ "$IS_K8S_NODE" == "true" ]; then
     # Install dependencies_k8s
     dependencies_k8s
+
+    if [ "$INTERNET_AVAILABLE" != "1" ]; then
+        load_docker_images
+    fi
 
     if [ "$DEP_TARGET" == "Kubernetes master" ]; then
         # Install the core components
@@ -1076,7 +1245,7 @@ if [ "$IS_K8S_NODE" == "true" ]; then
         log "\n"
 
         init_k8s_worker
-       
+    
         # Register node
         declare_worker_node
         
@@ -1128,9 +1297,11 @@ if [ "$IS_GLUSTER_PEER" == "true" ]; then
 
         log "\n"
 
-        install_master_core_components &>>$err_log &
-        bussy_indicator "Reconfiguring host controller components..."
-        log "\n"
+        if [ "$IS_K8S_NODE" != "true" ] || [ "$DEP_TARGET" != "Kubernetes master" ]; then
+            install_master_core_components &>>$err_log &
+            bussy_indicator "Reconfiguring host controller components..."
+            log "\n"
+        fi
 
         # Gluster Host
         HNAME=$(hostname)

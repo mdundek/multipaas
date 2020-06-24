@@ -33,9 +33,6 @@ deb_offline_install_ubuntu_bionic() {
 }
 
 
-
-
-
 setup_centos_7_extra_repo() {
     if [ ! -d "/var/www/html/repos" ]; then
         # sudo yum install httpd
@@ -64,8 +61,6 @@ EOF
     fi
 }
 
-
-
 ########################################
 # 
 ########################################
@@ -80,6 +75,25 @@ dep_wget() {
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "7" ]; then
                 rpm_offline_install_redhat_7 "wget"
+            fi
+        fi
+    fi
+}
+
+########################################
+# 
+########################################
+dep_curl() {
+    cd $_DIR
+    CURL_EXISTS=$(command -v curl)
+    if [ "$CURL_EXISTS" == "" ]; then
+        if [ "$DISTRO" == "ubuntu" ]; then
+            if [ "$MAJ_V" == "18.04" ]; then
+                deb_offline_install_ubuntu_bionic "curl"
+            fi
+        elif [ "$DISTRO" == "redhat" ]; then
+            if [ "$MAJ_V" == "7" ]; then
+                rpm_offline_install_redhat_7 "curl"
             fi
         fi
     fi
@@ -107,14 +121,17 @@ dep_node() {
     if [ $INSTALL_NODE = 1 ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             if [ "$MAJ_V" == "18.04" ]; then
+                sudo rm -rf /opt/nodejs
                 sudo mkdir -p /opt/nodejs
                 sudo chmod -R 755 /opt/nodejs
-                sudo cp ../../build/offline_files/debs/nodejs/node-v12.18.0-linux-x64.tar.xz /opt
+                sudo cp ../../build/offline_files/debs/ubuntu_bionic/nodejs/node-v12.18.0-linux-x64.tar.xz /opt
                 cd /opt
                 sudo tar xf /opt/node-v12.18.0-linux-x64.tar.xz --directory /opt/nodejs
                 sudo rm -rf /opt/node-v12.18.0-linux-x64.tar.xz
                 sudo mv /opt/nodejs/node-v12.18.0-linux-x64/* /opt/nodejs
                 sudo rm -rf /opt/nodejs/node-v12.18.0-linux-x64
+                sed -i.bak '/NODEJS_HOME/d' ~/.profile
+                sed -i.bak '/NODEJS_HOME/d' ~/.bashrc
                 echo 'export NODEJS_HOME=/opt/nodejs/bin' >> ~/.profile
                 echo 'export PATH=$NODEJS_HOME:$PATH' >> ~/.profile
                 echo 'export NODEJS_HOME=/opt/nodejs/bin' >> ~/.bashrc
@@ -123,6 +140,7 @@ dep_node() {
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "7" ]; then
+                sudo rm -rf /opt/nodejs
                 sudo mkdir -p /opt/nodejs
                 sudo chmod -R 755 /opt/nodejs
                 sudo cp ../../build/offline_files/rpms/redhat_seven/nodejs/node-v12.18.0-linux-x64.tar.xz /opt
@@ -131,6 +149,7 @@ dep_node() {
                 sudo rm -rf /opt/node-v12.18.0-linux-x64.tar.xz
                 sudo mv /opt/nodejs/node-v12.18.0-linux-x64/* /opt/nodejs
                 sudo rm -rf /opt/nodejs/node-v12.18.0-linux-x64
+                sed -i.bak '/NODEJS_HOME/d' ~/.bashrc
                 echo 'export NODEJS_HOME=/opt/nodejs/bin' >> ~/.bashrc
                 echo 'export PATH=$NODEJS_HOME:$PATH' >> ~/.bashrc
                 source ~/.bashrc
@@ -151,14 +170,14 @@ dep_docker() {
                 deb_offline_install_ubuntu_bionic "containerd"
                 deb_offline_install_ubuntu_bionic "docker-ce-cli"
                 deb_offline_install_ubuntu_bionic "docker-ce" && sudo usermod -aG docker $USER
+
                 sudo systemctl start docker
                 sudo systemctl enable docker
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "7" ]; then
-                tar xzvf ../../build/offline_files/rpms/$PK_FOLDER_NAME/docker/docker-*.tgz -o ../../build/offline_files/rpms/$PK_FOLDER_NAME/docker
+                tar xzvf ../../build/offline_files/rpms/$PK_FOLDER_NAME/docker/docker-*.tgz -C ../../build/offline_files/rpms/$PK_FOLDER_NAME/docker
                 sudo mv ../../build/offline_files/rpms/$PK_FOLDER_NAME/docker/docker/* /usr/bin/
-                sudo mkdir -p /etc/systemd/system/docker.service.d
                 sudo tee -a /etc/systemd/system/docker.service >/dev/null <<'EOF'
 [Unit]
 Description=Docker Application Container Engine
@@ -211,10 +230,31 @@ SocketGroup=docker
 WantedBy=sockets.target
 EOF
                 sudo chmod +rwx /etc/systemd/system/docker.*
+                
                 sudo groupadd docker
                 sudo usermod -aG docker $USER
-                sudo systemctl daemon-reload
 
+                sudo setenforce 0
+                sudo sed -i '/SELINUX=/c\SELINUX=disabled' /etc/selinux/config
+                
+                sudo mkdir -p /etc/docker
+                sudo tee -a /etc/docker/daemon.json >/dev/null <<EOF
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2",
+  "storage-opts": [
+    "overlay2.override_kernel_check=true"
+  ]
+}      
+EOF
+
+                sudo mkdir -p /etc/systemd/system/docker.service.d
+
+                sudo systemctl daemon-reload
                 sudo systemctl enable docker
                 sudo systemctl start docker
             fi
@@ -264,25 +304,6 @@ dep_vbox() {
 ########################################
 # 
 ########################################
-dep_curl() {
-    cd $_DIR
-    CURL_EXISTS=$(command -v curl)
-    if [ "$CURL_EXISTS" == "" ]; then
-        if [ "$DISTRO" == "ubuntu" ]; then
-            if [ "$MAJ_V" == "18.04" ]; then
-                deb_offline_install_ubuntu_bionic "curl"
-            fi
-        elif [ "$DISTRO" == "redhat" ]; then
-            if [ "$MAJ_V" == "7" ]; then
-                rpm_offline_install_redhat_7 "curl"
-            fi
-        fi
-    fi
-}
-
-########################################
-# 
-########################################
 dep_kubernetes() {
     cd $_DIR
     K8S_EXISTS=$(command -v kubeadm)
@@ -295,6 +316,7 @@ dep_kubernetes() {
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "7" ]; then
+                rpm_offline_install_redhat_7 "kubernetes-cni"
                 rpm_offline_install_redhat_7 "kubeadm"
                 rpm_offline_install_redhat_7 "kubectl"
                 rpm_offline_install_redhat_7 "kubelet"
@@ -342,6 +364,10 @@ dep_gitlab_runner() {
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "7" ]; then
                 rpm_offline_install_redhat_7 "gitlab-runner"
+                DKR_EXISTS=$(command -v docker)
+                if [ "$DKR_EXISTS" == "" ]; then
+                    sudo service docker restart
+                fi
             fi
         fi
     fi
