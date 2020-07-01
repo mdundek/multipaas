@@ -302,6 +302,7 @@ far() {
 http_probe() {
     local ATTEMPTS=0
     until $(curl --output /dev/null --silent --head --fail $1); do
+        printf '.'
         sleep 5
         ATTEMPTS=$((ATTEMPTS+1))
         if [ "$ATTEMPTS" == "60" ]; then

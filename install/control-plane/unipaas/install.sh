@@ -507,12 +507,10 @@ EOF
 ########################################
 setup_keycloak() {
     # Wait untill Keycloak is up and running
-    log "Waiting for Keycloak to become available (this can take up to 2 minutes)\n"
-    until $(curl -k --output /dev/null --silent --head --fail https://multipaas.keycloak.com/auth/admin/master/console); do
-        printf '.'
-        sleep 5
-    done
 
+    log "Waiting for Keycloak to become available (this can take up to 2 minutes)\n"
+    http_probe "https://multipaas.keycloak.com/auth/admin/master/console"
+    
     log "\n"
     log "\n"
     log "To finalyze the setup, do the following:\n"
@@ -793,7 +791,7 @@ if [ "$CONTINUE_INSTALL" == "n" ]; then
     exit 0
 fi
 
-sudo printf ""
+sudo echo ""
 
 # Test and see if internet access is available
 wget -q --spider http://google.com &>>$err_log
