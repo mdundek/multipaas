@@ -793,7 +793,7 @@ if [ "$CONTINUE_INSTALL" == "n" ]; then
     exit 0
 fi
 
-sudo log ""
+sudo printf ""
 
 # Test and see if internet access is available
 wget -q --spider http://google.com &>>$err_log
