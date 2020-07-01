@@ -22,6 +22,13 @@ on_error() {
   fi
 }
 
+succeed_check() {
+    if [ $? -ne 0 ]; then
+        error "An error occured, check the file ./std.log\n"
+        exit 1
+    fi
+}
+
 remove_all() {
     sudo rm -rf $HOME/.multipaas
     sudo rm -rf $HOME/configPrivateRegistry.sh
@@ -361,7 +368,9 @@ EOT
         docker pull xmartlabs/htpasswd:latest > /dev/null 2>&1
     fi
     DR_CRED=$(docker run --rm --entrypoint "htpasswd" xmartlabs/htpasswd:latest -Bbn multipaas_master_user multipaas_master_pass)
+    succeed_check
     NR_CRED=$(docker run --rm --entrypoint "htpasswd" xmartlabs/htpasswd:latest -bn multipaas_master_user multipaas_master_pass)
+    succeed_check
 
     cat > $HOME/.multipaas/auth/nginx/htpasswd << EOF
 $NR_CRED
@@ -723,7 +732,10 @@ ENDOFFILE
     sed -i "s/<API_SYSADMIN_PASSWORD>/$API_SYSADMIN_PASSWORD/g" ./_drun.sh
     sed -i "s/<GITLAB_KC_SECRET>/$GITLAB_KC_SECRET/g" ./_drun.sh
 
-    ./_drun.sh > /dev/null 2>&1
+    ./_drun.sh &>>$err_log &
+    bussy_indicator "Instantiating container..."
+    log "\n"
+
     rm -rf ./_drun.sh
 
     configure_gitlab &>>$err_log &
@@ -736,10 +748,8 @@ ENDOFFILE
 # Reconfigure GitLab & restart it
 ########################################
 configure_gitlab() {
-    until $(curl --output /dev/null --silent --head --fail http://$GITLAB_IP:8929/users/sign_in); do
-        sleep 5
-    done
-
+    http_probe "http://$GITLAB_IP:8929/users/sign_in"
+   
     # Copy root CA from NGInx Keycloak to Gitlab container
     docker cp $NGINX_CRT_FOLDER/rootCA.crt multipaas-gitlab:/etc/gitlab/trusted-certs/rootCA.crt
 
@@ -752,9 +762,8 @@ configure_gitlab() {
 
     docker stop multipaas-gitlab
     docker start multipaas-gitlab
-    until $(curl --output /dev/null --silent --head --fail http://$GITLAB_IP:8929/users/sign_in); do
-        sleep 5
-    done
+
+    http_probe "http://$GITLAB_IP:8929/users/sign_in"
 }
 
                                                           

@@ -299,6 +299,21 @@ far() {
 ########################################
 # 
 ########################################
+http_probe() {
+    local ATTEMPTS=0
+    until $(curl --output /dev/null --silent --head --fail $1); do
+        sleep 5
+        ATTEMPTS=$((ATTEMPTS+1))
+        if [ "$ATTEMPTS" == "60" ]; then
+            error "The endpoint $1 could not be reached."
+            exit 1
+        fi
+    done
+}
+
+########################################
+# 
+########################################
 create_system_service() {
     if [ -f "/$1.sh" ]; then
         sudo rm -rf /$1.sh
