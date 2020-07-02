@@ -159,14 +159,18 @@ dependencies_gluster () {
         bussy_indicator "Dependency on \"gluster_client\"..."
         log "\n"
 
-        sudo docker load --input ../../build/offline_files/docker_images/node-12.16.2.tar &>>$err_log &
-        bussy_indicator "Loading docker image node-12.16.2.tar..."
-        log "\n"
+        if [ "$INTERNET_AVAILABLE" != "1" ]; then
+            sudo docker load --input ../../build/offline_files/docker_images/node-12.16.2.tar &>>$err_log &
+            bussy_indicator "Loading docker image node-12.16.2.tar..."
+            log "\n"
+        fi
     fi
     cd $_DIR
-    sudo docker load --input ../../build/offline_files/docker_images/gluster-centos-gluster4u0_centos7.tar &>>$err_log &
-    bussy_indicator "Loading docker image gluster-centos-gluster4u0_centos7.tar..."
-    log "\n"
+    if [ "$INTERNET_AVAILABLE" != "1" ]; then
+        sudo docker load --input ../../build/offline_files/docker_images/gluster-centos-gluster4u0_centos7.tar &>>$err_log &
+        bussy_indicator "Loading docker image gluster-centos-gluster4u0_centos7.tar..."
+        log "\n"
+    fi
 }
 
 dependencies_k8s () {
