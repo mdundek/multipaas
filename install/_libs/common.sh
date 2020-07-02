@@ -42,6 +42,22 @@ warnnl() {
     printf -- "\033[33m$1\n\033[0m";
 }
 
+min_mem() {
+    totalk=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
+    if [ "$totalk" -lt "3800000" ]; then
+        error "This system does not have enougth memory to prosceed with the installation (>=4GB)."
+        exit 1
+    fi
+}
+
+min_avail_hd() {
+    totalm=$(df -k . | awk '{if(NR>1)print $4}')
+    if [ "$totalm" -lt "10000000" ]; then
+        error "This system does not have enougth disk space available to prosceed with the installation (>=10GB)."
+        exit 1
+    fi
+}
+
 ########################################
 # 
 ########################################

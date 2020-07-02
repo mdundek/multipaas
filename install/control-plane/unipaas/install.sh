@@ -781,6 +781,10 @@ log "\n\n"
 # Figure out what distro we are running
 distro
 
+# Make sure we have enougth resources
+min_mem
+min_avail_hd
+
 log "==> This script will install the MultiPaaS control-plane and it's dependencies on this machine.\n"
 log "\n"
 read_input "Do you wish to continue (y/n)?" CONTINUE_INSTALL
