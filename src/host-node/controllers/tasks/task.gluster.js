@@ -44,7 +44,7 @@ class TaskGlusterController {
 
         // Create gluster volume on all peers
         try {
-            let _cmd = `sudo docker exec gluster-ctl gluster volume create ${volumeName} replica ${gluster_targets.length} ${gluster_targets.map(o => `${o}:/bricks/${volumeName}`).join(' ')} force`;
+            let _cmd = `docker exec gluster-ctl gluster volume create ${volumeName} replica ${gluster_targets.length} ${gluster_targets.map(o => `${o}:/bricks/${volumeName}`).join(' ')} force`;
             let result = await OSController.execSilentCommand(_cmd);
             if(!(result.find(l => l.indexOf("success") != -1))) {
                 throw new Error(result.join(" ; "));
@@ -55,32 +55,32 @@ class TaskGlusterController {
 
         // Start the gluster volume
         try {
-            let result = await OSController.execSilentCommand(`sudo docker exec gluster-ctl gluster volume start ${volumeName}`);
+            let result = await OSController.execSilentCommand(`docker exec gluster-ctl gluster volume start ${volumeName}`);
             if(!(result.find(l => l.indexOf("success") != -1))) {
                 throw new Error(result.join(" ; "));
             }
         } catch (error) {
-            await OSController.execSilentCommand(`sudo docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume delete ${volumeName}"`);
+            await OSController.execSilentCommand(`docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume delete ${volumeName}"`);
             throw error;
         }
 
         // Configure the gluster volume
         try {
-            let result = await OSController.execSilentCommand(`sudo docker exec gluster-ctl gluster volume set ${volumeName} cluster.min-free-disk 10%`);
+            let result = await OSController.execSilentCommand(`docker exec gluster-ctl gluster volume set ${volumeName} cluster.min-free-disk 10%`);
             if(!(result.find(l => l.indexOf("success") != -1))) {
                 throw new Error(result.join(" ; "));
             }
-            result = await OSController.execSilentCommand(`sudo docker exec gluster-ctl gluster volume quota ${volumeName} enable`);
+            result = await OSController.execSilentCommand(`docker exec gluster-ctl gluster volume quota ${volumeName} enable`);
             if(!(result.find(l => l.indexOf("success") != -1))) {
                 throw new Error(result.join(" ; "));
             }
-            result = await OSController.execSilentCommand(`sudo docker exec gluster-ctl gluster volume quota ${volumeName} limit-usage / ${size}MB`);
+            result = await OSController.execSilentCommand(`docker exec gluster-ctl gluster volume quota ${volumeName} limit-usage / ${size}MB`);
             if(!(result.find(l => l.indexOf("success") != -1))) {
                 throw new Error(result.join(" ; "));
             }
         } catch (error) {
-            await OSController.execSilentCommand(`sudo docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume stop ${volumeName}"`);
-            await OSController.execSilentCommand(`sudo docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume delete ${volumeName}"`);
+            await OSController.execSilentCommand(`docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume stop ${volumeName}"`);
+            await OSController.execSilentCommand(`docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume delete ${volumeName}"`);
             throw error;
         }
 
@@ -95,8 +95,8 @@ class TaskGlusterController {
             }
             await DBController.commitTransaction(dbClient);
         } catch (error) {
-            await OSController.execSilentCommand(`sudo docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume stop ${volumeName}"`);
-            await OSController.execSilentCommand(`sudo docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume delete ${volumeName}"`);
+            await OSController.execSilentCommand(`docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume stop ${volumeName}"`);
+            await OSController.execSilentCommand(`docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume delete ${volumeName}"`);
             await DBController.rollbackTransaction(dbClient);
             throw error;
         }
@@ -110,11 +110,11 @@ class TaskGlusterController {
      */
     static async deprovisionGlusterVolume(volumeId, name, secret) {
         let volumeName = name + "-" + secret;
-        await OSController.execSilentCommand(`sudo docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume stop ${volumeName}"`);
+        await OSController.execSilentCommand(`docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume stop ${volumeName}"`);
         try {
-            await OSController.execSilentCommand(`sudo docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume delete ${volumeName}"`);
+            await OSController.execSilentCommand(`docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume delete ${volumeName}"`);
         } catch (error) {
-            await OSController.execSilentCommand(`sudo docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume start ${volumeName}"`);
+            await OSController.execSilentCommand(`docker exec gluster-ctl bash -c "printf 'y\n' | gluster volume start ${volumeName}"`);
             throw error;
         }
         await DBController.deleteGlusterVolume(volumeId);
@@ -137,7 +137,7 @@ class TaskGlusterController {
      */
     static async requestAuthorizeGlusterVolumeIps(topicSplit, ip, data) {
         try {
-            let result = await OSController.execSilentCommand(`sudo docker exec gluster-ctl gluster volume set ${data.volumeName} auth.allow ${data.ips.join(',')}`);
+            let result = await OSController.execSilentCommand(`docker exec gluster-ctl gluster volume set ${data.volumeName} auth.allow ${data.ips.join(',')}`);
             if(!(result.find(l => l.indexOf("success") != -1))) {
                 throw new Error(result.join(" ; "));
             }
@@ -287,7 +287,7 @@ class TaskGlusterController {
             } 
         }   
         else if(r.code == 0 && r.stdout == "n") {
-            r = await OSController.sshExec(node.ip, `sudo mkdir -p /mnt/${volumeName}`, true);
+            r = await OSController.sshExec(node.ip, `mkdir -p /mnt/${volumeName}`, true);
             if(r.code != 0) {
                 throw new Error("Could not create mount folder");
             } 
@@ -296,18 +296,18 @@ class TaskGlusterController {
             throw new Error("An error occured trying to unmount volume");
         }
 
-        r = await OSController.sshExec(node.ip, `sudo mount.glusterfs ${glusterIp}:/${volumeName} /mnt/${volumeName}`, true);
+        r = await OSController.sshExec(node.ip, `mount.glusterfs ${glusterIp}:/${volumeName} /mnt/${volumeName}`, true);
         if(r.code != 0) {
             await TaskVolumeController.unmountVolume(node, volumeName, glusterIp);
             throw new Error("Could not mount folder");
         }
 
-        r = await OSController.sshExec(node.ip, `sudo chown -R vagrant:vagrant /mnt/${volumeName}`, true);
+        r = await OSController.sshExec(node.ip, `chown -R vagrant:vagrant /mnt/${volumeName}`, true);
         if(r.code != 0) {
             await TaskVolumeController.unmountVolume(node, volumeName, glusterIp);
             throw new Error("Could not assign permissions on folder");
         }
-        r = await OSController.sshExec(node.ip, `echo '${glusterIp}:/${volumeName}   /mnt/${volumeName}  glusterfs _netdev,auto,x-systemd.automount 0 0' | sudo tee -a /etc/fstab`, true);
+        r = await OSController.sshExec(node.ip, `echo '${glusterIp}:/${volumeName}   /mnt/${volumeName}  glusterfs _netdev,auto,x-systemd.automount 0 0' | tee -a /etc/fstab`, true);
         if(r.code != 0) {
             await TaskVolumeController.unmountVolume(node, volumeName, glusterIp);
             throw new Error("Could not update fstab");

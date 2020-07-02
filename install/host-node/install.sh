@@ -260,14 +260,12 @@ install_core_components() {
 
     log "\n"
     HOST_NODE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-host-node")
-    echo "==> 1"
     if [ "$HOST_NODE_DEPLOYED" == "" ]; then
-        echo "==> 2"
         npm i
-        /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
-        /opt/pm2/bin/pm2 -s startup
+        sudo /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
+        sudo /opt/pm2/bin/pm2 -s startup
         sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-        /opt/pm2/bin/pm2 -s save --force
+        sudo /opt/pm2/bin/pm2 -s save --force
     fi
 }
 

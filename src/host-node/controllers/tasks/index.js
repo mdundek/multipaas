@@ -338,7 +338,7 @@ class TaskController {
     static async addGitlabRunner(topicSplit, payload) {
         try {
             if(payload.runnerData.type == "local-registry-runner") {
-                await OSController.sshExec(payload.node.ip, `sudo gitlab-runner register --non-interactive --url "http://${process.env.GITLAB_IP}:8929/" --registration-token "${payload.runnerData.token}" --executor "shell" --name "local-registry-runner" --run-untagged="true" --locked="true" --tag-list "local-registry"`, true);
+                await OSController.sshExec(payload.node.ip, `gitlab-runner register --non-interactive --url "http://${process.env.GITLAB_IP}:8929/" --registration-token "${payload.runnerData.token}" --executor "shell" --name "local-registry-runner" --run-untagged="true" --locked="true" --tag-list "local-registry"`, true);
             } else {
                 // TODO
             }

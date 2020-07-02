@@ -219,11 +219,11 @@ class TaskVolumeController {
             }
 
             // Mkdir
-            r = await OSController.sshExec(node.ip, `sudo mkdir -p /mnt/${volumeName}`, true);
+            r = await OSController.sshExec(node.ip, `mkdir -p /mnt/${volumeName}`, true);
             if(r.code != 0) {
                 throw new Error(r.stderr);
             }
-            r = await OSController.sshExec(node.ip, `sudo chmod a+w /mnt/${volumeName}`, true);
+            r = await OSController.sshExec(node.ip, `chmod a+w /mnt/${volumeName}`, true);
             if(r.code != 0) {
                 throw new Error(r.stderr);
             }
@@ -297,15 +297,15 @@ class TaskVolumeController {
             r = await OSController.sshExec(node.ip, `mount | grep "${volumeName}"`, true);
             // If volume mounted
             if(r.code == 0 && r.stdout.trim() != "") {
-                await OSController.sshExec(node.ip, `sudo umount /mnt/${volumeName}`, true);
+                await OSController.sshExec(node.ip, `umount /mnt/${volumeName}`, true);
             }
             // If also declared in fstab, remove it from there as well
             r = await OSController.sshExec(node.ip, `cat /etc/fstab | grep "/mnt/${volumeName}"`, true);
             if(r.code == 0 && r.stdout.trim() != "") {
-                await OSController.sshExec(node.ip, `sudo sed -i '\\|/mnt/${volumeName}|d' /etc/fstab`, true);
+                await OSController.sshExec(node.ip, `sed -i '\\|/mnt/${volumeName}|d' /etc/fstab`, true);
             }
             // Delete folders
-            await OSController.sshExec(node.ip, `sudo rm -rf /mnt/${volumeName}`, true);
+            await OSController.sshExec(node.ip, `rm -rf /mnt/${volumeName}`, true);
         } else if(r.code != 0) {
             throw new Error("An error occured trying to unmount volume");
         }

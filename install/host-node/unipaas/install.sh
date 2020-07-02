@@ -505,15 +505,15 @@ install_master_core_components() {
 
         npm i
         if [ "$INTERNET_AVAILABLE" != "1" ]; then
-            /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
-            /opt/pm2/bin/pm2 -s startup
+            sudo /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
+            sudo /opt/pm2/bin/pm2 -s startup
             sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-            /opt/pm2/bin/pm2 -s save --force
+            sudo /opt/pm2/bin/pm2 -s save --force
         else
-            pm2 -s start index.js --watch --name multipaas-host-node --time
-            pm2 -s startup
+            sudo pm2 -s start index.js --watch --name multipaas-host-node --time
+            sudo pm2 -s startup
             sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER)
-            pm2 -s save --force
+            sudo pm2 -s save --force
         fi
     else
         if [ "$IS_GLUSTER_PEER" == "true" ]; then
@@ -523,13 +523,13 @@ install_master_core_components() {
             change_line "GLUSTER_VOLUME" "GLUSTER_VOLUME=$GLUSTER_VOLUME" ./.env
 
             if [ "$INTERNET_AVAILABLE" != "1" ]; then
-                /opt/pm2/bin/pm2 stop multipaas-host-node
-                /opt/pm2/bin/pm2 start multipaas-host-node
-                /opt/pm2/bin/pm2 -s save --force
+                sudo /opt/pm2/bin/pm2 stop multipaas-host-node
+                sudo /opt/pm2/bin/pm2 start multipaas-host-node
+                sudo /opt/pm2/bin/pm2 -s save --force
             else
-                pm2 stop multipaas-host-node
-                pm2 start multipaas-host-node
-                pm2 -s save --force
+                sudo pm2 stop multipaas-host-node
+                sudo pm2 start multipaas-host-node
+                sudo pm2 -s save --force
             fi
         fi
     fi
@@ -556,15 +556,15 @@ install_master_core_components() {
 
         npm i
         if [ "$INTERNET_AVAILABLE" != "1" ]; then
-            /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
-            /opt/pm2/bin/pm2 -s startup
+            sudo /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
+            sudo /opt/pm2/bin/pm2 -s startup
             sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-            /opt/pm2/bin/pm2 -s save --force
+            sudo /opt/pm2/bin/pm2 -s save --force
         else
-            pm2 -s start index.js --watch --name multipaas-satelite --time
-            pm2 -s startup
+            sudo pm2 -s start index.js --watch --name multipaas-satelite --time
+            sudo pm2 -s startup
             sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER)
-            pm2 -s save --force
+            sudo pm2 -s save --force
         fi
     fi
 }
@@ -595,15 +595,15 @@ install_satelite_core_components() {
 
         npm i
         if [ "$INTERNET_AVAILABLE" != "1" ]; then
-            /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
-            /opt/pm2/bin/pm2 -s startup
+            sudo /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
+            sudo /opt/pm2/bin/pm2 -s startup
             sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-            /opt/pm2/bin/pm2 -s save --force
+            sudo /opt/pm2/bin/pm2 -s save --force
         else
-            pm2 -s start index.js --watch --name multipaas-satelite --time
-            pm2 -s startup
+            sudo pm2 -s start index.js --watch --name multipaas-satelite --time
+            sudo pm2 -s startup
             # sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-            pm2 -s save --force
+            sudo pm2 -s save --force
         fi
     fi
 }
