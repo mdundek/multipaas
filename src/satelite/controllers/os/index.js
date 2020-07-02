@@ -5,7 +5,6 @@ const path = require('path');
 const chmodr = require('chmodr');
 const shell = require('shelljs');
 const mkdirp = require('mkdirp');
-const { exec } = require("child_process");
 
 // Sleep promise for async
 let _sleep = (duration) => {
@@ -127,33 +126,17 @@ class OsController {
 	static async execSilentCommand(command, ignoreErrorCode) {
 		console.log(command);
 		return new Promise((resolve, reject) => {
-			// try {
-
-
-				exec(command, (error, stdout, stderr) => {
-					if (error) {
-						reject(error);
-						return;
+			try {
+				shell.exec(command, {silent:true}, function(code, stdout, stderr) {
+					if((ignoreErrorCode && stderr.trim().length == 0) || code == 0){
+						resolve(stdout.split("\n").filter(o => o.length > 0));
+					} else {
+						reject(new Error(stderr && stderr.trim().length > 0 ? stderr : "An error occured"));
 					}
-					if (stderr) {
-						reject(new Error(stderr));
-						return;
-					}
-					resolve(stdout.split("\n").filter(o => o.length > 0));
 				});
-
-
-
-				// shell.exec(command, {silent:true}, function(code, stdout, stderr) {
-				// 	if((ignoreErrorCode && stderr.trim().length == 0) || code == 0){
-				// 		resolve(stdout.split("\n").filter(o => o.length > 0));
-				// 	} else {
-				// 		reject(new Error(stderr && stderr.trim().length > 0 ? stderr : "An error occured"));
-				// 	}
-				// });
-			// } catch (error) {
-			// 	reject(error);
-			// }
+			} catch (error) {
+				reject(error);
+			}
 		});
 	}
 }

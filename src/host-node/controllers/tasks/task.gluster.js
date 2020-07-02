@@ -287,7 +287,7 @@ class TaskGlusterController {
             } 
         }   
         else if(r.code == 0 && r.stdout == "n") {
-            r = await OSController.sshExec(node.ip, `mkdir -p /mnt/${volumeName}`, true);
+            r = await OSController.sshExec(node.ip, `sudo mkdir -p /mnt/${volumeName}`, true);
             if(r.code != 0) {
                 throw new Error("Could not create mount folder");
             } 
