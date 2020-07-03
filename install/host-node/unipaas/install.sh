@@ -143,14 +143,22 @@ dependency_node () {
     fi
 }
 
+dependency_pm2 () {
+    local  __resultvar=$1
+    PM2_EXISTS=$(command -v pm2)
+    dep_pm2 &>>$err_log &
+    bussy_indicator "Dependency on \"PM2\"..."
+
+    log "\n"
+    if [ "$PM2_EXISTS" == "" ]; then
+        eval $__resultvar="'1'"
+    fi
+}
+
 dependencies_gluster () {
     sudo echo "" # Ask user for sudo password now
    
     if [ "$IS_K8S_NODE" != "true" ]; then
-        dep_pm2 &>>$err_log &
-        bussy_indicator "Dependency on \"PM2\"..."
-        log "\n"
-
         dep_jq &>>$err_log &
         bussy_indicator "Dependency on \"jq\"..."
         log "\n"
@@ -214,10 +222,6 @@ dependencies_k8s () {
 
     dep_helm &>>$err_log &
     bussy_indicator "Dependency on \"Helm\"..."
-    log "\n"
-
-    dep_pm2 &>>$err_log &
-    bussy_indicator "Dependency on \"PM2\"..."
     log "\n"
 
     # Add sysctl settings
@@ -537,9 +541,9 @@ install_master_core_components() {
     log "\n"
     
     if [ "$INTERNET_AVAILABLE" != "1" ]; then
-        HOST_NODE_SATELITE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
+        HOST_NODE_SATELITE_DEPLOYED=$(sudo -u multipaas /opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
     else
-        HOST_NODE_SATELITE_DEPLOYED=$(pm2 ls | grep "multipaas-satelite")
+        HOST_NODE_SATELITE_DEPLOYED=$(sudo -u multipaas pm2 ls | grep "multipaas-satelite")
     fi
 
     if [ "$HOST_NODE_SATELITE_DEPLOYED" == "" ]; then
@@ -1205,16 +1209,17 @@ log "\n"
 # Install docker & NodeJS first
 dependency_docker NEED_DK_RESTART
 dependency_node NEED_NODE_RESTART
+dependency_pm2 NEED_PM2_RESTART
 if [ "$INTERNET_AVAILABLE" != "1" ]; then
-    if [ "$NEED_DK_RESTART" == "1" ] || [ "$NEED_NODE_RESTART" == "1" ]; then
+    if [ "$NEED_DK_RESTART" == "1" ] || [ "$NEED_NODE_RESTART" == "1" ] || [ "$NEED_PM2_RESTART" == "1" ]; then
         log "\n"
-        warn "==> Docker and/or NodeJS was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
+        warn "==> Docker and/or NodeJS/pm2 was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
         exit 0
     fi
 else
-    if [ "$NEED_DK_RESTART" == "1" ]; then
+    if [ "$NEED_DK_RESTART" == "1" ] || [ "$NEED_PM2_RESTART" == "1" ]; then
         log "\n"
-        warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
+        warn "==> Docker and/or pm2 was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
         exit 0
     fi
 fi
