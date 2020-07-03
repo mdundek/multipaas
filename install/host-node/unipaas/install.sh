@@ -712,9 +712,23 @@ echo "${array[4]} ${array[6]}"
 EOT
     sudo chmod +x $HOME/gentoken.sh
     
+    mkdir -p $HOME/.kube
+
+    rm -rf $HOME/.kube/config
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+    rm -rf $HOME/.kube/admin.conf
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/admin.conf
+    sudo chown $(id -u):$(id -g) $HOME/.kube/admin.conf
+
+    echo "export KUBECONFIG=$HOME/.kube/admin.conf" | tee -a $HOME/.bashrc
+    export KUBECONFIG=$HOME/.kube/admin.conf
+
+
     sudo -H -u multipaas bash -c "mkdir -p $MP_HOME/.kube"
 
-    rm -rf $MP_HOME/.kube/config
+    sudo -H -u multipaas bash -c "rm -rf $MP_HOME/.kube/config"
     sudo cp -i /etc/kubernetes/admin.conf $MP_HOME/.kube/config
     sudo chown multipaas:multipaas $MP_HOME/.kube/config
 
@@ -722,13 +736,12 @@ EOT
     sudo cp -i /etc/kubernetes/admin.conf $MP_HOME/.kube/admin.conf
     sudo chown multipaas:multipaas $MP_HOME/.kube/admin.conf
 
-    echo "export KUBECONFIG=$MP_HOME/.kube/admin.conf" | tee -a $MP_HOME/.bashrc
-    export KUBECONFIG=$MP_HOME/.kube/admin.conf
+    echo "export KUBECONFIG=$HOME/.kube/admin.conf" | tee -a $MP_HOME/.bashrc
 
     sleep 5
 
     # Untaint master
-    sudo kubectl taint nodes --all node-role.kubernetes.io/master-
+    kubectl taint nodes --all node-role.kubernetes.io/master-
 
     # Enable PodPresets
     sudo sed -i "s/enable-admission-plugins=NodeRestriction/enable-admission-plugins=NodeRestriction,PodPreset/g" /etc/kubernetes/manifests/kube-apiserver.yaml
@@ -737,21 +750,23 @@ EOT
     sleep 10 # Give kubeadm the time to restart with new config
 
     # Deploy flannel network
-    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/kube-flannel.yml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/kube-flannel.yml
 
     # Install ingress & local provisioner
-    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/ns-and-sa.yaml
-    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/rbac/rbac.yaml
-    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/default-server-secret.yaml
-    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/nginx-config.yaml
-    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/vs-definition.yaml
-    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/vsr-definition.yaml
-    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/ts-definition.yaml
-    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/gc-definition.yaml
-    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/global-configuration.yaml
-    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/daemon-set/nginx-ingress.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/ns-and-sa.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/rbac/rbac.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/default-server-secret.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/nginx-config.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/vs-definition.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/vsr-definition.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/ts-definition.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/gc-definition.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/global-configuration.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/daemon-set/nginx-ingress.yaml
 
-    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/local-path-provisioner/local-path-storage.yaml
+    kubectl apply -f ./src/host-node/resources/k8s_templates/local-path-provisioner/local-path-storage.yaml
+
+    
 
     # Configure OpenID Connect for Keycloak
     sudo rm -rf /etc/kubernetes/pki/rootCA.crt
@@ -1044,8 +1059,8 @@ create_account_and_register() {
 }
 
 create_registry_secret() {
-    source $MP_HOME/.bashrc
-    export KUBECONFIG=$MP_HOME/.kube/admin.conf
+    source $HOME/.bashrc
+    export KUBECONFIG=$HOME/.kube/admin.conf
 
     z=0
     local ALL_GOOD="0"
