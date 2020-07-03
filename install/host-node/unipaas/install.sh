@@ -448,18 +448,18 @@ collect_informations() {
         fi
 
         # Make sure the registry certificates are installed
-        if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$MP_HOME/configPrivateRegistry.sh" ]; then
+        if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$HOME/configPrivateRegistry.sh" ]; then
             error "Copy the Registry certificate setup script to your home folder:\n"
             warn " 1. Grab the config script from the control-plane\n"
-            warn "    installation system (\$MP_HOME/configPrivateRegistry.sh)\n"
+            warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
             warn " 2. Place the script in the local home folder\n"
             CONDITION_FAIL="1"
         fi
         log "\n"
-        if [ ! -f "$MP_HOME/configNginxRootCA.sh" ]; then
+        if [ ! -f "$HOME/configNginxRootCA.sh" ]; then
             error "Copy the Nginx root certificate setup script to your home folder:\n"
             warn " 1. Grab the config script from the control-plane\n"
-            warn "    installation system (\$MP_HOME/configNginxRootCA.sh)\n"
+            warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
             warn " 2. Place the script in the local home folder\n"
             CONDITION_FAIL="1"
         fi
@@ -610,8 +610,8 @@ install_satelite_core_components() {
 
 registry_auth() {
     # sshpass -p 'vagrant' scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$MASTER_IP:/home/vagrant/configPrivateRegistry.sh $MP_HOME/configPrivateRegistry.sh &>/dev/null
-    sudo chmod +x $MP_HOME/configPrivateRegistry.sh
-    sudo /bin/bash $MP_HOME/configPrivateRegistry.sh
+    sudo chmod +x $HOME/configPrivateRegistry.sh
+    sudo /bin/bash $HOME/configPrivateRegistry.sh
 
     _RCOUNTER=0
     while :
@@ -700,13 +700,13 @@ EOF
 
     sudo kubeadm init --apiserver-advertise-address=$LOCAL_IP --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU
 
-    cat <<'EOT' >> $MP_HOME/gentoken.sh
+    cat <<'EOT' >> $HOME/gentoken.sh
 #!/bin/bash
 IN="$(kubeadm token create --print-join-command 2>/dev/null)"
 IFS=' ' read -r -a array <<< "$IN"
 echo "${array[4]} ${array[6]}"
 EOT
-    sudo chmod +x $MP_HOME/gentoken.sh
+    sudo chmod +x $HOME/gentoken.sh
     
     sudo -u multipaas mkdir -p $MP_HOME/.kube
 
@@ -753,8 +753,8 @@ EOT
     sudo rm -rf /etc/kubernetes/pki/rootCA.crt
 
     # sshpass -p 'vagrant' scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$MASTER_IP:/home/vagrant/configNginxRootCA.sh $MP_HOME/configNginxRootCA.sh &>/dev/null
-    sudo chmod +x $MP_HOME/configNginxRootCA.sh
-    sudo /bin/bash $MP_HOME/configNginxRootCA.sh
+    sudo chmod +x $HOME/configNginxRootCA.sh
+    sudo /bin/bash $HOME/configNginxRootCA.sh
 
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-issuer-url=https://multipaas.keycloak.com/auth/realms/master' /etc/kubernetes/manifests/kube-apiserver.yaml
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-groups-claim=groups' /etc/kubernetes/manifests/kube-apiserver.yaml
@@ -762,7 +762,7 @@ EOT
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-client-id=kubernetes-cluster' /etc/kubernetes/manifests/kube-apiserver.yaml
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-ca-file=/etc/kubernetes/pki/rootCA.crt' /etc/kubernetes/manifests/kube-apiserver.yaml
 
-    sudo $MP_HOME/gentoken.sh
+    sudo $HOME/gentoken.sh
 }
 
 ########################################
@@ -771,15 +771,15 @@ EOT
 init_k8s_worker() { 
     cd $_BASEDIR
    
-    cat <<EOT > $MP_HOME/config_kublet_ip.sh
+    cat <<EOT > $HOME/config_kublet_ip.sh
 #!/bin/bash
 sed -i "s/--network-plugin=cni/--network-plugin=cni --node-ip=$LOCAL_IP/g" /var/lib/kubelet/kubeadm-flags.env
 EOT
-    chmod +x $MP_HOME/config_kublet_ip.sh
+    chmod +x $HOME/config_kublet_ip.sh
     log "\n"
 
     read_input "K8S Master IP:" K8S_MASTER_IP
-    warn "Execute the script \$MP_HOME/gentoken.sh on the master node, and enter the generated token here\n"
+    warn "Execute the script \$HOME/gentoken.sh on the master node, and enter the generated token here\n"
     read_input "TOKEN:" K8S_JOIN_TOKEN
     while [[ "$K8S_JOIN_TOKEN" == '' ]]; do
         read_input "\nInvalide answer, try again:" KEYCLOAK_SECRET
@@ -792,10 +792,10 @@ EOT
         error "Could not join the cluster"
         exit 1
     fi
-    sudo bash $MP_HOME/config_kublet_ip.sh
+    sudo bash $HOME/config_kublet_ip.sh
 
-    sudo chmod +x $MP_HOME/configNginxRootCA.sh
-    sudo /bin/bash $MP_HOME/configNginxRootCA.sh
+    sudo chmod +x $HOME/configNginxRootCA.sh
+    sudo /bin/bash $HOME/configNginxRootCA.sh
 }
 
 cp_api_auth() {
