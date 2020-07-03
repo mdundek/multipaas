@@ -1067,14 +1067,14 @@ create_registry_secret() {
 multipaas_user() {
     id -u multipaas &>/dev/null
     if [ "$?" != "0" ]; then
-        read_input "A user called multipaas with sudo privileges will be created on this system. Please provide a password for this user now:" MP_LINUX_USER
+        read_input "A user called 'multipaas' with sudo privileges will be created on this system. Please provide a password for this user now:" MP_LINUX_USER
         while [[ "$MP_LINUX_USER" == '' ]]; do
             read_input "\nInvalide answer, try again:" MP_LINUX_USER
         done
 
-        sudo adduser multipaas --gecos "MultiPaas,NA,NA,NA" --disabled-password
-        echo "multipaas:$MP_LINUX_USER" | sudo chpasswd
-        sudo usermod -aG sudo multipaas
+        sudo adduser multipaas --gecos "MultiPaas,NA,NA,NA" --disabled-password &>>$err_log
+        echo "multipaas:$MP_LINUX_USER" | sudo chpasswd &>>$err_log
+        sudo usermod -aG sudo multipaas &>>$err_log
         sudo tee -a /etc/sudoers >/dev/null <<'EOF'
 multipaas ALL=(ALL) NOPASSWD: ALL
 EOF
@@ -1113,6 +1113,9 @@ sudo echo ""
 
 # Create multipaas user
 multipaas_user
+
+sudo -u multipaas whoami
+sudo -u multipaas echo "$MP_HOME"
 
 # Test and see if internet access is available
 wget -q --spider http://google.com &>>$err_log
