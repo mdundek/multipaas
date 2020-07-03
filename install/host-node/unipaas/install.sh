@@ -40,13 +40,13 @@ remove_all() {
     HOST_NODE_INSTALLED=$(ps aux | grep "[m]ultipaas/src/host-node")
     if [ "$HOST_NODE_INSTALLED" != "" ]; then
         if [ "$INTERNET_AVAILABLE" != "1" ]; then
-            /opt/pm2/bin/pm2 stop multipaas-host-node &>>$err_log
-            /opt/pm2/bin/pm2 delete multipaas-host-node &>>$err_log
-            /opt/pm2/bin/pm2 save --force &>>$err_log
+            sudo -u multipaas /opt/pm2/bin/pm2 stop multipaas-host-node &>>$err_log
+            sudo -u multipaas /opt/pm2/bin/pm2 delete multipaas-host-node &>>$err_log
+            sudo -u multipaas /opt/pm2/bin/pm2 save --force &>>$err_log
         else
-            pm2 stop multipaas-host-node &>>$err_log
-            pm2 delete multipaas-host-node &>>$err_log
-            pm2 save --force &>>$err_log
+            sudo -u multipaas pm2 stop multipaas-host-node &>>$err_log
+            sudo -u multipaas pm2 delete multipaas-host-node &>>$err_log
+            sudo -u multipaas pm2 save --force &>>$err_log
         fi
     fi
 
@@ -474,46 +474,46 @@ collect_informations() {
 # 
 ########################################
 install_master_core_components() {
-    mkdir -p $MP_HOME/.multipaas
+    sudo -u multipaas mkdir -p $MP_HOME/.multipaas
 
     if [ "$INTERNET_AVAILABLE" != "1" ]; then
-        HOST_NODE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-host-node")
+        HOST_NODE_DEPLOYED=$(sudo -u multipaas /opt/pm2/bin/pm2 ls | grep "multipaas-host-node")
     else
-        HOST_NODE_DEPLOYED=$(pm2 ls | grep "multipaas-host-node")
+        HOST_NODE_DEPLOYED=$(sudo -u multipaas pm2 ls | grep "multipaas-host-node")
     fi
     
     if [ "$HOST_NODE_DEPLOYED" == "" ]; then
         cd $_BASEDIR/src/host-node/ # Position cmd in src folder
 
-        cp env.template env
+        sudo -u multipaas cp env.template env
 
         VM_BASE=$MP_HOME/.multipaas/vm_base
         MULTIPAAS_CFG_DIR=$MP_HOME/.multipaas
-        sed -i "s/<MP_MODE>/unipaas/g" ./env
-        sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
-        sed -i "s/<DB_PORT>/5432/g" ./env
-        sed -i "s/<DB_PASS>/$MPPW/g" ./env
-        sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
-        sed -i "s/<VM_BASE_HOME>/${VM_BASE//\//\\/}/g" ./env
-        sed -i "s/<MULTIPAAS_CFG_DIR>/${MULTIPAAS_CFG_DIR//\//\\/}/g" ./env
-        sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
-        sed -i "s/<IS_K8S_NODE>/$IS_K8S_NODE/g" ./env
-        sed -i "s/<IS_GLUSTER_PEER>/$IS_GLUSTER_PEER/g" ./env
-        sed -i "s/<GLUSTER_VOL>/${GLUSTER_VOLUME//\//\\/}/g" ./env
-        cp env .env
-        rm env
+        sudo -u multipaas sed -i "s/<MP_MODE>/unipaas/g" ./env
+        sudo -u multipaas sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
+        sudo -u multipaas sed -i "s/<DB_PORT>/5432/g" ./env
+        sudo -u multipaas sed -i "s/<DB_PASS>/$MPPW/g" ./env
+        sudo -u multipaas sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
+        sudo -u multipaas sed -i "s/<VM_BASE_HOME>/${VM_BASE//\//\\/}/g" ./env
+        sudo -u multipaas sed -i "s/<MULTIPAAS_CFG_DIR>/${MULTIPAAS_CFG_DIR//\//\\/}/g" ./env
+        sudo -u multipaas sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
+        sudo -u multipaas sed -i "s/<IS_K8S_NODE>/$IS_K8S_NODE/g" ./env
+        sudo -u multipaas sed -i "s/<IS_GLUSTER_PEER>/$IS_GLUSTER_PEER/g" ./env
+        sudo -u multipaas sed -i "s/<GLUSTER_VOL>/${GLUSTER_VOLUME//\//\\/}/g" ./env
+        sudo -u multipaas cp env .env
+        sudo -u multipaas rm env
 
         npm i
         if [ "$INTERNET_AVAILABLE" != "1" ]; then
-            sudo /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
-            sudo /opt/pm2/bin/pm2 -s startup
-            sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-            sudo /opt/pm2/bin/pm2 -s save --force
+            sudo -u multipaas /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time
+            sudo -u multipaas /opt/pm2/bin/pm2 -s startup
+            sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas) &>>$err_log
+            sudo -u multipaas /opt/pm2/bin/pm2 -s save --force
         else
-            sudo pm2 -s start index.js --watch --name multipaas-host-node --time
-            sudo pm2 -s startup
-            sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER)
-            sudo pm2 -s save --force
+            sudo -u multipaas pm2 -s start index.js --watch --name multipaas-host-node --time
+            sudo -u multipaas pm2 -s startup
+            sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas)
+            sudo -u multipaas pm2 -s save --force
         fi
     else
         if [ "$IS_GLUSTER_PEER" == "true" ]; then
@@ -523,13 +523,13 @@ install_master_core_components() {
             change_line "GLUSTER_VOLUME" "GLUSTER_VOLUME=$GLUSTER_VOLUME" ./.env
 
             if [ "$INTERNET_AVAILABLE" != "1" ]; then
-                sudo /opt/pm2/bin/pm2 stop multipaas-host-node
-                sudo /opt/pm2/bin/pm2 start multipaas-host-node
-                sudo /opt/pm2/bin/pm2 -s save --force
+                sudo -u multipaas /opt/pm2/bin/pm2 stop multipaas-host-node
+                sudo -u multipaas /opt/pm2/bin/pm2 start multipaas-host-node
+                sudo -u multipaas /opt/pm2/bin/pm2 -s save --force
             else
-                sudo pm2 stop multipaas-host-node
-                sudo pm2 start multipaas-host-node
-                sudo pm2 -s save --force
+                sudo -u multipaas pm2 stop multipaas-host-node
+                sudo -u multipaas pm2 start multipaas-host-node
+                sudo -u multipaas pm2 -s save --force
             fi
         fi
     fi
@@ -544,27 +544,27 @@ install_master_core_components() {
 
     if [ "$HOST_NODE_SATELITE_DEPLOYED" == "" ]; then
         cd $_BASEDIR/src/satelite/ # Position cmd in src folder
-        cp env.template env
+        sudo -u multipaas cp env.template env
 
         VM_BASE=$MP_HOME/.multipaas/vm_base
         MULTIPAAS_CFG_DIR=$MP_HOME/.multipaas
-        sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
-        sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
-        sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
-        cp env .env
-        rm env
+        sudo -u multipaas sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
+        sudo -u multipaas sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
+        sudo -u multipaas sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
+        sudo -u multipaas cp env .env
+        sudo -u multipaas rm env
 
-        npm i
+        sudo -u multipaas npm i
         if [ "$INTERNET_AVAILABLE" != "1" ]; then
-            sudo /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
-            sudo /opt/pm2/bin/pm2 -s startup
-            sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-            sudo /opt/pm2/bin/pm2 -s save --force
+            sudo -u multipaas /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
+            sudo -u multipaas /opt/pm2/bin/pm2 -s startup
+            sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas) &>>$err_log
+            sudo -u multipaas /opt/pm2/bin/pm2 -s save --force
         else
-            sudo pm2 -s start index.js --watch --name multipaas-satelite --time
-            sudo pm2 -s startup
-            sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER)
-            sudo pm2 -s save --force
+            sudo -u multipaas pm2 -s start index.js --watch --name multipaas-satelite --time
+            sudo -u multipaas pm2 -s startup
+            sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas)
+            sudo -u multipaas pm2 -s save --force
         fi
     fi
 }
@@ -573,37 +573,37 @@ install_master_core_components() {
 # 
 ########################################
 install_satelite_core_components() {
-    mkdir -p $MP_HOME/.multipaas
+    sudo -u multipaas mkdir -p $MP_HOME/.multipaas
     if [ "$INTERNET_AVAILABLE" != "1" ]; then
-        HOST_NODE_SATELITE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
+        HOST_NODE_SATELITE_DEPLOYED=$(sudo -u multipaas /opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
     else
-        HOST_NODE_SATELITE_DEPLOYED=$(pm2 ls | grep "multipaas-satelite")
+        HOST_NODE_SATELITE_DEPLOYED=$(sudo -u multipaas pm2 ls | grep "multipaas-satelite")
     fi
 
     if [ "$HOST_NODE_SATELITE_DEPLOYED" == "" ]; then
         cd $_BASEDIR/src/satelite/ # Position cmd in src folder
 
-        cp env.template env
+        sudo -u multipaas cp env.template env
 
         VM_BASE=$MP_HOME/.multipaas/vm_base
         MULTIPAAS_CFG_DIR=$MP_HOME/.multipaas
-        sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
-        sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
-        sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
-        cp env .env
-        rm env
+        sudo -u multipaas sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
+        sudo -u multipaas sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
+        sudo -u multipaas sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
+        sudo -u multipaas cp env .env
+        sudo -u multipaas rm env
 
-        npm i
+        sudo -u multipaas npm i
         if [ "$INTERNET_AVAILABLE" != "1" ]; then
-            sudo /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
-            sudo /opt/pm2/bin/pm2 -s startup
+            sudo -u multipaas /opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time
+            sudo -u multipaas /opt/pm2/bin/pm2 -s startup
             sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-            sudo /opt/pm2/bin/pm2 -s save --force
+            sudo -u multipaas /opt/pm2/bin/pm2 -s save --force
         else
-            sudo pm2 -s start index.js --watch --name multipaas-satelite --time
-            sudo pm2 -s startup
+            sudo -u multipaas pm2 -s start index.js --watch --name multipaas-satelite --time
+            sudo -u multipaas pm2 -s startup
             # sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-            sudo pm2 -s save --force
+            sudo -u multipaas pm2 -s save --force
         fi
     fi
 }
@@ -708,24 +708,23 @@ echo "${array[4]} ${array[6]}"
 EOT
     sudo chmod +x $MP_HOME/gentoken.sh
     
-    mkdir -p $MP_HOME/.kube
+    sudo -u multipaas mkdir -p $MP_HOME/.kube
 
     rm -rf $MP_HOME/.kube/config
     sudo cp -i /etc/kubernetes/admin.conf $MP_HOME/.kube/config
-    sudo chown $(id -u):$(id -g) $MP_HOME/.kube/config
+    sudo chown multipaas:multipaas $MP_HOME/.kube/config
 
     rm -rf $MP_HOME/.kube/admin.conf
     sudo cp -i /etc/kubernetes/admin.conf $MP_HOME/.kube/admin.conf
-    sudo chown $(id -u):$(id -g) $MP_HOME/.kube/admin.conf
+    sudo chown multipaas:multipaas $MP_HOME/.kube/admin.conf
 
-    echo "export KUBECONFIG=$MP_HOME/.kube/admin.conf" | tee -a ~/.bashrc
-    source ~/.bashrc
+    echo "export KUBECONFIG=$MP_HOME/.kube/admin.conf" | tee -a $MP_HOME/.bashrc
     export KUBECONFIG=$MP_HOME/.kube/admin.conf
 
     sleep 5
 
     # Untaint master
-    kubectl taint nodes --all node-role.kubernetes.io/master-
+    sudo kubectl taint nodes --all node-role.kubernetes.io/master-
 
     # Enable PodPresets
     sudo sed -i "s/enable-admission-plugins=NodeRestriction/enable-admission-plugins=NodeRestriction,PodPreset/g" /etc/kubernetes/manifests/kube-apiserver.yaml
@@ -734,21 +733,21 @@ EOT
     sleep 10 # Give kubeadm the time to restart with new config
 
     # Deploy flannel network
-    kubectl apply -f ./src/host-node/resources/k8s_templates/kube-flannel.yml
+    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/kube-flannel.yml
 
     # Install ingress & local provisioner
-    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/ns-and-sa.yaml
-    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/rbac/rbac.yaml
-    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/default-server-secret.yaml
-    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/nginx-config.yaml
-    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/vs-definition.yaml
-    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/vsr-definition.yaml
-    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/ts-definition.yaml
-    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/gc-definition.yaml
-    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/global-configuration.yaml
-    kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/daemon-set/nginx-ingress.yaml
+    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/ns-and-sa.yaml
+    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/rbac/rbac.yaml
+    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/default-server-secret.yaml
+    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/nginx-config.yaml
+    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/vs-definition.yaml
+    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/vsr-definition.yaml
+    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/ts-definition.yaml
+    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/gc-definition.yaml
+    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/common/global-configuration.yaml
+    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/ingress-controller/daemon-set/nginx-ingress.yaml
 
-    kubectl apply -f ./src/host-node/resources/k8s_templates/local-path-provisioner/local-path-storage.yaml
+    sudo kubectl apply -f ./src/host-node/resources/k8s_templates/local-path-provisioner/local-path-storage.yaml
 
     # Configure OpenID Connect for Keycloak
     sudo rm -rf /etc/kubernetes/pki/rootCA.crt
@@ -855,7 +854,7 @@ declare_worker_node() {
     WS_ID=$(echo "$EXISTING_MASTER_NODE" | jq -r '.data[0].workspaceId')
 
     # Create workspace base folder
-    mkdir -p $MP_HOME/.multipaas/vm_base/workplaces/$WS_ID/$HNAME
+    sudo -u multipaas mkdir -p $MP_HOME/.multipaas/vm_base/workplaces/$WS_ID/$HNAME
 
     # Host
     J_PAYLOAD='{"workspaceId":'"$WS_ID"',"ip":"'"$LOCAL_IP"'","hostname":"'"$HNAME"'","status":"ready"}'
@@ -1026,7 +1025,7 @@ create_account_and_register() {
     done
 
     # Create workspace base folder
-    mkdir -p $MP_HOME/.multipaas/vm_base/workplaces/$WS_ID/$HNAME
+    sudo -u multipaas mkdir -p $MP_HOME/.multipaas/vm_base/workplaces/$WS_ID/$HNAME
 
     # Host
     J_PAYLOAD='{"workspaceId":'"$WS_ID"',"ip":"'"$LOCAL_IP"'","hostname":"'"$HNAME"'","status":"ready"}'
@@ -1113,9 +1112,6 @@ sudo echo ""
 
 # Create multipaas user
 multipaas_user
-
-sudo -u multipaas whoami
-sudo -u multipaas echo "$MP_HOME"
 
 # Test and see if internet access is available
 wget -q --spider http://google.com &>>$err_log
@@ -1310,9 +1306,9 @@ if [ "$IS_GLUSTER_PEER" == "true" ]; then
 
         collect_gluster_informations
 
-        mkdir -p $MP_HOME/.multipaas/gluster/etc/glusterfs 2>&1 | log_error_sanitizer
-        mkdir -p $MP_HOME/.multipaas/gluster/var/lib/glusterd 2>&1 | log_error_sanitizer
-        mkdir -p $MP_HOME/.multipaas/gluster/var/log/glusterfs 2>&1 | log_error_sanitizer
+        sudo -u multipaas mkdir -p $MP_HOME/.multipaas/gluster/etc/glusterfs 2>&1 | log_error_sanitizer
+        sudo -u multipaas mkdir -p $MP_HOME/.multipaas/gluster/var/lib/glusterd 2>&1 | log_error_sanitizer
+        sudo -u multipaas mkdir -p $MP_HOME/.multipaas/gluster/var/log/glusterfs 2>&1 | log_error_sanitizer
         sudo mkdir -p $BRICK_MOUNT_PATH 2>&1 | log_error_sanitizer
 
         docker rm -f gluster-ctl >/dev/null 2>&1
