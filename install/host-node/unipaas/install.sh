@@ -1065,7 +1065,7 @@ create_registry_secret() {
 }
 
 multipaas_user() {
-    id -u multipaas
+    id -u multipaas &>/dev/null
     if [ "$?" != "0" ]; then
         read_input "A user called multipaas with sudo privileges will be created on this system. Please provide a password for this user now:" MP_LINUX_USER
         while [[ "$MP_LINUX_USER" == '' ]]; do
