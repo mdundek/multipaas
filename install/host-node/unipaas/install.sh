@@ -32,7 +32,7 @@ remove_all() {
             sudo kubeadm reset -f &>>$err_log
             sudo rm -rf /etc/cni/net.d
             sudo rm -rf /etc/default/kubelet
-            sudo rm -rf $HOME/.kube
+            sudo rm -rf $MP_HOME/.kube
         fi
     fi
     
@@ -448,18 +448,18 @@ collect_informations() {
         fi
 
         # Make sure the registry certificates are installed
-        if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$HOME/configPrivateRegistry.sh" ]; then
+        if [ ! -f "/etc/docker/certs.d/registry.multipaas.org/ca.crt" ] && [ ! -f "$MP_HOME/configPrivateRegistry.sh" ]; then
             error "Copy the Registry certificate setup script to your home folder:\n"
             warn " 1. Grab the config script from the control-plane\n"
-            warn "    installation system (\$HOME/configPrivateRegistry.sh)\n"
+            warn "    installation system (\$MP_HOME/configPrivateRegistry.sh)\n"
             warn " 2. Place the script in the local home folder\n"
             CONDITION_FAIL="1"
         fi
         log "\n"
-        if [ ! -f "$HOME/configNginxRootCA.sh" ]; then
+        if [ ! -f "$MP_HOME/configNginxRootCA.sh" ]; then
             error "Copy the Nginx root certificate setup script to your home folder:\n"
             warn " 1. Grab the config script from the control-plane\n"
-            warn "    installation system (\$HOME/configNginxRootCA.sh)\n"
+            warn "    installation system (\$MP_HOME/configNginxRootCA.sh)\n"
             warn " 2. Place the script in the local home folder\n"
             CONDITION_FAIL="1"
         fi
@@ -474,7 +474,7 @@ collect_informations() {
 # 
 ########################################
 install_master_core_components() {
-    mkdir -p $HOME/.multipaas
+    mkdir -p $MP_HOME/.multipaas
 
     if [ "$INTERNET_AVAILABLE" != "1" ]; then
         HOST_NODE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-host-node")
@@ -487,8 +487,8 @@ install_master_core_components() {
 
         cp env.template env
 
-        VM_BASE=$HOME/.multipaas/vm_base
-        MULTIPAAS_CFG_DIR=$HOME/.multipaas
+        VM_BASE=$MP_HOME/.multipaas/vm_base
+        MULTIPAAS_CFG_DIR=$MP_HOME/.multipaas
         sed -i "s/<MP_MODE>/unipaas/g" ./env
         sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
         sed -i "s/<DB_PORT>/5432/g" ./env
@@ -546,8 +546,8 @@ install_master_core_components() {
         cd $_BASEDIR/src/satelite/ # Position cmd in src folder
         cp env.template env
 
-        VM_BASE=$HOME/.multipaas/vm_base
-        MULTIPAAS_CFG_DIR=$HOME/.multipaas
+        VM_BASE=$MP_HOME/.multipaas/vm_base
+        MULTIPAAS_CFG_DIR=$MP_HOME/.multipaas
         sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
         sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
         sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
@@ -573,7 +573,7 @@ install_master_core_components() {
 # 
 ########################################
 install_satelite_core_components() {
-    mkdir -p $HOME/.multipaas
+    mkdir -p $MP_HOME/.multipaas
     if [ "$INTERNET_AVAILABLE" != "1" ]; then
         HOST_NODE_SATELITE_DEPLOYED=$(/opt/pm2/bin/pm2 ls | grep "multipaas-satelite")
     else
@@ -585,8 +585,8 @@ install_satelite_core_components() {
 
         cp env.template env
 
-        VM_BASE=$HOME/.multipaas/vm_base
-        MULTIPAAS_CFG_DIR=$HOME/.multipaas
+        VM_BASE=$MP_HOME/.multipaas/vm_base
+        MULTIPAAS_CFG_DIR=$MP_HOME/.multipaas
         sed -i "s/<MASTER_IP>/$MASTER_IP/g" ./env
         sed -i "s/<MOSQUITTO_PORT>/1883/g" ./env
         sed -i "s/<NET_INTEFACE>/$IFACE/g" ./env
@@ -609,9 +609,9 @@ install_satelite_core_components() {
 }
 
 registry_auth() {
-    # sshpass -p 'vagrant' scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$MASTER_IP:/home/vagrant/configPrivateRegistry.sh $HOME/configPrivateRegistry.sh &>/dev/null
-    sudo chmod +x $HOME/configPrivateRegistry.sh
-    sudo /bin/bash $HOME/configPrivateRegistry.sh
+    # sshpass -p 'vagrant' scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$MASTER_IP:/home/vagrant/configPrivateRegistry.sh $MP_HOME/configPrivateRegistry.sh &>/dev/null
+    sudo chmod +x $MP_HOME/configPrivateRegistry.sh
+    sudo /bin/bash $MP_HOME/configPrivateRegistry.sh
 
     _RCOUNTER=0
     while :
@@ -700,27 +700,27 @@ EOF
 
     sudo kubeadm init --apiserver-advertise-address=$LOCAL_IP --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU
 
-    cat <<'EOT' >> $HOME/gentoken.sh
+    cat <<'EOT' >> $MP_HOME/gentoken.sh
 #!/bin/bash
 IN="$(kubeadm token create --print-join-command 2>/dev/null)"
 IFS=' ' read -r -a array <<< "$IN"
 echo "${array[4]} ${array[6]}"
 EOT
-    sudo chmod +x $HOME/gentoken.sh
+    sudo chmod +x $MP_HOME/gentoken.sh
     
-    mkdir -p $HOME/.kube
+    mkdir -p $MP_HOME/.kube
 
-    rm -rf $HOME/.kube/config
-    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-    sudo chown $(id -u):$(id -g) $HOME/.kube/config
+    rm -rf $MP_HOME/.kube/config
+    sudo cp -i /etc/kubernetes/admin.conf $MP_HOME/.kube/config
+    sudo chown $(id -u):$(id -g) $MP_HOME/.kube/config
 
-    rm -rf $HOME/.kube/admin.conf
-    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/admin.conf
-    sudo chown $(id -u):$(id -g) $HOME/.kube/admin.conf
+    rm -rf $MP_HOME/.kube/admin.conf
+    sudo cp -i /etc/kubernetes/admin.conf $MP_HOME/.kube/admin.conf
+    sudo chown $(id -u):$(id -g) $MP_HOME/.kube/admin.conf
 
-    echo "export KUBECONFIG=$HOME/.kube/admin.conf" | tee -a ~/.bashrc
+    echo "export KUBECONFIG=$MP_HOME/.kube/admin.conf" | tee -a ~/.bashrc
     source ~/.bashrc
-    export KUBECONFIG=$HOME/.kube/admin.conf
+    export KUBECONFIG=$MP_HOME/.kube/admin.conf
 
     sleep 5
 
@@ -753,9 +753,9 @@ EOT
     # Configure OpenID Connect for Keycloak
     sudo rm -rf /etc/kubernetes/pki/rootCA.crt
 
-    # sshpass -p 'vagrant' scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$MASTER_IP:/home/vagrant/configNginxRootCA.sh $HOME/configNginxRootCA.sh &>/dev/null
-    sudo chmod +x $HOME/configNginxRootCA.sh
-    sudo /bin/bash $HOME/configNginxRootCA.sh
+    # sshpass -p 'vagrant' scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no vagrant@$MASTER_IP:/home/vagrant/configNginxRootCA.sh $MP_HOME/configNginxRootCA.sh &>/dev/null
+    sudo chmod +x $MP_HOME/configNginxRootCA.sh
+    sudo /bin/bash $MP_HOME/configNginxRootCA.sh
 
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-issuer-url=https://multipaas.keycloak.com/auth/realms/master' /etc/kubernetes/manifests/kube-apiserver.yaml
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-groups-claim=groups' /etc/kubernetes/manifests/kube-apiserver.yaml
@@ -763,7 +763,7 @@ EOT
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-client-id=kubernetes-cluster' /etc/kubernetes/manifests/kube-apiserver.yaml
     sudo sed -i '/- kube-apiserver/a\ \ \ \ - --oidc-ca-file=/etc/kubernetes/pki/rootCA.crt' /etc/kubernetes/manifests/kube-apiserver.yaml
 
-    sudo $HOME/gentoken.sh
+    sudo $MP_HOME/gentoken.sh
 }
 
 ########################################
@@ -772,15 +772,15 @@ EOT
 init_k8s_worker() { 
     cd $_BASEDIR
    
-    cat <<EOT > $HOME/config_kublet_ip.sh
+    cat <<EOT > $MP_HOME/config_kublet_ip.sh
 #!/bin/bash
 sed -i "s/--network-plugin=cni/--network-plugin=cni --node-ip=$LOCAL_IP/g" /var/lib/kubelet/kubeadm-flags.env
 EOT
-    chmod +x $HOME/config_kublet_ip.sh
+    chmod +x $MP_HOME/config_kublet_ip.sh
     log "\n"
 
     read_input "K8S Master IP:" K8S_MASTER_IP
-    warn "Execute the script \$HOME/gentoken.sh on the master node, and enter the generated token here\n"
+    warn "Execute the script \$MP_HOME/gentoken.sh on the master node, and enter the generated token here\n"
     read_input "TOKEN:" K8S_JOIN_TOKEN
     while [[ "$K8S_JOIN_TOKEN" == '' ]]; do
         read_input "\nInvalide answer, try again:" KEYCLOAK_SECRET
@@ -793,10 +793,10 @@ EOT
         error "Could not join the cluster"
         exit 1
     fi
-    sudo bash $HOME/config_kublet_ip.sh
+    sudo bash $MP_HOME/config_kublet_ip.sh
 
-    sudo chmod +x $HOME/configNginxRootCA.sh
-    sudo /bin/bash $HOME/configNginxRootCA.sh
+    sudo chmod +x $MP_HOME/configNginxRootCA.sh
+    sudo /bin/bash $MP_HOME/configNginxRootCA.sh
 }
 
 cp_api_auth() {
@@ -855,7 +855,7 @@ declare_worker_node() {
     WS_ID=$(echo "$EXISTING_MASTER_NODE" | jq -r '.data[0].workspaceId')
 
     # Create workspace base folder
-    mkdir -p $HOME/.multipaas/vm_base/workplaces/$WS_ID/$HNAME
+    mkdir -p $MP_HOME/.multipaas/vm_base/workplaces/$WS_ID/$HNAME
 
     # Host
     J_PAYLOAD='{"workspaceId":'"$WS_ID"',"ip":"'"$LOCAL_IP"'","hostname":"'"$HNAME"'","status":"ready"}'
@@ -1026,7 +1026,7 @@ create_account_and_register() {
     done
 
     # Create workspace base folder
-    mkdir -p $HOME/.multipaas/vm_base/workplaces/$WS_ID/$HNAME
+    mkdir -p $MP_HOME/.multipaas/vm_base/workplaces/$WS_ID/$HNAME
 
     # Host
     J_PAYLOAD='{"workspaceId":'"$WS_ID"',"ip":"'"$LOCAL_IP"'","hostname":"'"$HNAME"'","status":"ready"}'
@@ -1041,8 +1041,8 @@ create_account_and_register() {
 }
 
 create_registry_secret() {
-    source $HOME/.bashrc
-    export KUBECONFIG=$HOME/.kube/admin.conf
+    source $MP_HOME/.bashrc
+    export KUBECONFIG=$MP_HOME/.kube/admin.conf
 
     z=0
     local ALL_GOOD="0"
@@ -1064,6 +1064,23 @@ create_registry_secret() {
     fi
 }
 
+multipaas_user() {
+    id -u multipaas
+    if [ "$?" != "0" ]; then
+        read_input "A user called multipaas with sudo privileges will be created on this system. Please provide a password for this user now:" MP_LINUX_USER
+        while [[ "$MP_LINUX_USER" == '' ]]; do
+            read_input "\nInvalide answer, try again:" MP_LINUX_USER
+        done
+
+        sudo adduser multipaas --gecos "MultiPaas,NA,NA,NA" --disabled-password
+        echo "multipaas:$MP_LINUX_USER" | sudo chpasswd
+        sudo usermod -aG sudo multipaas
+        sudo tee -a /etc/sudoers >/dev/null <<'EOF'
+multipaas ALL=(ALL) NOPASSWD: ALL
+EOF
+    fi
+    MP_HOME=/home/multipaas
+}
 
 ########################################
 # LOGIC...
@@ -1093,6 +1110,9 @@ if [ "$CONTINUE_INSTALL" == "n" ]; then
 fi
 
 sudo echo ""
+
+# Create multipaas user
+multipaas_user
 
 # Test and see if internet access is available
 wget -q --spider http://google.com &>>$err_log
@@ -1287,9 +1307,9 @@ if [ "$IS_GLUSTER_PEER" == "true" ]; then
 
         collect_gluster_informations
 
-        mkdir -p $HOME/.multipaas/gluster/etc/glusterfs 2>&1 | log_error_sanitizer
-        mkdir -p $HOME/.multipaas/gluster/var/lib/glusterd 2>&1 | log_error_sanitizer
-        mkdir -p $HOME/.multipaas/gluster/var/log/glusterfs 2>&1 | log_error_sanitizer
+        mkdir -p $MP_HOME/.multipaas/gluster/etc/glusterfs 2>&1 | log_error_sanitizer
+        mkdir -p $MP_HOME/.multipaas/gluster/var/lib/glusterd 2>&1 | log_error_sanitizer
+        mkdir -p $MP_HOME/.multipaas/gluster/var/log/glusterfs 2>&1 | log_error_sanitizer
         sudo mkdir -p $BRICK_MOUNT_PATH 2>&1 | log_error_sanitizer
 
         docker rm -f gluster-ctl >/dev/null 2>&1
@@ -1297,9 +1317,9 @@ if [ "$IS_GLUSTER_PEER" == "true" ]; then
             -d --privileged=true \
             --restart unless-stopped \
             --net=host -v /dev/:/dev \
-            -v $HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \
-            -v $HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \
-            -v $HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \
+            -v $MP_HOME/.multipaas/gluster/etc/glusterfs:/etc/glusterfs:z \
+            -v $MP_HOME/.multipaas/gluster/var/lib/glusterd:/var/lib/glusterd:z \
+            -v $MP_HOME/.multipaas/gluster/var/log/glusterfs:/var/log/glusterfs:z \
             -v $BRICK_MOUNT_PATH:/bricks:z \
             -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
             --name gluster-ctl \
