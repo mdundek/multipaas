@@ -170,11 +170,6 @@ dep_docker() {
                 deb_offline_install_ubuntu_bionic "containerd"
                 deb_offline_install_ubuntu_bionic "docker-ce-cli"
                 deb_offline_install_ubuntu_bionic "docker-ce" && sudo usermod -aG docker $USER
-                id -u multipaas &>/dev/null
-                if [ "$?" == "0" ]; then
-                    sudo usermod -aG docker multipaas
-                fi
-
                 sudo systemctl start docker
                 sudo systemctl enable docker
             fi
@@ -268,6 +263,14 @@ EOF
             fi
         fi
         NEW_DOCKER="true"
+    fi
+
+    id -u multipaas &>/dev/null
+    if [ "$?" == "0" ]; then
+        HAST_DK_GROUP=$(sudo su -c "groups" multipaas | grep "docker")
+        if [ "$HAST_DK_GROUP" == "" ]; then
+            sudo usermod -aG docker multipaas
+        fi
     fi
 }
 

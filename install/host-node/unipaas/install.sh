@@ -1103,6 +1103,13 @@ multipaas ALL=(ALL) NOPASSWD: ALL
 EOF
     fi
     MP_HOME=/home/multipaas
+
+    # add multipaas user do docker group is not already
+    if [ "$(command -v docker)" != "" ]; then
+        if [ "$(sudo su -c "groups" multipaas | grep "docker")" == "" ]; then
+            sudo usermod -aG docker multipaas
+        fi
+    fi
 }
 
 ########################################
@@ -1119,7 +1126,7 @@ log "\n\n"
 distro
 
 # Make sure we have enougth resources
-min_mem
+min_mem "5800000"
 min_avail_hd
 
 log "==> This script will install the MultiPaaS host-node and it's dependencies on this machine.\n"

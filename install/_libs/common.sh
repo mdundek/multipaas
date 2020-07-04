@@ -44,8 +44,8 @@ warnnl() {
 
 min_mem() {
     totalk=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
-    if [ "$totalk" -lt "3800000" ]; then
-        error "This system does not have enougth memory to prosceed with the installation (>=4GB)."
+    if [ "$totalk" -lt "$1" ]; then
+        error "This system does not have enougth memory to prosceed with the installation."
         exit 1
     fi
 }

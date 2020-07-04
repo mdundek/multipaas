@@ -782,7 +782,7 @@ log "\n\n"
 distro
 
 # Make sure we have enougth resources
-min_mem
+min_mem "3800000"
 min_avail_hd
 
 log "==> This script will install the MultiPaaS control-plane and it's dependencies on this machine.\n"
