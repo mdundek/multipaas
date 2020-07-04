@@ -97,6 +97,10 @@ read_input() {
     local _VAL
     success "$1 "
     read _VAL
+    while [[ "$_VAL" == '' ]]; do
+        error "\nInvalide answer, try again:"
+        read _VAL
+    done
     if [[ "$__resultvar" ]]; then
         eval $__resultvar="'$_VAL'"
     else
