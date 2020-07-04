@@ -302,7 +302,14 @@ class TaskGlusterController {
             throw new Error("Could not mount folder");
         }
 
-        r = await OSController.sshExec(node.ip, `sudo chown -R vagrant:vagrant /mnt/${volumeName}`, true);
+        r = await OSController.sshExec(node.ip, `echo "$USER"`, true);
+        if(r.code != 0) {
+            await TaskVolumeController.unmountVolume(node, volumeName, glusterIp);
+            throw new Error("Could not get current user and group");
+        }
+        let userAndGroup = `${r.stdout.trim()}:${r.stdout.trim()}`
+
+        r = await OSController.sshExec(node.ip, `sudo chown -R ${userAndGroup} /mnt/${volumeName}`, true);
         if(r.code != 0) {
             await TaskVolumeController.unmountVolume(node, volumeName, glusterIp);
             throw new Error("Could not assign permissions on folder");
