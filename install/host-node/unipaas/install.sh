@@ -472,6 +472,11 @@ collect_informations() {
             exit 0
         fi
     fi
+
+    # Now Gluster
+    if [ "$IS_GLUSTER_PEER" == "true" ]; then
+        collect_gluster_informations
+    fi
 }
 
 ########################################
@@ -1323,8 +1328,6 @@ if [ "$IS_GLUSTER_PEER" == "true" ]; then
         warn "The gluster controller is already running on this machine.\n"
     else
         dependencies_gluster
-
-        collect_gluster_informations
 
         sudo -H -u multipaas bash -c "mkdir -p $MP_HOME/.multipaas/gluster/etc/glusterfs" 2>&1 | log_error_sanitizer
         sudo -H -u multipaas bash -c "mkdir -p $MP_HOME/.multipaas/gluster/var/lib/glusterd" 2>&1 | log_error_sanitizer

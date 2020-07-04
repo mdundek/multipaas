@@ -86,6 +86,29 @@ class OsController {
 				throw new Error("Invalide scale " + scale);
 		}
 	}
+
+	/**
+	 * getVolumeStorageFreeSpace
+	 */
+	static async getVolumeStorageFreeSpace() {
+		let result = await this.execSilentCommand(`df ${process.env.GLUSTER_VOLUME} -h | grep "${process.env.GLUSTER_VOLUME}" | sed -e's/  */ /g' | cut -d' ' -f4`);
+		// 916G
+		let scale = result[0].substring(result[0].length-1);
+		let val = parseFloat(result[0].substring(0, result[0].length-1));
+		console.log(result[0], scale, val);
+		switch(scale){
+			case 'G':
+				return val * 1024.0;
+			case 'M':
+				return val;
+			case 'K':
+				return val / 1024.0;
+			case 'T':
+				return val * 1024.0 * 1024.0;
+			default:
+				throw new Error("Invalide scale " + scale);
+		}
+	}
 	  
 	/**
 	 * getGlusterVolumeCount

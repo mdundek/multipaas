@@ -94,7 +94,7 @@ class MqttController {
                     console.log("MQTT =>" + message.toString());
                 }
                 else if(topic.startsWith("/multipaas/k8s/host/query/k8s_nodes/free_disk_size") || topic.startsWith("/multipaas/k8s/host/query/gluster_peers/free_disk_size")){
-                    let totalDiskSpace = await OsController.getVolumeStorageTotalSpace();
+                    let totalDiskSpace = await OsController.getVolumeStorageFreeSpace();
                     
                     // TODO: Get all host volumes from db and calculate total usage (there is a function in DBController called "getGlusterHostVolumes").
                     // Substract that from the total free disk space
