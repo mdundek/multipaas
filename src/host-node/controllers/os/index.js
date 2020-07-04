@@ -72,6 +72,7 @@ class OsController {
 		// 916G
 		let scale = result[0].substring(result[0].length-1);
 		let val = parseFloat(result[0].substring(0, result[0].length-1));
+		console.log(result[0], scale, val);
 		switch(scale){
 			case 'G':
 				return val * 1024.0;
