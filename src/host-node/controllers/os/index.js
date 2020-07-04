@@ -77,6 +77,8 @@ class OsController {
 				return val * 1024.0;
 			case 'M':
 				return val;
+			case 'K':
+				return val / 1024.0;
 			case 'T':
 				return val * 1024.0 * 1024.0;
 			default:
