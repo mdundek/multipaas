@@ -98,7 +98,7 @@ read_input() {
     success "$1 "
     read _VAL
     while [[ "$_VAL" == '' ]]; do
-        error "Required field, try again:"
+        error "Required field, try again: "
         read _VAL
     done
     if [[ "$__resultvar" ]]; then
@@ -321,7 +321,7 @@ far() {
 ########################################
 http_probe() {
     local ATTEMPTS=0
-    until $(curl --output /dev/null --silent --head --fail $1); do
+    until $(curl --output /dev/null -k --silent --head --fail $1); do
         printf '.'
         sleep 5
         ATTEMPTS=$((ATTEMPTS+1))

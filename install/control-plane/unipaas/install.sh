@@ -216,6 +216,7 @@ collect_informations() {
     log "\n"
     read_input "Specify a MultiPaaS sysadmin user email address:" MP_U
     read_input "Specify a MultiPaaS sysadmin password:" MP_P
+    log "\n"
 }
 
 ########################################
