@@ -98,7 +98,7 @@ read_input() {
     success "$1 "
     read _VAL
     while [[ "$_VAL" == '' ]]; do
-        error "Invalide answer, try again:"
+        error "Required field, try again:"
         read _VAL
     done
     if [[ "$__resultvar" ]]; then

@@ -587,10 +587,7 @@ distro
 
 log "==> This script will download all required files to install MultiPaaS in single tenant mode for online/offline environements.\n"
 log "\n"
-read_input "Do you wish to continue (y/n)?" CONTINUE_INSTALL
-while [[ "$CONTINUE_INSTALL" != 'y' ]] && [[ "$CONTINUE_INSTALL" != 'n' ]]; do
-    read_input "Invalide answer, try again (y/n)?" CONTINUE_INSTALL
-done
+yes_no "Do you wish to continue" CONTINUE_INSTALL
 if [ "$CONTINUE_INSTALL" == "n" ]; then
     exit 0
 fi

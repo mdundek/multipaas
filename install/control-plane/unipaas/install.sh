@@ -533,9 +533,6 @@ setup_keycloak() {
     log "  10. When ready, copy and paste the 'Secret' value into this terminal, then press enter:\n"
     log "\n"
     read_input "SECRET:" KEYCLOAK_SECRET
-    while [[ "$KEYCLOAK_SECRET" == '' ]]; do
-        read_input "\nInvalide answer, try again:" KEYCLOAK_SECRET
-    done
     log "\n"
     log "Configuring Keycloak...\n"
 
@@ -787,10 +784,7 @@ min_avail_hd
 
 log "==> This script will install the MultiPaaS control-plane and it's dependencies on this machine.\n"
 log "\n"
-read_input "Do you wish to continue (y/n)?" CONTINUE_INSTALL
-while [[ "$CONTINUE_INSTALL" != 'y' ]] && [[ "$CONTINUE_INSTALL" != 'n' ]]; do
-    read_input "Invalide answer, try again (y/n)?" CONTINUE_INSTALL
-done
+yes_no "Do you wish to continue" CONTINUE_INSTALL
 if [ "$CONTINUE_INSTALL" == "n" ]; then
     exit 0
 fi

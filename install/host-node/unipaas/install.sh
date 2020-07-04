@@ -805,9 +805,6 @@ EOT
     read_input "K8S Master IP:" K8S_MASTER_IP
     warn "Execute the script \$HOME/gentoken.sh on the master node, and enter the generated token here\n"
     read_input "TOKEN:" K8S_JOIN_TOKEN
-    while [[ "$K8S_JOIN_TOKEN" == '' ]]; do
-        read_input "\nInvalide answer, try again:" KEYCLOAK_SECRET
-    done
     log "\n"
     IFS=' ' read -r -a tokens <<< "$K8S_JOIN_TOKEN"
 
@@ -909,9 +906,6 @@ create_account_and_register() {
     IS_NEW_ACC="0"
     while [[ "$VALIDE" == '0' ]]; do
         read_input "Enter an account name:" ACC_NAME
-        while [[ "$ACC_NAME" == '' ]]; do
-            read_input "\nInvalide answer, try again:" ACC_NAME
-        done
         cp_api_get EXISTING_ACC "accounts?name=$ACC_NAME"
         if [ "$(echo "$EXISTING_ACC" | jq -r '.total')" == "1" ]; then
             yes_no "Account exists. Do you want to use the existing account $ACC_NAME" _RESPONSE
@@ -924,9 +918,6 @@ create_account_and_register() {
             VALIDE='0'
             while [[ "$VALIDE" == '0' ]]; do
                 read_input "Enter the cluster account user email address:" UPUS
-                while [[ "$UPUS" == '' ]]; do
-                    read_input "\nInvalide answer, try again:" UPUS
-                done
                 cp_api_get EXISTING_USER "users?email=$UPUS"
 
                 if [ "$(echo "$EXISTING_USER" | jq -r '.total')" == "1" ]; then
@@ -941,9 +932,6 @@ create_account_and_register() {
             VALIDE='0'
             while [[ "$VALIDE" == '0' ]]; do
                 read_input "Enter the cluster account user email address:" UPUS
-                while [[ "$UPUS" == '' ]]; do
-                    read_input "\nInvalide answer, try again:" UPUS
-                done
                 cp_api_get EXISTING_USER "users?email=$UPUS"
 
                 if [ "$(echo "$EXISTING_USER" | jq -r '.total')" == "1" ]; then
@@ -954,9 +942,6 @@ create_account_and_register() {
             done
 
             read_input "Enter the cluster account user password:" UPPW
-            while [[ "$UPPW" == '' ]]; do
-                read_input "\nInvalide answer, try again:" UPPW
-            done
 
             # super...
             J_PAYLOAD='{"action":"account","params":{"accountName":"'"$ACC_NAME"'","email":"'"$UPUS"'","password":"'"$UPPW"'"}}'
@@ -980,9 +965,6 @@ create_account_and_register() {
     IS_NEW_ORG="0"
     while [[ "$VALIDE" == '0' ]]; do
         read_input "Enter an organization name:" ORG_NAME
-        while [[ "$ORG_NAME" == '' ]]; do
-            read_input "\nInvalide answer, try again:" ORG_NAME
-        done
         cp_api_get EXISTING_ORG "organizations?name=$ORG_NAME&accountId=$ACC_ID"
         if [ "$(echo "$EXISTING_ORG" | jq -r '.total')" == "1" ]; then
             yes_no "Organization exists. Do you want to use the existing organization $ORG_NAME" _RESPONSE
@@ -990,13 +972,7 @@ create_account_and_register() {
                 ORG_ID=$(echo "$EXISTING_ORG" | jq -r '.data[0].id')
 
                 read_input "Enter the organization registry username:" RU
-                while [[ "$RU" == '' ]]; do
-                    read_input "\nInvalide answer, try again:" RU
-                done
                 read_input "Enter the organization registry password:" RP
-                while [[ "$RP" == '' ]]; do
-                    read_input "\nInvalide answer, try again:" RP
-                done
 
                 VALIDE="1"
             fi
@@ -1004,13 +980,7 @@ create_account_and_register() {
             IS_NEW_ORG="1"
             # Registry credentials
             read_input "Enter the organization registry username:" RU
-            while [[ "$RU" == '' ]]; do
-                read_input "\nInvalide answer, try again:" RU
-            done
             read_input "Enter the organization registry password:" RP
-            while [[ "$RP" == '' ]]; do
-                read_input "\nInvalide answer, try again:" RP
-            done
 
             # super...
             J_PAYLOAD='{"accountId":'"$ACC_ID"',"name":"'"$ORG_NAME"'","registryUser":"'"$RU"'","registryPass":"'"$RP"'"}'
@@ -1029,9 +999,6 @@ create_account_and_register() {
     VALIDE='0'
     while [[ "$VALIDE" == '0' ]]; do
         read_input "Enter a cluster name:" WS_NAME
-        while [[ "$WS_NAME" == '' ]]; do
-            read_input "\nInvalide answer, try again:" WS_NAME
-        done
         cp_api_get EXISTING_WS "workspaces?name=$WS_NAME&organizationId=$ORG_ID"
         if [ "$(echo "$EXISTING_WS" | jq -r '.total')" == "1" ]; then
             error "The workspace name $WS_NAME is already taken.\n"
@@ -1091,9 +1058,6 @@ multipaas_user() {
     id -u multipaas &>/dev/null
     if [ "$?" != "0" ]; then
         read_input "A user called 'multipaas' with sudo privileges will be created on this system. Please provide a password for this user now:" MP_LINUX_USER
-        while [[ "$MP_LINUX_USER" == '' ]]; do
-            read_input "\nInvalide answer, try again:" MP_LINUX_USER
-        done
 
         sudo adduser multipaas --gecos "MultiPaas,NA,NA,NA" --disabled-password &>>$err_log
         echo "multipaas:$MP_LINUX_USER" | sudo chpasswd &>>$err_log
@@ -1131,10 +1095,7 @@ min_avail_hd
 
 log "==> This script will install the MultiPaaS host-node and it's dependencies on this machine.\n"
 log "\n"
-read_input "Do you wish to continue (y/n)?" CONTINUE_INSTALL
-while [[ "$CONTINUE_INSTALL" != 'y' ]] && [[ "$CONTINUE_INSTALL" != 'n' ]]; do
-    read_input "Invalide answer, try again (y/n)?" CONTINUE_INSTALL
-done
+yes_no "Do you wish to continue" CONTINUE_INSTALL
 if [ "$CONTINUE_INSTALL" == "n" ]; then
     exit 0
 fi
@@ -1312,13 +1273,7 @@ if [ "$IS_K8S_NODE" == "true" ]; then
         
         # Authenticate to registry
         read_input "Enter the organization registry username that the target cluster belongs to:" RU
-        while [[ "$RU" == '' ]]; do
-            read_input "\nInvalide answer, try again:" RU
-        done
         read_input "Enter the organization registry password:" RP
-        while [[ "$RP" == '' ]]; do
-            read_input "\nInvalide answer, try again:" RP
-        done
         registry_auth &>>$err_log &
         bussy_indicator "Configure k8s registry credentials..."
         log "\n"
