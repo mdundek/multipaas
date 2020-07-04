@@ -170,6 +170,10 @@ dep_docker() {
                 deb_offline_install_ubuntu_bionic "containerd"
                 deb_offline_install_ubuntu_bionic "docker-ce-cli"
                 deb_offline_install_ubuntu_bionic "docker-ce" && sudo usermod -aG docker $USER
+                id -u multipaas &>/dev/null
+                if [ "$?" == "0" ]; then
+                    sudo usermod -aG docker multipaas
+                fi
 
                 sudo systemctl start docker
                 sudo systemctl enable docker
@@ -233,6 +237,10 @@ EOF
                 
                 sudo groupadd docker
                 sudo usermod -aG docker $USER
+                id -u multipaas &>/dev/null
+                if [ "$?" == "0" ]; then
+                    sudo usermod -aG docker multipaas
+                fi
 
                 sudo setenforce 0
                 sudo sed -i '/SELINUX=/c\SELINUX=disabled' /etc/selinux/config

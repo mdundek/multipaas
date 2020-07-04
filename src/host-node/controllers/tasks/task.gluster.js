@@ -279,9 +279,9 @@ class TaskGlusterController {
      * @param {*} node 
      */ 
     static async mountGlusterVolume(node, volumeName, glusterIp) {
-        let r = await OSController.sshExec(node.ip, `test -d "/mnt/${volumeName}" && echo "y" || echo "n"`, true);
+        let r = await OSController.sshExec(node.ip, `sudo test -d "/mnt/${volumeName}" && echo "y" || echo "n"`, true);
         if(r.code == 0 && r.stdout == "y") {
-            r = await OSController.sshExec(node.ip, `mount | grep "${volumeName}"`, true);
+            r = await OSController.sshExec(node.ip, `sudo mount | grep "${volumeName}"`, true);
             if(r.code == 0 && r.stdout.trim() != "") {
                 throw new Error("Folder already mounted");
             } 
@@ -296,18 +296,18 @@ class TaskGlusterController {
             throw new Error("An error occured trying to unmount volume");
         }
 
-        r = await OSController.sshExec(node.ip, `mount.glusterfs ${glusterIp}:/${volumeName} /mnt/${volumeName}`, true);
+        r = await OSController.sshExec(node.ip, `sudo mount.glusterfs ${glusterIp}:/${volumeName} /mnt/${volumeName}`, true);
         if(r.code != 0) {
             await TaskVolumeController.unmountVolume(node, volumeName, glusterIp);
             throw new Error("Could not mount folder");
         }
 
-        r = await OSController.sshExec(node.ip, `chown -R vagrant:vagrant /mnt/${volumeName}`, true);
+        r = await OSController.sshExec(node.ip, `sudo chown -R vagrant:vagrant /mnt/${volumeName}`, true);
         if(r.code != 0) {
             await TaskVolumeController.unmountVolume(node, volumeName, glusterIp);
             throw new Error("Could not assign permissions on folder");
         }
-        r = await OSController.sshExec(node.ip, `echo '${glusterIp}:/${volumeName}   /mnt/${volumeName}  glusterfs _netdev,auto,x-systemd.automount 0 0' | tee -a /etc/fstab`, true);
+        r = await OSController.sshExec(node.ip, `echo '${glusterIp}:/${volumeName}   /mnt/${volumeName}  glusterfs _netdev,auto,x-systemd.automount 0 0' | sudo tee -a /etc/fstab`, true);
         if(r.code != 0) {
             await TaskVolumeController.unmountVolume(node, volumeName, glusterIp);
             throw new Error("Could not update fstab");

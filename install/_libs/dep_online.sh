@@ -54,8 +54,16 @@ dep_docker() {
     if [ "$C_EXISTS" == "" ]; then
         if [ "$DISTRO" == "ubuntu" ]; then
             sudo apt install -y docker.io && sudo systemctl start docker && sudo systemctl enable docker && sudo usermod -aG docker $USER
+            id -u multipaas &>/dev/null
+            if [ "$?" == "0" ]; then
+                sudo usermod -aG docker multipaas
+            fi
         elif [ "$DISTRO" == "redhat" ] || [ "$DISTRO" == "centos" ]; then
             sudo yum install -y docker-ce && sudo usermod -aG docker ${USER} && sudo systemctl start docker && sudo systemctl enable docker
+            id -u multipaas &>/dev/null
+            if [ "$?" == "0" ]; then
+                sudo usermod -aG docker multipaas
+            fi
         fi
         NEW_DOCKER="true"
     fi

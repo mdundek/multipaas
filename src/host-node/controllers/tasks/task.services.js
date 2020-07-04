@@ -48,7 +48,7 @@ class TaskServicesController {
      */
     static async requestCreateServicePvDir(topicSplit, ip, data) {
         try {
-            let r = await OSController.sshExec(data.node.ip, `mkdir -p /mnt/${data.volume.name}-${data.volume.secret}/${data.subFolderName}`, true);
+            let r = await OSController.sshExec(data.node.ip, `sudo mkdir -p /mnt/${data.volume.name}-${data.volume.secret}/${data.subFolderName}`, true);
             if(r.code != 0) {
                 console.error(r);
                 throw new Error("Could not create folders");
@@ -177,7 +177,7 @@ class TaskServicesController {
                 await TaskRuntimeController.removePersistantVolumeClaim(data.service.dedicatedPvc, data.service.namespace, data.node);
                 await TaskRuntimeController.removePersistantVolume(data.service.dedicatedPv, data.service.namespace, data.node);  
                 if(volume){       
-                    let r = await OSController.sshExec(data.node.ip, `rm -rf /mnt/${volume.name}-${volume.secret}/srv-${data.service.instanceName}`, true);
+                    let r = await OSController.sshExec(data.node.ip, `sudo rm -rf /mnt/${volume.name}-${volume.secret}/srv-${data.service.instanceName}`, true);
                     if(r.code != 0) {
                         console.error(r);
                         throw new Error("Could not delete service folder");

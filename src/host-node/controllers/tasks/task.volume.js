@@ -219,18 +219,18 @@ class TaskVolumeController {
             }
 
             // Mkdir
-            r = await OSController.sshExec(node.ip, `mkdir -p /mnt/${volumeName}`, true);
+            r = await OSController.sshExec(node.ip, `sudo mkdir -p /mnt/${volumeName}`, true);
             if(r.code != 0) {
                 throw new Error(r.stderr);
             }
-            r = await OSController.sshExec(node.ip, `chmod a+w /mnt/${volumeName}`, true);
+            r = await OSController.sshExec(node.ip, `sudo chmod a+w /mnt/${volumeName}`, true);
             if(r.code != 0) {
                 throw new Error(r.stderr);
             }
         } else {
-            let r = await OSController.sshExec(node.ip, `test -d "/mnt/${volumeName}" && echo "y" || echo "n"`, true);
+            let r = await OSController.sshExec(node.ip, `sudo test -d "/mnt/${volumeName}" && echo "y" || echo "n"`, true);
             if(r.code == 0 && r.stdout == "y") {
-                r = await OSController.sshExec(node.ip, `mount | grep "${volumeName}"`, true);
+                r = await OSController.sshExec(node.ip, `sudo mount | grep "${volumeName}"`, true);
                 if(r.code == 0 && r.stdout.trim() != "") {
                     // throw new Error("Folder already mounted");
                     return;
@@ -240,10 +240,10 @@ class TaskVolumeController {
                 throw new Error("An error occured trying to mount volume");
             }
             
-            r = await OSController.sshExec(node.ip, `lsblk -f | grep 'sd${portLetterMap[portIndex]}' | grep 'xfs'`, true);
+            r = await OSController.sshExec(node.ip, `sudo lsblk -f | grep 'sd${portLetterMap[portIndex]}' | grep 'xfs'`, true);
             if(r.stderr.trim().length == 0 && r.stdout.trim() == "") {
                 // Format the disk
-                let formatDiskCommand = `mkfs.xfs /dev/sd${portLetterMap[portIndex]}`;
+                let formatDiskCommand = `sudo mkfs.xfs /dev/sd${portLetterMap[portIndex]}`;
                 r = await OSController.sshExec(node.ip, formatDiskCommand, true);
                 if(r.code != 0) {
                     throw new Error(r.stderr);
@@ -253,14 +253,14 @@ class TaskVolumeController {
             }
 
             // Mkdir
-            r = await OSController.sshExec(node.ip, `mkdir -p /mnt/${volumeName}`, true);
+            r = await OSController.sshExec(node.ip, `sudo mkdir -p /mnt/${volumeName}`, true);
             if(r.code != 0) {
                 throw new Error(r.stderr);
             }
         
             // Update FSTab
             try {
-                r = await OSController.sshExec(node.ip, `echo '/dev/sd${portLetterMap[portIndex]} /mnt/${volumeName} xfs defaults 1 2' >> /etc/fstab`, true);
+                r = await OSController.sshExec(node.ip, `echo '/dev/sd${portLetterMap[portIndex]} /mnt/${volumeName} xfs defaults 1 2' | sudo tee -a /etc/fstab`, true);
                 if(r.code != 0) {
                     await this.unmountVolume(node, volumeName);
                     throw new Error(r.stderr);
@@ -274,7 +274,7 @@ class TaskVolumeController {
 
             // Mount disk
             try {
-                r = await OSController.sshExec(node.ip, `mount -a`, true);
+                r = await OSController.sshExec(node.ip, `sudo mount -a`, true);
                 if(r.code != 0) {
                     await this.unmountVolume(node, volumeName);
                     throw new Error(r.stderr);
@@ -294,18 +294,18 @@ class TaskVolumeController {
     static async unmountVolume(node, volumeName) {
         let r = await OSController.sshExec(node.ip, `test -d "/mnt/${volumeName}" && echo "y" || echo "n"`, true);
         if(r.code == 0 && r.stdout == "y") {
-            r = await OSController.sshExec(node.ip, `mount | grep "${volumeName}"`, true);
+            r = await OSController.sshExec(node.ip, `sudo mount | grep "${volumeName}"`, true);
             // If volume mounted
             if(r.code == 0 && r.stdout.trim() != "") {
-                await OSController.sshExec(node.ip, `umount /mnt/${volumeName}`, true);
+                await OSController.sshExec(node.ip, `sudo umount /mnt/${volumeName}`, true);
             }
             // If also declared in fstab, remove it from there as well
-            r = await OSController.sshExec(node.ip, `cat /etc/fstab | grep "/mnt/${volumeName}"`, true);
+            r = await OSController.sshExec(node.ip, `sudo cat /etc/fstab | grep "/mnt/${volumeName}"`, true);
             if(r.code == 0 && r.stdout.trim() != "") {
-                await OSController.sshExec(node.ip, `sed -i '\\|/mnt/${volumeName}|d' /etc/fstab`, true);
+                await OSController.sshExec(node.ip, `sudo sed -i '\\|/mnt/${volumeName}|d' /etc/fstab`, true);
             }
             // Delete folders
-            await OSController.sshExec(node.ip, `rm -rf /mnt/${volumeName}`, true);
+            await OSController.sshExec(node.ip, `sudo rm -rf /mnt/${volumeName}`, true);
         } else if(r.code != 0) {
             throw new Error("An error occured trying to unmount volume");
         }

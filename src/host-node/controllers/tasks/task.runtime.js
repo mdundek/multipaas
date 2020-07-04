@@ -329,7 +329,7 @@ class TaskRuntimeController {
             let yamlTmpPath = path.join(process.env.VM_BASE_DIR, "workplaces", data.workspaceId.toString(), data.node.hostname, `pv.yml`);
             fs.writeFileSync(yamlTmpPath, YAML.stringify(pvTemplate));
 
-            let r = await OSController.sshExec(data.node.ip, `mkdir -p ${pvTemplate.spec.local.path}`, true);
+            let r = await OSController.sshExec(data.node.ip, `sudo mkdir -p ${pvTemplate.spec.local.path}`, true);
             if(r.code != 0) {
                 console.error(r);
                 throw new Error("Could not create folders");
@@ -394,7 +394,7 @@ class TaskRuntimeController {
      */
     static async requestRemoveK8SAllPvForVolume(topicSplit, ip, data) {
         try {
-            let r = await OSController.sshExec(data.node.ip, `ls /mnt/${data.volume.name}-${data.volume.secret}`, true);
+            let r = await OSController.sshExec(data.node.ip, `sudo ls /mnt/${data.volume.name}-${data.volume.secret}`, true);
             if(r.code != 0) {
                 console.error(r);
                 throw new Error("Could not list folders");
@@ -415,7 +415,7 @@ class TaskRuntimeController {
                 } else {
                     await this.removePersistantVolume(`${volumeDirs[i]}-pv`, data.ns, data.node);
                 }
-                await OSController.sshExec(data.node.ip, `rm -rf /mnt/${data.volume.name}-${data.volume.secret}/${volumeDirs[i]}`, true);
+                await OSController.sshExec(data.node.ip, `sudo rm -rf /mnt/${data.volume.name}-${data.volume.secret}/${volumeDirs[i]}`, true);
             }
 
             this.mqttController.client.publish(`/multipaas/k8s/host/respond/${data.queryTarget}/${topicSplit[5]}/${topicSplit[6]}`, JSON.stringify({
@@ -488,7 +488,7 @@ class TaskRuntimeController {
     static async requestRemoveK8SPersistantVolume(topicSplit, ip, data) {
         try {
             await this.removePersistantVolume(data.pvName, data.ns, data.node);     
-            let r = await OSController.sshExec(data.node.ip, `rm -rf /mnt/${data.volume.name}-${data.volume.secret}/${data.subFolderName}`, true);
+            let r = await OSController.sshExec(data.node.ip, `sudo rm -rf /mnt/${data.volume.name}-${data.volume.secret}/${data.subFolderName}`, true);
             if(r.code != 0) {
                 console.error(r);
                 throw new Error("Could not delete folders");
