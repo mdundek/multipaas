@@ -36,18 +36,28 @@ remove_all() {
         fi
     fi
     
-    local C_EXISTS=$(command -v docker)
-    HOST_NODE_INSTALLED=$(ps aux | grep "[m]ultipaas/src/host-node")
-    if [ "$HOST_NODE_INSTALLED" != "" ]; then
-        if [ "$INTERNET_AVAILABLE" != "1" ]; then
-            sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 stop multipaas-host-node' &>>$err_log
-            sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 delete multipaas-host-node' &>>$err_log
-            sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 save --force' &>>$err_log
-        else
-            sudo -H -u multipaas bash -c 'pm2 stop multipaas-host-node' &>>$err_log
-            sudo -H -u multipaas bash -c 'pm2 delete multipaas-host-node' &>>$err_log
-            sudo -H -u multipaas bash -c 'pm2 save --force' &>>$err_log
-        fi
+    if [ -f "/etc/systemd/system/multipaas-hostnode.service" ]; then
+        sudo systemctl stop multipaas-hostnode.service
+        sudo systemctl disable multipaas-hostnode.service
+        sudo rm -rf /etc/systemd/system/multipaas-hostnode.service
+        sudo systemctl daemon-reload
+
+        # if [ "$INTERNET_AVAILABLE" != "1" ]; then
+        #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 stop multipaas-host-node' &>>$err_log
+        #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 delete multipaas-host-node' &>>$err_log
+        #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 save --force' &>>$err_log
+        # else
+        #     sudo -H -u multipaas bash -c 'pm2 stop multipaas-host-node' &>>$err_log
+        #     sudo -H -u multipaas bash -c 'pm2 delete multipaas-host-node' &>>$err_log
+        #     sudo -H -u multipaas bash -c 'pm2 save --force' &>>$err_log
+        # fi
+    fi
+
+    if [ -f "/etc/systemd/system/multipaas-satelite.service" ]; then
+        sudo systemctl stop multipaas-satelite.service
+        sudo systemctl disable multipaas-satelite.service
+        sudo rm -rf /etc/systemd/system/multipaas-satelite.service
+        sudo systemctl daemon-reload
     fi
 
     if [ "$MASTER_IP" != "" ] && "$MPUS" != "" ] && [ "$MPPW" != "" ]; then
@@ -143,17 +153,17 @@ dependency_node () {
     fi
 }
 
-dependency_pm2 () {
-    local  __resultvar=$1
-    PM2_EXISTS=$(command -v pm2)
-    dep_pm2 &>>$err_log &
-    bussy_indicator "Dependency on \"PM2\"..."
+# dependency_pm2 () {
+#     local  __resultvar=$1
+#     PM2_EXISTS=$(command -v pm2)
+#     dep_pm2 &>>$err_log &
+#     bussy_indicator "Dependency on \"PM2\"..."
 
-    log "\n"
-    if [ "$PM2_EXISTS" == "" ]; then
-        eval $__resultvar="'1'"
-    fi
-}
+#     log "\n"
+#     if [ "$PM2_EXISTS" == "" ]; then
+#         eval $__resultvar="'1'"
+#     fi
+# }
 
 dependencies_gluster () {
     sudo echo "" # Ask user for sudo password now
@@ -482,15 +492,38 @@ collect_informations() {
 ########################################
 # 
 ########################################
+setup_hostnode_service() {
+    read -d '' HN_SYSTEMD_SCRIPT << EOF
+#!/bin/sh
+PATH="/usr/bin:$PATH"
+export PATH
+cd $_BASEDIR/src/host-node
+node .
+EOF
+    create_node_system_service "multipaas-hostnode" "$HN_SYSTEMD_SCRIPT"  "multipaas"
+}
+
+########################################
+# 
+########################################
+setup_satelite_service() {
+    read -d '' ST_SYSTEMD_SCRIPT << EOF
+#!/bin/sh
+PATH="/usr/bin:$PATH"
+export PATH
+cd $_BASEDIR/src/satelite
+node .
+EOF
+    create_node_system_service "multipaas-satelite" "$ST_SYSTEMD_SCRIPT"  "multipaas"
+}
+
+########################################
+# 
+########################################
 install_master_core_components() {
     sudo -H -u multipaas bash -c "mkdir -p $MP_HOME/.multipaas"
 
-    if [ "$INTERNET_AVAILABLE" != "1" ]; then
-        HOST_NODE_DEPLOYED=$(sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 ls | grep "multipaas-host-node"')
-    else
-        HOST_NODE_DEPLOYED=$(sudo -H -u multipaas bash -c 'pm2 ls | grep "multipaas-host-node"')
-    fi
-    
+    HOST_NODE_DEPLOYED=$(sudo ps aux | grep "[/]bin/sh /multipaas-hostnode.sh")
     if [ "$HOST_NODE_DEPLOYED" == "" ]; then
         cd $_BASEDIR/src/host-node/ # Position cmd in src folder
 
@@ -513,16 +546,18 @@ install_master_core_components() {
         rm env
 
         npm i
-        if [ "$INTERNET_AVAILABLE" != "1" ]; then
-            sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time'
-            sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s startup'
-            sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas) &>>$err_log
-            sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s save --force'
-        else
-            sudo -H -u multipaas bash -c 'pm2 -s start index.js --watch --name multipaas-host-node --time'
-            sudo -H -u multipaas bash -c 'pm2 -s startup'
-            sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas)
-            sudo -H -u multipaas bash -c 'pm2 -s save --force'
+        setup_hostnode_service
+
+        # if [ "$INTERNET_AVAILABLE" != "1" ]; then
+        #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-host-node --time'
+        #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s startup'
+        #     sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas) &>>$err_log
+        #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s save --force'
+        # else
+        #     sudo -H -u multipaas bash -c 'pm2 -s start index.js --watch --name multipaas-host-node --time'
+        #     sudo -H -u multipaas bash -c 'pm2 -s startup'
+        #     sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas)
+        #     sudo -H -u multipaas bash -c 'pm2 -s save --force'
         fi
     else
         if [ "$IS_GLUSTER_PEER" == "true" ]; then
@@ -531,25 +566,28 @@ install_master_core_components() {
             change_line "IS_GLUSTER_PEER" "IS_GLUSTER_PEER=true" ./.env
             change_line "GLUSTER_VOLUME" "GLUSTER_VOLUME=$GLUSTER_VOLUME" ./.env
 
-            if [ "$INTERNET_AVAILABLE" != "1" ]; then
-                sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 stop multipaas-host-node'
-                sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 start multipaas-host-node'
-                sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s save --force'
-            else
-                sudo -H -u multipaas bash -c 'pm2 stop multipaas-host-node'
-                sudo -H -u multipaas bash -c 'pm2 start multipaas-host-node'
-                sudo -H -u multipaas bash -c 'pm2 -s save --force'
-            fi
+            setup_hostnode_service
+
+            # if [ "$INTERNET_AVAILABLE" != "1" ]; then
+            #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 stop multipaas-host-node'
+            #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 start multipaas-host-node'
+            #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s save --force'
+            # else
+            #     sudo -H -u multipaas bash -c 'pm2 stop multipaas-host-node'
+            #     sudo -H -u multipaas bash -c 'pm2 start multipaas-host-node'
+            #     sudo -H -u multipaas bash -c 'pm2 -s save --force'
+            # fi
         fi
     fi
 
     log "\n"
     
-    if [ "$INTERNET_AVAILABLE" != "1" ]; then
-        HOST_NODE_SATELITE_DEPLOYED=$(sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 ls | grep "multipaas-satelite"')
-    else
-        HOST_NODE_SATELITE_DEPLOYED=$(sudo -H -u multipaas bash -c 'pm2 ls | grep "multipaas-satelite"')
-    fi
+    # if [ "$INTERNET_AVAILABLE" != "1" ]; then
+    #     HOST_NODE_SATELITE_DEPLOYED=$(sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 ls | grep "multipaas-satelite"')
+    # else
+    #     HOST_NODE_SATELITE_DEPLOYED=$(sudo -H -u multipaas bash -c 'pm2 ls | grep "multipaas-satelite"')
+    # fi
+    HOST_NODE_SATELITE_DEPLOYED=$(sudo ps aux | grep "[/]bin/sh /multipaas-satelite.sh")
 
     if [ "$HOST_NODE_SATELITE_DEPLOYED" == "" ]; then
         cd $_BASEDIR/src/satelite/ # Position cmd in src folder
@@ -564,17 +602,19 @@ install_master_core_components() {
         rm env
 
         npm i
-        if [ "$INTERNET_AVAILABLE" != "1" ]; then
-            sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time'
-            sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s startup'
-            sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas) &>>$err_log
-            sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s save --force'
-        else
-            sudo -H -u multipaas bash -c 'pm2 -s start index.js --watch --name multipaas-satelite --time'
-            sudo -H -u multipaas bash -c 'pm2 -s startup'
-            sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas)
-            sudo -H -u multipaas bash -c 'pm2 -s save --force'
-        fi
+        setup_satelite_service
+
+        # if [ "$INTERNET_AVAILABLE" != "1" ]; then
+        #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time'
+        #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s startup'
+        #     sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas) &>>$err_log
+        #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s save --force'
+        # else
+        #     sudo -H -u multipaas bash -c 'pm2 -s start index.js --watch --name multipaas-satelite --time'
+        #     sudo -H -u multipaas bash -c 'pm2 -s startup'
+        #     sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas)
+        #     sudo -H -u multipaas bash -c 'pm2 -s save --force'
+        # fi
     fi
 }
 
@@ -583,11 +623,13 @@ install_master_core_components() {
 ########################################
 install_satelite_core_components() {
     sudo -H -u multipaas bash -c "mkdir -p $MP_HOME/.multipaas"
-    if [ "$INTERNET_AVAILABLE" != "1" ]; then
-        HOST_NODE_SATELITE_DEPLOYED=$(sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 ls | grep "multipaas-satelite"')
-    else
-        HOST_NODE_SATELITE_DEPLOYED=$(sudo -H -u multipaas bash -c 'pm2 ls | grep "multipaas-satelite"')
-    fi
+
+    HOST_NODE_SATELITE_DEPLOYED=$(sudo ps aux | grep "[/]bin/sh /multipaas-satelite.sh")
+    # if [ "$INTERNET_AVAILABLE" != "1" ]; then
+    #     HOST_NODE_SATELITE_DEPLOYED=$(sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 ls | grep "multipaas-satelite"')
+    # else
+    #     HOST_NODE_SATELITE_DEPLOYED=$(sudo -H -u multipaas bash -c 'pm2 ls | grep "multipaas-satelite"')
+    # fi
 
     if [ "$HOST_NODE_SATELITE_DEPLOYED" == "" ]; then
         cd $_BASEDIR/src/satelite/ # Position cmd in src folder
@@ -603,17 +645,18 @@ install_satelite_core_components() {
         rm env
 
         npm i
-        if [ "$INTERNET_AVAILABLE" != "1" ]; then
-            sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time'
-            sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s startup'
-            sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-            sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s save --force'
-        else
-            sudo -H -u multipaas bash -c 'pm2 -s start index.js --watch --name multipaas-satelite --time'
-            sudo -H -u multipaas bash -c 'pm2 -s startup'
-            # sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
-            sudo -H -u multipaas bash -c 'pm2 -s save --force'
-        fi
+        setup_satelite_service
+        # if [ "$INTERNET_AVAILABLE" != "1" ]; then
+        #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s start index.js --watch --name multipaas-satelite --time'
+        #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s startup'
+        #     sudo env PATH=$PATH:/usr/bin /opt/pm2/bin/pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
+        #     sudo -H -u multipaas bash -c '/opt/pm2/bin/pm2 -s save --force'
+        # else
+        #     sudo -H -u multipaas bash -c 'pm2 -s start index.js --watch --name multipaas-satelite --time'
+        #     sudo -H -u multipaas bash -c 'pm2 -s startup'
+        #     # sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u $USER --hp $(eval echo ~$USER) &>>$err_log
+        #     sudo -H -u multipaas bash -c 'pm2 -s save --force'
+        # fi
     fi
 }
 
@@ -1059,9 +1102,15 @@ multipaas_user() {
     if [ "$?" != "0" ]; then
         read_input "A user called 'multipaas' with sudo privileges will be created on this system. Please provide a password for this user now:" MP_LINUX_USER
 
-        sudo adduser multipaas --gecos "MultiPaas,NA,NA,NA" --disabled-password &>>$err_log
-        echo "multipaas:$MP_LINUX_USER" | sudo chpasswd &>>$err_log
-        sudo usermod -aG sudo multipaas &>>$err_log
+        if [ "$DISTRO" == "ubuntu" ]; then
+            sudo adduser multipaas --gecos "MultiPaas,NA,NA,NA" --disabled-password &>>$err_log
+            echo "multipaas:$MP_LINUX_USER" | sudo chpasswd &>>$err_log
+            sudo usermod -aG sudo multipaas &>>$err_log
+        elif [ "$DISTRO" == "redhat" ]; then
+            PWORD=$(perl -e 'print crypt("multipaas", "salt"),"\n"')
+            sudo useradd -m -p $PWORD multipaas
+            sudo usermod -aG wheel multipaas
+        fi
         sudo tee -a /etc/sudoers >/dev/null <<'EOF'
 multipaas ALL=(ALL) NOPASSWD: ALL
 EOF
@@ -1074,6 +1123,29 @@ EOF
             sudo usermod -aG docker multipaas
         fi
     fi
+}
+
+apply_repo_permissions() {
+    ALL_PARENTS=()
+    RECURS_FLD="$_BASEDIR"
+    ALL_PARENTS+=($RECURS_FLD)
+    KEEP_DIGGING='1'
+    while [ "$KEEP_DIGGING" == '1' ]; do
+        RECURS_FLD="$(dirname "$RECURS_FLD")"
+        if [ "$RECURS_FLD" == "/" ]; then
+            KEEP_DIGGING='0'
+        else
+            ALL_PARENTS+=($RECURS_FLD)
+        fi
+    done
+
+    for _folder in "${ALL_PARENTS[@]}"; do :
+        sudo -u multipaas ls $_folder &>/dev/null
+        if [ "$?" != "0" ]; then
+            sudo setfacl -m u:multipaas:rx $_folder
+        fi
+    done
+    sudo setfacl -R -m u:multipaas:rx $_BASEDIR
 }
 
 ########################################
@@ -1104,6 +1176,9 @@ sudo echo ""
 
 # Create multipaas user
 multipaas_user
+
+# Give multipaas user permissions to this folder
+apply_repo_permissions
 
 # Test and see if internet access is available
 wget -q --spider http://google.com &>>$err_log
@@ -1197,17 +1272,17 @@ log "\n"
 # Install docker & NodeJS first
 dependency_docker NEED_DK_RESTART
 dependency_node NEED_NODE_RESTART
-dependency_pm2 NEED_PM2_RESTART
+# dependency_pm2 NEED_PM2_RESTART
 if [ "$INTERNET_AVAILABLE" != "1" ]; then
-    if [ "$NEED_DK_RESTART" == "1" ] || [ "$NEED_NODE_RESTART" == "1" ] || [ "$NEED_PM2_RESTART" == "1" ]; then
+    if [ "$NEED_DK_RESTART" == "1" ] || [ "$NEED_NODE_RESTART" == "1" ]; then
         log "\n"
-        warn "==> Docker and/or NodeJS/pm2 was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
+        warn "==> Docker and/or NodeJS was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
         exit 0
     fi
 else
-    if [ "$NEED_DK_RESTART" == "1" ] || [ "$NEED_PM2_RESTART" == "1" ]; then
+    if [ "$NEED_DK_RESTART" == "1" ]; then
         log "\n"
-        warn "==> Docker and/or pm2 was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
+        warn "==> Docker was just installed, you will have to restart your session before starting the cluster-ctl container. Please log out, and log back in, then execute this script again.\n"
         exit 0
     fi
 fi

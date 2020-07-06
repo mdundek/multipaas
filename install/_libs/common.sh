@@ -372,3 +372,42 @@ EOF
     sudo systemctl enable $1.service
     sudo systemctl start $1.service
 }
+
+
+########################################
+# 
+########################################
+create_node_system_service() {
+    if [ -f "/$1.sh" ]; then
+        sudo rm -rf /$1.sh
+    fi
+    sudo tee -a /$1.sh >/dev/null <<EOF
+$2
+EOF
+    sudo chmod a+wx /$1.sh
+    if [ -f "/etc/systemd/system/$1.service" ]; then
+        sudo systemctl stop $1.service
+        sudo systemctl disable $1.service
+        sudo rm -rf /etc/systemd/system/$1.service
+        sudo systemctl daemon-reload
+    fi
+    sudo tee -a /etc/systemd/system/$1.service >/dev/null <<EOF
+[Unit]
+Description=Multipaas $1 service
+After=syslog.target network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/sh /$1.sh
+Restart=on-failure
+User=$3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    sudo systemctl daemon-reload
+    sudo systemctl enable $1.service
+    sudo systemctl start $1.service
+}
+
+

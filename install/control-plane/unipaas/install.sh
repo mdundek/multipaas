@@ -729,7 +729,7 @@ ENDOFFILE
     sed -i "s/<GITLAB_KC_SECRET>/$GITLAB_KC_SECRET/g" ./_drun.sh
 
     ./_drun.sh &>>$err_log &
-    bussy_indicator "Instantiating container..."
+    bussy_indicator "Instantiating gitlab container..."
     log "\n"
 
     rm -rf ./_drun.sh
