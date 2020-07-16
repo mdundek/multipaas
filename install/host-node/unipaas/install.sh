@@ -558,7 +558,7 @@ install_master_core_components() {
         #     sudo -H -u multipaas bash -c 'pm2 -s startup'
         #     sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u multipaas --hp $(eval echo ~multipaas)
         #     sudo -H -u multipaas bash -c 'pm2 -s save --force'
-        fi
+        #fi
     else
         if [ "$IS_GLUSTER_PEER" == "true" ]; then
             cd $_BASEDIR/src/host-node/ # Position cmd in src folder
