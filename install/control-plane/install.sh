@@ -4,6 +4,9 @@ _DIR="$(cd "$(dirname "$0")" && pwd)"
 _PWD="$(pwd)"
 cd $_DIR
 
+BASE_FOLDER="$(dirname "$_DIR")"
+BASE_FOLDER="$(dirname "$BASE_FOLDER")"
+
 err_log=$_DIR/std.log
 
 . ../_libs/common.sh
@@ -65,7 +68,7 @@ dependencies () {
     log "\n"
 
     cd $_DIR
-    
+
     dep_vbox &>>$err_log &
     bussy_indicator "Dependency on \"Virtualbox and Vagrant\"..."
     log "\n"
@@ -135,9 +138,6 @@ configure_firewall() {
 # 
 ########################################
 install_core_components() {
-    BASE_FOLDER="$(dirname "$_DIR")"
-    BASE_FOLDER="$(dirname "$BASE_FOLDER")"
-
     cd $_DIR
 
     cp ./Vagrantfile.template ./Vagrantfile

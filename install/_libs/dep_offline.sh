@@ -4,15 +4,15 @@
 # 
 ########################################
 rpm_offline_install_redhat_7() {
-    if [ ! -d "../../build/offline_files/rpms/$PK_FOLDER_NAME/$1" ]; then
+    if [ ! -d "$BASE_FOLDER/install/build/offline_files/rpms/$PK_FOLDER_NAME/$1" ]; then
         error "The local rpm files for dependecy $1 have not been found.\n"
         error "Please run the preparation script first before continuing.\n"
         exit 1
     fi
     if [ "$2" == "nobest" ]; then
-        sudo yum install -y --cacheonly --nobest --skip-broken --disablerepo=* ../../build/offline_files/rpms/$PK_FOLDER_NAME/$1/*.rpm
+        sudo yum install -y --cacheonly --nobest --skip-broken --disablerepo=* $BASE_FOLDER/install/build/offline_files/rpms/$PK_FOLDER_NAME/$1/*.rpm
     else
-        sudo yum install -y --cacheonly --disablerepo=* ../../build/offline_files/rpms/$PK_FOLDER_NAME/$1/*.rpm
+        sudo yum install -y --cacheonly --disablerepo=* $BASE_FOLDER/install/build/offline_files/rpms/$PK_FOLDER_NAME/$1/*.rpm
     fi
 }
 
@@ -20,16 +20,15 @@ rpm_offline_install_redhat_7() {
 # 
 ########################################
 deb_offline_install_ubuntu_bionic() {
-    echo "PWD => $(pwd)"
-    if [ ! -d "../build/ubuntu_bionic/debs/$1" ] && [ ! -d "../../build/offline_files/debs/$PK_FOLDER_NAME/$1" ]; then
+    if [ ! -d "$BASE_FOLDER/install/build/ubuntu_bionic/debs/$1" ] && [ ! -d "$BASE_FOLDER/install/build/offline_files/debs/$PK_FOLDER_NAME/$1" ]; then
         error "The local lib files for dependecy $1 have not been found.\n"
         error "Please run the preparation script first before continuing.\n"
         exit 1
     fi
-    if [ -d "../build/ubuntu_bionic/debs/$1" ]; then
-        sudo dpkg -i ../build/ubuntu_bionic/debs/$1/*.deb
+    if [ -d "$BASE_FOLDER/install/build/ubuntu_bionic/debs/$1" ]; then
+        sudo dpkg -i $BASE_FOLDER/install/build/ubuntu_bionic/debs/$1/*.deb
     else
-        sudo dpkg -i ../../build/offline_files/debs/$PK_FOLDER_NAME/$1/*.deb
+        sudo dpkg -i $BASE_FOLDER/install/build/offline_files/debs/$PK_FOLDER_NAME/$1/*.deb
     fi
 }
 
@@ -37,7 +36,7 @@ deb_offline_install_ubuntu_bionic() {
 setup_centos_7_extra_repo() {
     if [ ! -d "/var/www/html/repos" ]; then
         # sudo yum install httpd
-        sudo cp -R "../../build/offline_files/rpms/$PK_FOLDER_NAME/offline-repo-files" "/var/www/html/"
+        sudo cp -R "$BASE_FOLDER/install/build/offline_files/rpms/$PK_FOLDER_NAME/offline-repo-files" "/var/www/html/"
         sudo mv "/var/www/html/offline-repo-files" "/var/www/html/repos"
         sudo chmod a+w /var/www/html/repos -R
         restorecon -vR /var/www/html

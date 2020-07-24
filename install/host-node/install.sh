@@ -4,14 +4,14 @@ _DIR="$(cd "$(dirname "$0")" && pwd)"
 _PWD="$(pwd)"
 cd $_DIR
 
+BASE_FOLDER="$(dirname "$_DIR")"
+BASE_FOLDER="$(dirname "$BASE_FOLDER")"
+
 err_log=$_DIR/std.log
 
 . ../_libs/common.sh
 . ../_libs/distro.sh
 . ../_libs/dep_offline.sh
-
-_BASEDIR="$(dirname "$_DIR")"
-_BASEDIR="$(dirname "$_BASEDIR")"
 
 ########################################
 # 
@@ -224,7 +224,7 @@ authorize_private_registry() {
 # 
 ########################################
 install_core_components() {
-    cd $_BASEDIR/src/host-node/ # Position cmd in src folder
+    cd $BASE_FOLDER/src/host-node/ # Position cmd in src folder
     
     mkdir -p $HOME/.multipaas
 
