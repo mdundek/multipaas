@@ -64,6 +64,8 @@ dependencies () {
     fi
     log "\n"
 
+    cd $_DIR
+    
     dep_vbox &>>$err_log &
     bussy_indicator "Dependency on \"Virtualbox and Vagrant\"..."
     log "\n"
