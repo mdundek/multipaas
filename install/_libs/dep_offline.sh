@@ -20,6 +20,7 @@ rpm_offline_install_redhat_7() {
 # 
 ########################################
 deb_offline_install_ubuntu_bionic() {
+    echo "PWD => $(pwd)"
     if [ ! -d "../build/ubuntu_bionic/debs/$1" ] && [ ! -d "../../build/offline_files/debs/$PK_FOLDER_NAME/$1" ]; then
         error "The local lib files for dependecy $1 have not been found.\n"
         error "Please run the preparation script first before continuing.\n"
