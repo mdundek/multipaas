@@ -6,9 +6,9 @@ ENV["LC_ALL"] = "en_US.UTF-8"
 
 Vagrant.configure(2) do |config|
   config.vm.synced_folder '.', '/vagrant', disabled: true
-  config.vm.synced_folder "../debs", "/var/tmp/debs"
-  config.vm.synced_folder "../npm-modules", "/var/tmp/npm-modules"
-  config.vm.synced_folder "../docker-images", "/var/tmp/docker-images"
+  config.vm.synced_folder "../../offline_files/debs/ubuntu_bionic", "/var/tmp/debs"
+  config.vm.synced_folder "../../offline_files/npm-modules", "/var/tmp/npm-modules"
+  config.vm.synced_folder "../../offline_files/docker-images", "/var/tmp/docker-images"
   config.vm.synced_folder "../../../../", "/home/vagrant/multipaas"
   
   config.vm.define "multipaas-prepare" do |multipaas|
