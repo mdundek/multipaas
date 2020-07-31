@@ -75,16 +75,16 @@ download_deb_ubuntu_bionic() {
 # DOWNLOAD RPMS
 ########################################
 download_rpm_redhat_7() {
-    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/$1)" ]; then
-        mkdir -p $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/$1
+    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/$1)" ]; then
+        mkdir -p $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/$1
         echo "==> Downloading package $1"
-        cd $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/$1
+        cd $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/$1
 
         for i in $(repoquery --requires --resolve $1); do
             yumdownloader --assumeyes --destdir=./ --resolve $i
         done
         yumdownloader --assumeyes --destdir=./ --resolve $1
-        rm -rf $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/$1/*.i686.rpm 
+        rm -rf $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/$1/*.i686.rpm 
     else
         echo "==> $1 already present, skipping download"
     fi
@@ -94,16 +94,16 @@ download_rpm_redhat_7() {
 # DOWNLOAD RPMS
 ########################################
 download_rpm_centos_8() {
-    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/$1)" ]; then
-        mkdir -p $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/$1
+    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/centos_eight/$PK_FOLDER_NAME/$1)" ]; then
+        mkdir -p $OFFLINE_FOLDER/rpms/centos_eight/$PK_FOLDER_NAME/$1
         echo "==> Downloading package $1"
-        cd $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/$1
+        cd $OFFLINE_FOLDER/rpms/centos_eight/$PK_FOLDER_NAME/$1
 
         for i in $(repoquery --requires --resolve $1); do
             yumdownloader --assumeyes --destdir=./ --resolve $i
         done
         yumdownloader --assumeyes --destdir=./ --resolve $1
-        rm -rf $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/$1/*.i686.rpm 
+        rm -rf $OFFLINE_FOLDER/rpms/centos_eight/$PK_FOLDER_NAME/$1/*.i686.rpm 
     else
         echo "==> $1 already present, skipping download"
     fi
@@ -379,52 +379,52 @@ build_for_ubuntu_bionic() {
 }
 
 downloading_nodejs_redhat_7() {
-    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/nodejs)" ]; then
-        mkdir -p $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/nodejs
-        wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/nodejs/node-v12.18.0-linux-x64.tar.xz &>>$err_log &
+    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/nodejs)" ]; then
+        mkdir -p $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/nodejs
+        wget https://nodejs.org/dist/v12.18.0/node-v12.18.0-linux-x64.tar.xz -O $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/nodejs/node-v12.18.0-linux-x64.tar.xz &>>$err_log &
         bussy_indicator "Downloading NodeJS 12..."
         log "\n"
     fi
 }
 
 downloading_docker_redhat_7() {
-    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/docker)" ]; then
-        mkdir -p $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/docker
-        cd $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/docker
+    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/docker)" ]; then
+        mkdir -p $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/docker
+        cd $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/docker
         wget https://download.docker.com/linux/static/stable/x86_64/docker-19.03.9.tgz
     fi
 }
 
 downloading_gitlab_runner_redhat_7() {
-    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/gitlab-runner)" ]; then
-        mkdir -p $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/gitlab-runner
-        cd $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/gitlab-runner
-        wget -q https://gitlab-runner-downloads.s3.amazonaws.com/latest/rpm/gitlab-runner_amd64.rpm -O $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/gitlab-runner/gitlab-runner_amd64.rpm
+    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/gitlab-runner)" ]; then
+        mkdir -p $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/gitlab-runner
+        cd $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/gitlab-runner
+        wget -q https://gitlab-runner-downloads.s3.amazonaws.com/latest/rpm/gitlab-runner_amd64.rpm -O $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/gitlab-runner/gitlab-runner_amd64.rpm
     fi
 }
 
 downloading_kubernetes_redhat_7() {
-    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubeadm)" ]; then
+    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/kubeadm)" ]; then
         download_rpm_redhat_7 kubeadm
         download_rpm_redhat_7 kubectl
         download_rpm_redhat_7 kubelet
         download_rpm_redhat_7 kubernetes-cni
     
         # Delete dupliucate libs with diff versions (keep newest)
-        array=($(ls $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubelet/))
+        array=($(ls $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/kubelet/))
         for i in "${!array[@]}"; do
             PREV_I=$(($i-1))
             if [ "$PREV_I" != "-1" ]; then
                 if [[ ${array[$i]} == conntrack-tools-* ]] && [[ ${array[$(($i-1))]} == conntrack-tools-* ]]; then
-                    sudo rm -rf "$OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubelet/${array[$(($i-1))]}"
+                    sudo rm -rf "$OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/kubelet/${array[$(($i-1))]}"
                 elif [[ ${array[$i]} == socat-* ]] && [[ ${array[$(($i-1))]} == socat-* ]]; then
-                    sudo rm -rf "$OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubelet/${array[$(($i-1))]}"
+                    sudo rm -rf "$OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/kubelet/${array[$(($i-1))]}"
                 fi
             fi
         done
-        wget http://mirror.centos.org/centos/7/os/x86_64/Packages/libnetfilter_cttimeout-1.0.0-7.el7.x86_64.rpm -P $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubelet/
-        wget http://mirror.centos.org/centos/7/os/x86_64/Packages/libnetfilter_queue-1.0.2-2.el7_2.x86_64.rpm -P $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubelet/
-        wget http://mirror.centos.org/centos/7/os/x86_64/Packages/libnetfilter_cthelper-1.0.0-11.el7.x86_64.rpm -P $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/kubelet/
+        wget http://mirror.centos.org/centos/7/os/x86_64/Packages/libnetfilter_cttimeout-1.0.0-7.el7.x86_64.rpm -P $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/kubelet/
+        wget http://mirror.centos.org/centos/7/os/x86_64/Packages/libnetfilter_queue-1.0.2-2.el7_2.x86_64.rpm -P $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/kubelet/
+        wget http://mirror.centos.org/centos/7/os/x86_64/Packages/libnetfilter_cthelper-1.0.0-11.el7.x86_64.rpm -P $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/kubelet/
     fi
 }
 
@@ -479,9 +479,9 @@ build_for_redhat_7() {
     log "\n"
 
     # Helm
-    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/helm)" ]; then
-        mkdir -p $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/helm
-        wget https://get.helm.sh/helm-v3.2.3-linux-amd64.tar.gz -O $OFFLINE_FOLDER/rpms/$PK_FOLDER_NAME/helm/helm-v3.2.3-linux-amd64.tar.gz &>>$err_log &
+    if [ -z "$(dependency_dl_exists_rpm $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/helm)" ]; then
+        mkdir -p $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/helm
+        wget https://get.helm.sh/helm-v3.2.3-linux-amd64.tar.gz -O $OFFLINE_FOLDER/rpms/redhat_seven/$PK_FOLDER_NAME/helm/helm-v3.2.3-linux-amd64.tar.gz &>>$err_log &
         bussy_indicator "Downloading Helm..."
         log "\n"
     fi

@@ -4,15 +4,15 @@
 # 
 ########################################
 rpm_offline_install_redhat_7() {
-    if [ ! -d "$BASE_FOLDER/install/build/offline_files/rpms/$PK_FOLDER_NAME/$1" ]; then
+    if [ ! -d "$BASE_FOLDER/install/build/offline_files/rpms/redhat_seven/$PK_FOLDER_NAME/$1" ]; then
         error "The local rpm files for dependecy $1 have not been found.\n"
         error "Please run the preparation script first before continuing.\n"
         exit 1
     fi
     if [ "$2" == "nobest" ]; then
-        sudo yum install -y --cacheonly --nobest --skip-broken --disablerepo=* $BASE_FOLDER/install/build/offline_files/rpms/$PK_FOLDER_NAME/$1/*.rpm
+        sudo yum install -y --cacheonly --nobest --skip-broken --disablerepo=* $BASE_FOLDER/install/build/offline_files/rpms/redhat_seven/$PK_FOLDER_NAME/$1/*.rpm
     else
-        sudo yum install -y --cacheonly --disablerepo=* $BASE_FOLDER/install/build/offline_files/rpms/$PK_FOLDER_NAME/$1/*.rpm
+        sudo yum install -y --cacheonly --disablerepo=* $BASE_FOLDER/install/build/offline_files/rpms/redhat_seven/$PK_FOLDER_NAME/$1/*.rpm
     fi
 }
 
@@ -36,7 +36,7 @@ deb_offline_install_ubuntu_bionic() {
 setup_centos_7_extra_repo() {
     if [ ! -d "/var/www/html/repos" ]; then
         # sudo yum install httpd
-        sudo cp -R "$BASE_FOLDER/install/build/offline_files/rpms/$PK_FOLDER_NAME/offline-repo-files" "/var/www/html/"
+        sudo cp -R "$BASE_FOLDER/install/build/offline_files/rpms/centos_seven/$PK_FOLDER_NAME/offline-repo-files" "/var/www/html/"
         sudo mv "/var/www/html/offline-repo-files" "/var/www/html/repos"
         sudo chmod a+w /var/www/html/repos -R
         restorecon -vR /var/www/html
@@ -175,8 +175,8 @@ dep_docker() {
             fi
         elif [ "$DISTRO" == "redhat" ]; then
             if [ "$MAJ_V" == "7" ]; then
-                tar xzvf ../../build/offline_files/rpms/$PK_FOLDER_NAME/docker/docker-*.tgz -C ../../build/offline_files/rpms/$PK_FOLDER_NAME/docker
-                sudo mv ../../build/offline_files/rpms/$PK_FOLDER_NAME/docker/docker/* /usr/bin/
+                tar xzvf ../../build/offline_files/rpms/redhat_seven/$PK_FOLDER_NAME/docker/docker-*.tgz -C ../../build/offline_files/rpms/redhat_seven/$PK_FOLDER_NAME/docker
+                sudo mv ../../build/offline_files/rpms/redhat_seven/$PK_FOLDER_NAME/docker/docker/* /usr/bin/
                 sudo tee -a /etc/systemd/system/docker.service >/dev/null <<'EOF'
 [Unit]
 Description=Docker Application Container Engine

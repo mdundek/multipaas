@@ -8,7 +8,7 @@ Vagrant.configure(2) do |config|
   config.ssh.insert_key = false
   config.vbguest.auto_update = false
   config.vm.synced_folder '.', '/vagrant', disabled: true
-  config.vm.synced_folder "../../offline_files/rpms", "/var/tmp/rpms"
+  config.vm.synced_folder "../../offline_files/rpms/centos_seven", "/var/tmp/rpms"
   
   # Kubernetes Master Server
   config.vm.define "worker.base" do |worker|
