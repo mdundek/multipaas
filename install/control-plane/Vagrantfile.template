@@ -11,7 +11,7 @@ disk = "<BASE_FOLDER>/install/control-plane/docker-registry.vdi"
 Vagrant.configure(2) do |config|
   config.vbguest.auto_update = false
   config.vm.synced_folder '.', '/vagrant', disabled: true
-  config.vm.synced_folder "<BASE_FOLDER>/install/build/k8s/rpms", "/home/vagrant/rpms"
+  config.vm.synced_folder "<BASE_FOLDER>/install/build/offline_files/rpms", "/home/vagrant/rpms"
   config.vm.synced_folder "<BASE_FOLDER>/install/build/<TARGET_IMG_OS_NAME>/docker-images", "/home/vagrant/docker-images"
   config.vm.synced_folder "<BASE_FOLDER>", "/home/vagrant/multipaas"
 
