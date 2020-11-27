@@ -27,7 +27,7 @@
     "rmrf": "^2.0.2",
     "shelljs": "^0.8.3",
     "shortid": "^2.2.15",
-    "systeminformation": "^4.21.2",
+    "systeminformation": "^4.30.5",
     "targz": "^1.0.1",
     "yaml": "^1.7.2"
   }
